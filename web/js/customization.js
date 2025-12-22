@@ -39,6 +39,19 @@ function loadAdminPage() {
     html += '</div>';
 
     html += '<div class="form-group">';
+    html += '<label for="obfuscate_other_users" title="Replace other\'s username with randomly generated names.">Obfuscate other usernames:<br>';
+    html += '<input type="checkbox" class="form-control" id="obfuscate_other_users" ';
+    if(obfuscate_other_users) {
+        html += 'checked="' + obfuscate_other_users + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
+    html += '<div class="form-group newline">';
+    html += '<hr>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
     html += '<label for="enable_posters" title="Display movie and TV show posters in statistics. Posters are downloaded from Tautulli and cached locally.">Enable Posters:<br>';
     html += '<input type="checkbox" class="form-control" id="enable_posters" ';
     if(enable_posters) {
@@ -53,7 +66,7 @@ function loadAdminPage() {
     html += '</div>';
 
     html += '<div class="form-group">';
-html += '<label for="obfuscate_other_users" title="How to display other users\' names in top lists.">Display other usernames as:<br>';
+    html += '<label for="obfuscate_other_users" title="How to display other users\' names in top lists.">Display other usernames as:<br>';
     html += '<select class="form-control" id="obfuscate_other_users">';
     html += '<option value="plex_username"' + (obfuscate_other_users === 'plex_username' ? ' selected' : '') + '>Plex username</option>';
     html += '<option value="friendly_name"' + (obfuscate_other_users === 'friendly_name' ? ' selected' : '') + '>Tautulli friendly name</option>';
@@ -915,9 +928,14 @@ html += '<label for="obfuscate_other_users" title="How to display other users\' 
     html += '<div class="warning">!<br>Many of the settings here need a clean cache to be applied.</div>';
     html += '</div>';
 
-    html += '<div class="form-group newline" title="Clear the cache now to include the newest settings.">';
+    html += '<div class="form-group" title="Clear the cache now to include the newest settings.">';
     html += '<label for="clear_cache">Clear cache now:<br>';
     html += '<input type="checkbox" class="form-control" id="clear_cache" checked /></label>';
+    html += '</div>';
+
+    html += '<div class="form-group" title="Delete all cached posters. They will be re-downloaded when needed.">';
+    html += '<label for="clear_poster_cache">Clear photo cache now:<br>';
+    html += '<input type="checkbox" class="form-control" id="clear_poster_cache" checked /></label>';
     html += '</div>';
 
     html += '<div class="form-group newline">';
@@ -1133,6 +1151,7 @@ function set_wrapperr_customization_call() {
     get_year_stats_leaderboard_title = document.getElementById('get_year_stats_leaderboard_title').value;
     get_year_stats_duration_sum_title = document.getElementById('get_year_stats_duration_sum_title').value;
     clear_cache = document.getElementById('clear_cache').checked;
+    clear_poster_cache = document.getElementById('clear_poster_cache').checked;
 
     wrapperr_and = document.getElementById("wrapperr_and").value;
     wrapperr_play = document.getElementById("wrapperr_play").value;
@@ -1150,6 +1169,7 @@ function set_wrapperr_customization_call() {
     
     wrapperr_customization_form = {
         "clear_cache" : clear_cache,
+        "clear_poster_cache" : clear_poster_cache,
         "data_type" : "wrapperr_customize",
         "tautulli_config" : [],
         "wrapperr_data" : {},
