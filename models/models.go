@@ -121,6 +121,12 @@ type WrapperrCustomize struct {
 	GetYearStatsRequestsTitle                   string `json:"get_year_stats_requests_title"`
 	GetYearStatsRequestsTotalTitle              string `json:"get_year_stats_requests_total_title"`
 	GetYearStatsRequestsTimelineTitle           string `json:"get_year_stats_requests_timeline_title"`
+	GetUserRequestStatsFollowers                bool   `json:"get_user_request_stats_followers"`
+	GetYearStatsRequestsTrendsetters            bool   `json:"get_year_stats_requests_trendsetters"`
+	GetUserRequestStatsReachTitle               string `json:"get_user_request_stats_reach_title"`
+	GetUserRequestStatsReachTitleNone           string `json:"get_user_request_stats_reach_title_none"`
+	GetUserRequestStatsFollowersTitle           string `json:"get_user_request_stats_followers_title"`
+	GetYearStatsRequestsTrendsettersTitle       string `json:"get_year_stats_requests_trendsetters_title"`
 	WrapperrAnd                                 string `json:"wrapperr_and"`
 	WrapperrPlay                                string `json:"wrapperr_play"`
 	WrapperrPlayPlural                          string `json:"wrapperr_play_plural"`

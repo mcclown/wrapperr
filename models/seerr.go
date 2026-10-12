@@ -58,6 +58,18 @@ type WrapperrRequestUser struct {
 	Requests      int    `json:"requests"`
 	MovieRequests int    `json:"movie_requests"`
 	ShowRequests  int    `json:"show_requests"`
+	// Distinct other users who watched this user's requests (trendsetters)
+	Viewers    int                  `json:"viewers"`
+	TopRequest WrapperrRequestTitle `json:"top_request"`
+	// Number of the current user's requested titles this user watched (followers)
+	TitlesWatched int `json:"titles_watched"`
+	Duration      int `json:"duration"`
+}
+
+type WrapperrRequestTitle struct {
+	Title   string `json:"title"`
+	Year    int    `json:"year"`
+	Viewers int    `json:"viewers"`
 }
 
 type WrapperrUserRequests struct {
@@ -68,6 +80,9 @@ type WrapperrUserRequests struct {
 		RequestRank       int                    `json:"request_rank"`
 		RequesterCount    int                    `json:"requester_count"`
 		Timeline          []WrapperrRequestMonth `json:"timeline"`
+		Viewers           int                    `json:"viewers"`
+		TopRequest        WrapperrRequestTitle   `json:"top_request"`
+		Followers         []WrapperrRequestUser  `json:"followers"`
 	} `json:"data"`
 	Message string `json:"message"`
 	Error   bool   `json:"error"`
@@ -77,6 +92,7 @@ type WrapperrYearRequests struct {
 	Data struct {
 		RequestCount int                    `json:"request_count"`
 		Requesters   []WrapperrRequestUser  `json:"requesters"`
+		Trendsetters []WrapperrRequestUser  `json:"trendsetters"`
 		Timeline     []WrapperrRequestMonth `json:"timeline"`
 	} `json:"data"`
 	Message string `json:"message"`

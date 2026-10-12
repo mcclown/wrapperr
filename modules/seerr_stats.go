@@ -3,6 +3,7 @@ package modules
 import (
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 
 // Adds the Seerr request sections to the reply. Seerr failures are reported in
 // the request sections only, so the rest of the wrapped results still load.
-func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, namer *otherUserNamer, wrapperr_reply models.WrapperrStatisticsReply) models.WrapperrStatisticsReply {
+func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, namer *otherUserNamer, wrapperr_reply models.WrapperrStatisticsReply) models.WrapperrStatisticsReply {
 	userRequests := models.WrapperrUserRequests{}
 	yearRequests := models.WrapperrYearRequests{}
 
@@ -48,7 +49,24 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, namer *o
 		return setError("Failed to load users.")
 	}
 
-	userRequests, yearRequests = SeerrRequestStatistics(requests, users, user_id, start, end, config.WrapperrCustomize.StatsTopListLength, config.WrapperrCustomize.GetYearStatsLeaderboardNumbers, namer)
+	topListLimit := config.WrapperrCustomize.StatsTopListLength
+	showNumbers := config.WrapperrCustomize.GetYearStatsLeaderboardNumbers
+
+	userRequests, yearRequests = SeerrRequestStatistics(requests, users, user_id, start, end, topListLimit, showNumbers, namer)
+
+	wantFollowers := wantUser && config.WrapperrCustomize.GetUserRequestStatsFollowers
+	wantTrendsetters := wantYear && config.WrapperrCustomize.GetYearStatsRequestsTrendsetters
+	if wantFollowers || wantTrendsetters {
+		reach := SeerrRequestReach(requests, users, wrapperr_data, user_id, start, end, topListLimit, showNumbers, namer)
+		if wantFollowers {
+			userRequests.Data.Viewers = reach.Viewers
+			userRequests.Data.TopRequest = reach.TopRequest
+			userRequests.Data.Followers = reach.Followers
+		}
+		if wantTrendsetters {
+			yearRequests.Data.Trendsetters = reach.Trendsetters
+		}
+	}
 
 	if !wantUser {
 		userRequests = models.WrapperrUserRequests{Message: "User request statistics are disabled in the settings.", Error: true}
@@ -70,19 +88,7 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 	userRequests := models.WrapperrUserRequests{}
 	yearRequests := models.WrapperrYearRequests{}
 
-	usersByID := map[int]models.WrapperrUser{}
-	usersByEmail := map[string]models.WrapperrUser{}
-	usersByName := map[string]models.WrapperrUser{}
-	for _, user := range users {
-		usersByID[user.UserID] = user
-		if user.Email != "" {
-			usersByEmail[strings.ToLower(user.Email)] = user
-		}
-		if user.User != "" {
-			usersByName[strings.ToLower(user.User)] = user
-		}
-	}
-
+	resolver := newRequesterResolver(users)
 	months := requestMonths(start, end)
 	serverTimeline := map[string]int{}
 	userTimeline := map[string]int{}
@@ -93,8 +99,8 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 			continue
 		}
 
-		requester := resolveRequester(request.RequestedBy, usersByID, usersByEmail, usersByName)
-		if user, found := usersByID[requester.UserID]; found && user.Ignore {
+		requester, ignored := resolver.resolve(request.RequestedBy)
+		if ignored {
 			continue
 		}
 
@@ -152,10 +158,7 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 		if topListLimit != 0 && index >= topListLimit {
 			break
 		}
-		if entry.UserID != user_id {
-			entry.User, entry.UserID = namer.name(entry.UserID, entry.User, entry.FriendlyName)
-			entry.FriendlyName = entry.User
-		}
+		nameOtherUser(&entry, user_id, namer)
 		if !showNumbers {
 			entry.Requests, entry.MovieRequests, entry.ShowRequests = 0, 0, 0
 		}
@@ -169,14 +172,229 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 		yearRequests.Data.Timeline = append(yearRequests.Data.Timeline, models.WrapperrRequestMonth{Month: month, Requests: serverTimeline[month]})
 	}
 
+	userRequests.Data.Followers = []models.WrapperrRequestUser{}
+	yearRequests.Data.Trendsetters = []models.WrapperrRequestUser{}
+
 	userRequests.Message = "Requests processed."
 	yearRequests.Message = "Requests processed."
 	return userRequests, yearRequests
 }
 
-// Maps a Seerr requester to a Wrapperr user. Unmatched requesters get a
-// negative ID derived from their Seerr ID, so they never collide with a Plex ID.
-func resolveRequester(seerrUser models.SeerrUser, usersByID map[int]models.WrapperrUser, usersByEmail map[string]models.WrapperrUser, usersByName map[string]models.WrapperrUser) models.WrapperrRequestUser {
+type SeerrReach struct {
+	// Distinct other users who watched the current user's requests
+	Viewers    int
+	TopRequest models.WrapperrRequestTitle
+	// Other users ranked by how many of the current user's requests they watched
+	Followers []models.WrapperrRequestUser
+	// Requesters ranked by how many distinct other users watched their requests
+	Trendsetters []models.WrapperrRequestUser
+}
+
+// Joins the requests created within the wrapped period to the plays within it.
+// A play counts towards a request when it is of the requested title (Plex
+// rating key of the movie, or of the show for episodes), happened after the
+// request, and was by someone other than the requester.
+func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUser, wrapperr_data []models.WrapperrDay, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer) SeerrReach {
+	reach := SeerrReach{Followers: []models.WrapperrRequestUser{}, Trendsetters: []models.WrapperrRequestUser{}}
+
+	resolver := newRequesterResolver(users)
+
+	// Requested titles by rating key, each with its requesters and when they first asked
+	requestedTitles := map[int]map[int]time.Time{}
+	requesters := map[int]models.WrapperrRequestUser{}
+
+	for _, request := range requests {
+		if request.CreatedAt.Before(start) || request.CreatedAt.After(end) {
+			continue
+		}
+
+		requester, ignored := resolver.resolve(request.RequestedBy)
+		if ignored {
+			continue
+		}
+		requesters[requester.UserID] = requester
+
+		for _, ratingKey := range []*string{request.Media.RatingKey, request.Media.RatingKey4k} {
+			if ratingKey == nil {
+				continue
+			}
+			key, err := strconv.Atoi(*ratingKey)
+			if err != nil || key == 0 {
+				continue
+			}
+			if requestedTitles[key] == nil {
+				requestedTitles[key] = map[int]time.Time{}
+			}
+			if requestedAt, found := requestedTitles[key][requester.UserID]; !found || request.CreatedAt.Before(requestedAt) {
+				requestedTitles[key][requester.UserID] = request.CreatedAt
+			}
+		}
+	}
+
+	type titleInfo struct {
+		title string
+		year  int
+	}
+	titles := map[int]titleInfo{}
+
+	// requester -> title -> viewer
+	titleViewers := map[int]map[int]map[int]bool{}
+
+	type follower struct {
+		user     models.WrapperrRequestUser
+		titles   map[int]bool
+		duration int
+	}
+	followers := map[int]*follower{}
+
+	for _, day := range wrapperr_data {
+		for _, entry := range day.Data {
+			key, title, year := entry.RatingKey, entry.Title, entry.Year
+			if entry.MediaType == "episode" {
+				key, title, year = entry.GrandparentRatingKey, entry.GrandparentTitle, 0
+			} else if entry.MediaType != "movie" {
+				continue
+			}
+
+			titleRequesters, requested := requestedTitles[key]
+			if !requested || int64(entry.Date) < start.Unix() || int64(entry.Date) > end.Unix() {
+				continue
+			}
+			if _, found := titles[key]; !found {
+				titles[key] = titleInfo{title: title, year: year}
+			}
+
+			for requesterID, requestedAt := range titleRequesters {
+				if entry.UserID == requesterID || int64(entry.Date) < requestedAt.Unix() {
+					continue
+				}
+
+				if titleViewers[requesterID] == nil {
+					titleViewers[requesterID] = map[int]map[int]bool{}
+				}
+				if titleViewers[requesterID][key] == nil {
+					titleViewers[requesterID][key] = map[int]bool{}
+				}
+				titleViewers[requesterID][key][entry.UserID] = true
+
+				if requesterID == user_id {
+					fan, found := followers[entry.UserID]
+					if !found {
+						fan = &follower{user: requestUser(entry.UserID, entry.User, entry.FriendlyName), titles: map[int]bool{}}
+						followers[entry.UserID] = fan
+					}
+					fan.titles[key] = true
+					fan.duration += entry.Duration
+				}
+			}
+		}
+	}
+
+	// Trendsetters, with each requester's most watched title
+	trendsetters := []models.WrapperrRequestUser{}
+	for requesterID, viewedTitles := range titleViewers {
+		viewers := map[int]bool{}
+		top := models.WrapperrRequestTitle{}
+		for key, titleViewerSet := range viewedTitles {
+			for viewer := range titleViewerSet {
+				viewers[viewer] = true
+			}
+			info := titles[key]
+			if len(titleViewerSet) > top.Viewers || (len(titleViewerSet) == top.Viewers && info.title < top.Title) {
+				top = models.WrapperrRequestTitle{Title: info.title, Year: info.year, Viewers: len(titleViewerSet)}
+			}
+		}
+
+		entry := requesters[requesterID]
+		entry.Viewers = len(viewers)
+		entry.TopRequest = top
+		trendsetters = append(trendsetters, entry)
+
+		if requesterID == user_id {
+			reach.Viewers = entry.Viewers
+			reach.TopRequest = top
+		}
+	}
+	sort.Slice(trendsetters, func(i, j int) bool {
+		if trendsetters[i].Viewers != trendsetters[j].Viewers {
+			return trendsetters[i].Viewers > trendsetters[j].Viewers
+		}
+		return strings.ToLower(trendsetters[i].FriendlyName) < strings.ToLower(trendsetters[j].FriendlyName)
+	})
+	for index, entry := range trendsetters {
+		if topListLimit != 0 && index >= topListLimit {
+			break
+		}
+		nameOtherUser(&entry, user_id, namer)
+		if !showNumbers {
+			entry.Viewers, entry.TopRequest.Viewers = 0, 0
+		}
+		reach.Trendsetters = append(reach.Trendsetters, entry)
+	}
+
+	// Followers of the current user
+	fans := []models.WrapperrRequestUser{}
+	for _, fan := range followers {
+		entry := fan.user
+		entry.TitlesWatched = len(fan.titles)
+		entry.Duration = fan.duration
+		fans = append(fans, entry)
+	}
+	sort.Slice(fans, func(i, j int) bool {
+		if fans[i].TitlesWatched != fans[j].TitlesWatched {
+			return fans[i].TitlesWatched > fans[j].TitlesWatched
+		}
+		return fans[i].Duration > fans[j].Duration
+	})
+	for index, entry := range fans {
+		if topListLimit != 0 && index >= topListLimit {
+			break
+		}
+		nameOtherUser(&entry, user_id, namer)
+		reach.Followers = append(reach.Followers, entry)
+	}
+
+	return reach
+}
+
+// Applies the configured naming to anyone who is not the current user
+func nameOtherUser(entry *models.WrapperrRequestUser, user_id int, namer *otherUserNamer) {
+	if entry.UserID == user_id {
+		return
+	}
+	entry.User, entry.UserID = namer.name(entry.UserID, entry.User, entry.FriendlyName)
+	entry.FriendlyName = entry.User
+}
+
+// Maps Seerr requesters to Wrapperr users
+type requesterResolver struct {
+	usersByID    map[int]models.WrapperrUser
+	usersByEmail map[string]models.WrapperrUser
+	usersByName  map[string]models.WrapperrUser
+}
+
+func newRequesterResolver(users []models.WrapperrUser) requesterResolver {
+	resolver := requesterResolver{
+		usersByID:    map[int]models.WrapperrUser{},
+		usersByEmail: map[string]models.WrapperrUser{},
+		usersByName:  map[string]models.WrapperrUser{},
+	}
+	for _, user := range users {
+		resolver.usersByID[user.UserID] = user
+		if user.Email != "" {
+			resolver.usersByEmail[strings.ToLower(user.Email)] = user
+		}
+		if user.User != "" {
+			resolver.usersByName[strings.ToLower(user.User)] = user
+		}
+	}
+	return resolver
+}
+
+// Matches by Plex ID, then email, then Plex username. Unmatched requesters get
+// a negative ID derived from their Seerr ID, so they never collide with a Plex
+// ID. Also reports whether the user is ignored in Wrapperr.
+func (resolver requesterResolver) resolve(seerrUser models.SeerrUser) (models.WrapperrRequestUser, bool) {
 	plexUsername := ""
 	if seerrUser.PlexUsername != nil {
 		plexUsername = *seerrUser.PlexUsername
@@ -184,23 +402,23 @@ func resolveRequester(seerrUser models.SeerrUser, usersByID map[int]models.Wrapp
 
 	user, found := models.WrapperrUser{}, false
 	if seerrUser.PlexID != nil && *seerrUser.PlexID != 0 {
-		user, found = usersByID[*seerrUser.PlexID]
+		user, found = resolver.usersByID[*seerrUser.PlexID]
 		if !found {
 			// A Plex user Wrapperr has not synced yet, the Plex ID is still the right key
-			return requestUser(*seerrUser.PlexID, plexUsername, seerrUser.DisplayName)
+			return requestUser(*seerrUser.PlexID, plexUsername, seerrUser.DisplayName), false
 		}
 	}
 	if !found && seerrUser.Email != "" {
-		user, found = usersByEmail[strings.ToLower(seerrUser.Email)]
+		user, found = resolver.usersByEmail[strings.ToLower(seerrUser.Email)]
 	}
 	if !found && plexUsername != "" {
-		user, found = usersByName[strings.ToLower(plexUsername)]
+		user, found = resolver.usersByName[strings.ToLower(plexUsername)]
 	}
 
 	if found {
-		return requestUser(user.UserID, user.User, user.FriendlyName)
+		return requestUser(user.UserID, user.User, user.FriendlyName), user.Ignore
 	}
-	return requestUser(-seerrUser.ID, plexUsername, seerrUser.DisplayName)
+	return requestUser(-seerrUser.ID, plexUsername, seerrUser.DisplayName), false
 }
 
 func requestUser(userID int, userName string, friendlyName string) models.WrapperrRequestUser {
