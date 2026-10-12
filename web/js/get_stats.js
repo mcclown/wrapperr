@@ -1258,7 +1258,7 @@ function load_requests() {
 
             if(show_year) {
                 text += "<div class='boks2'>";
-                    text += top_list_requesters(year_requests.data.requesters, functions.get_year_stats_requests_title, 'year_stats_year_requests');
+                    text += top_list_requesters(year_requests.data.requesters, functions.get_year_stats_requests_title, 'year_stats_year_requests', 'requests');
                 text += "</div>";
 
                 text += "<div class='boks2'>";
@@ -1273,12 +1273,60 @@ function load_requests() {
             }
 
         text += "</div>";
+
+        var show_reach = show_user && functions.get_user_request_stats_followers && user_requests.data.request_count > 0;
+        var show_followers = show_reach && user_requests.data.followers && user_requests.data.followers.length > 0;
+        var show_trendsetters = show_year && functions.get_year_stats_requests_trendsetters && year_requests.data.trendsetters && year_requests.data.trendsetters.length > 0;
+
+        if(show_reach || show_trendsetters) {
+            text += "<div class='boks3'>";
+
+                if(show_reach) {
+                    var reach_title = functions.get_user_request_stats_reach_title_none;
+                    if(user_requests.data.viewers > 0) {
+                        reach_title = functions.get_user_request_stats_reach_title.replaceAll('{top_request_title}', '<b>' + request_title(user_requests.data.top_request) + '</b>');
+                    }
+
+                    text += "<div class='boks2'>";
+                        text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
+                            text += "<div class='stats'>";
+                                text += ReplaceStandardStrings(reach_title);
+                                text += '<br><img src="assets/img/social-event.svg" style="margin: auto; display: block; width: 15em;">';
+                            text += "</div>";
+                        text += "</div>";
+                    text += "</div>";
+                }
+
+                if(show_followers) {
+                    text += "<div class='boks2'>";
+                        text += top_list_requesters(user_requests.data.followers, functions.get_user_request_stats_followers_title, 'user_requests_followers', 'titles_watched');
+                    text += "</div>";
+                }
+
+                if(show_trendsetters) {
+                    text += "<div class='boks2'>";
+                        text += top_list_requesters(year_requests.data.trendsetters, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters', 'viewers');
+                    text += "</div>";
+                }
+
+            text += "</div>";
+        }
+
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;
 }
 
-function top_list_requesters(array, title, div_id) {
+// Formats a requested title, with the year for movies
+function request_title(title) {
+    if(title.year) {
+        return title.title + ' (' + title.year + ')';
+    }
+    return title.title;
+}
+
+// Lists users with the given count field, and their top request when present
+function top_list_requesters(array, title, div_id, count_field) {
     var html = "";
 
     html += "<div class='status' id='" + div_id + "'>";
@@ -1302,9 +1350,13 @@ function top_list_requesters(array, title, div_id) {
                     html += "<div class='name'>";
                         html += array[i].user;
 
+                        if(array[i].top_request && array[i].top_request.title) {
+                            html += "<br><i>" + request_title(array[i].top_request) + "</i>";
+                        }
+
                         // Counts are zeroed when leaderboard numbers are hidden
-                        if(array[i].requests !== 0) {
-                            html += "<br>" + number_with_spaces(array[i].requests);
+                        if(array[i][count_field] !== 0) {
+                            html += "<br>" + number_with_spaces(array[i][count_field]);
                         }
                     html += "</div>";
 
@@ -1761,6 +1813,9 @@ $(window).scroll(function() {
         string = string.replaceAll('{request_count}', number_with_spaces(results.user.user_requests.data.request_count))
         string = string.replaceAll('{request_rank}', results.user.user_requests.data.request_rank)
         string = string.replaceAll('{requester_count}', number_with_spaces(results.user.user_requests.data.requester_count))
+        string = string.replaceAll('{request_viewers}', number_with_spaces(results.user.user_requests.data.viewers))
+        string = string.replaceAll('{top_request_title}', request_title(results.user.user_requests.data.top_request))
+        string = string.replaceAll('{top_request_viewers}', number_with_spaces(results.user.user_requests.data.top_request.viewers))
     } catch (e) {
         console.log('{request_count} replace failed')
     }

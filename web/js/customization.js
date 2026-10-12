@@ -705,6 +705,24 @@ function loadAdminPage() {
     html += '/><br>';
     html += '</div>';
 
+    html += '<div class="form-group">';
+    html += '<label for="get_user_request_stats_followers" title="Shows how many other people watched what the user requested, their most watched request and the people who watched the most of their requests.">Get user request followers:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_user_request_stats_followers" ';
+    if(get_user_request_stats_followers) {
+        html += 'checked="' + get_user_request_stats_followers + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
+    html += '<label for="get_year_stats_requests_trendsetters" title="Ranks requesters by how many other people watched what they requested.">Get server-wide trendsetters:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_year_stats_requests_trendsetters" ';
+    if(get_year_stats_requests_trendsetters) {
+        html += 'checked="' + get_year_stats_requests_trendsetters + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
     html += '<div class="form-group newline">';
     html += '</div>';
 
@@ -754,6 +772,26 @@ function loadAdminPage() {
             html += '<div class="form-group">';
             html += '<label for="get_year_stats_requests_timeline_title" title="Title above the chart of all requests per month.">Title of server-wide request timeline:<br>';
             html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_timeline_title" name="get_year_stats_requests_timeline_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_reach_title" title="Text about who watched the requests of the user. Use {request_viewers}, {top_request_title} and {top_request_viewers}.">Requests reach text:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_reach_title" name="get_user_request_stats_reach_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_reach_title_none" title="Text when nobody else watched the requests of the user.">Requests reach text (none):<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_reach_title_none" name="get_user_request_stats_reach_title_none" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_followers_title" title="Custom title of the list of people who watched the most of the requests of the user.">Title of followers list:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_followers_title" name="get_user_request_stats_followers_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_stats_requests_trendsetters_title" title="Custom title of the list of top trendsetters.">Title of trendsetters list:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_trendsetters_title" name="get_year_stats_requests_trendsetters_title" value="" autocomplete="off"></textarea></label>';
             html += '</div>';
 
         html += '</div>';
@@ -1129,6 +1167,10 @@ function loadAdminPage() {
     document.getElementById("get_year_stats_requests_title").value = get_year_stats_requests_title;
     document.getElementById("get_year_stats_requests_total_title").value = get_year_stats_requests_total_title;
     document.getElementById("get_year_stats_requests_timeline_title").value = get_year_stats_requests_timeline_title;
+    document.getElementById("get_user_request_stats_reach_title").value = get_user_request_stats_reach_title;
+    document.getElementById("get_user_request_stats_reach_title_none").value = get_user_request_stats_reach_title_none;
+    document.getElementById("get_user_request_stats_followers_title").value = get_user_request_stats_followers_title;
+    document.getElementById("get_year_stats_requests_trendsetters_title").value = get_year_stats_requests_trendsetters_title;
 
 }
 
@@ -1245,6 +1287,12 @@ function set_wrapperr_customization_call() {
     get_year_stats_requests_title = document.getElementById('get_year_stats_requests_title').value;
     get_year_stats_requests_total_title = document.getElementById('get_year_stats_requests_total_title').value;
     get_year_stats_requests_timeline_title = document.getElementById('get_year_stats_requests_timeline_title').value;
+    get_user_request_stats_followers = document.getElementById('get_user_request_stats_followers').checked;
+    get_year_stats_requests_trendsetters = document.getElementById('get_year_stats_requests_trendsetters').checked;
+    get_user_request_stats_reach_title = document.getElementById('get_user_request_stats_reach_title').value;
+    get_user_request_stats_reach_title_none = document.getElementById('get_user_request_stats_reach_title_none').value;
+    get_user_request_stats_followers_title = document.getElementById('get_user_request_stats_followers_title').value;
+    get_year_stats_requests_trendsetters_title = document.getElementById('get_year_stats_requests_trendsetters_title').value;
 
     get_year_stats_title = document.getElementById('get_year_stats_title').value;
     get_year_stats_subtitle = document.getElementById('get_year_stats_subtitle').value;
@@ -1406,6 +1454,12 @@ function set_wrapperr_customization_call() {
             "get_year_stats_requests_title" : get_year_stats_requests_title,
             "get_year_stats_requests_total_title" : get_year_stats_requests_total_title,
             "get_year_stats_requests_timeline_title" : get_year_stats_requests_timeline_title,
+            "get_user_request_stats_followers" : get_user_request_stats_followers,
+            "get_year_stats_requests_trendsetters" : get_year_stats_requests_trendsetters,
+            "get_user_request_stats_reach_title" : get_user_request_stats_reach_title,
+            "get_user_request_stats_reach_title_none" : get_user_request_stats_reach_title_none,
+            "get_user_request_stats_followers_title" : get_user_request_stats_followers_title,
+            "get_year_stats_requests_trendsetters_title" : get_year_stats_requests_trendsetters_title,
             "wrapperr_and" : wrapperr_and,
             "wrapperr_play" : wrapperr_play,
             "wrapperr_play_plural" : wrapperr_play_plural,

@@ -86,7 +86,7 @@ func GetWrapperStatistics(user_name string, user_friendlyname string, user_id in
 	}
 
 	// Add request statistics from Seerr
-	wrapperrReply = WrapperrSeerrStatistics(user_id, config, namer, wrapperrReply)
+	wrapperrReply = WrapperrSeerrStatistics(user_id, config, wrapperr_data, namer, wrapperrReply)
 
 	return wrapperrReply, cachingComplete, err
 }

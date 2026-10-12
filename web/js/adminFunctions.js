@@ -297,6 +297,12 @@ function get_config(cookie) {
                 get_year_stats_requests_title = result.data.wrapperr_customize.get_year_stats_requests_title;
                 get_year_stats_requests_total_title = result.data.wrapperr_customize.get_year_stats_requests_total_title;
                 get_year_stats_requests_timeline_title = result.data.wrapperr_customize.get_year_stats_requests_timeline_title;
+                get_user_request_stats_followers = result.data.wrapperr_customize.get_user_request_stats_followers;
+                get_year_stats_requests_trendsetters = result.data.wrapperr_customize.get_year_stats_requests_trendsetters;
+                get_user_request_stats_reach_title = result.data.wrapperr_customize.get_user_request_stats_reach_title;
+                get_user_request_stats_reach_title_none = result.data.wrapperr_customize.get_user_request_stats_reach_title_none;
+                get_user_request_stats_followers_title = result.data.wrapperr_customize.get_user_request_stats_followers_title;
+                get_year_stats_requests_trendsetters_title = result.data.wrapperr_customize.get_year_stats_requests_trendsetters_title;
                 
                 wrapperr_and = result.data.wrapperr_customize.wrapperr_and;
                 wrapperr_play = result.data.wrapperr_customize.wrapperr_play;
