@@ -297,6 +297,16 @@ function get_config(cookie) {
                 get_year_stats_requests_title = result.data.wrapperr_customize.get_year_stats_requests_title;
                 get_year_stats_requests_total_title = result.data.wrapperr_customize.get_year_stats_requests_total_title;
                 get_year_stats_requests_timeline_title = result.data.wrapperr_customize.get_year_stats_requests_timeline_title;
+                get_user_request_stats_followers = result.data.wrapperr_customize.get_user_request_stats_followers;
+                get_year_stats_requests_trendsetters = result.data.wrapperr_customize.get_year_stats_requests_trendsetters;
+                get_user_request_stats_reach_title = result.data.wrapperr_customize.get_user_request_stats_reach_title;
+                get_user_request_stats_reach_title_none = result.data.wrapperr_customize.get_user_request_stats_reach_title_none;
+                get_user_request_stats_followers_title = result.data.wrapperr_customize.get_user_request_stats_followers_title;
+                get_year_stats_requests_trendsetters_title = result.data.wrapperr_customize.get_year_stats_requests_trendsetters_title;
+                get_user_request_stats_following = result.data.wrapperr_customize.get_user_request_stats_following;
+                stats_order_requests_by_titles = result.data.wrapperr_customize.stats_order_requests_by_titles;
+                stats_order_requests_by_percent = result.data.wrapperr_customize.stats_order_requests_by_percent;
+                get_user_request_stats_following_title = result.data.wrapperr_customize.get_user_request_stats_following_title;
                 
                 wrapperr_and = result.data.wrapperr_customize.wrapperr_and;
                 wrapperr_play = result.data.wrapperr_customize.wrapperr_play;
@@ -311,6 +321,10 @@ function get_config(cookie) {
                 wrapperr_second_plural = result.data.wrapperr_customize.wrapperr_second_plural;
                 wrapperr_sort_plays = result.data.wrapperr_customize.wrapperr_sort_plays;
                 wrapperr_sort_duration = result.data.wrapperr_customize.wrapperr_sort_duration;
+                wrapperr_sort_titles = result.data.wrapperr_customize.wrapperr_sort_titles;
+                wrapperr_sort_percent = result.data.wrapperr_customize.wrapperr_sort_percent;
+                wrapperr_viewer = result.data.wrapperr_customize.wrapperr_viewer;
+                wrapperr_viewer_plural = result.data.wrapperr_customize.wrapperr_viewer_plural;
 
                 username = result.username;
 

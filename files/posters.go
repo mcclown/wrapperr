@@ -319,7 +319,20 @@ func ExtractUserPosterReferences(reply models.WrapperrStatisticsReply) []PosterR
 
 	// Note: Show Buddy uses ShowsDuration[0] which is already extracted above
 
+	// Requested titles
+	topRequest := reply.User.UserRequests.Data.TopRequest
+	addPosterRef(posterMap, topRequest.TautulliServerHash, topRequest.RatingKey, topRequest.Thumb)
+	addRequestUsersToPosterMap(posterMap, reply.User.UserRequests.Data.FollowingTitles)
+	addRequestUsersToPosterMap(posterMap, reply.User.UserRequests.Data.FollowingPercent)
+
 	return posterMapToSlice(posterMap)
+}
+
+// addRequestUsersToPosterMap adds the top request of each user in a request list.
+func addRequestUsersToPosterMap(posterMap map[string]PosterReference, users []models.WrapperrRequestUser) {
+	for _, user := range users {
+		addPosterRef(posterMap, user.TopRequest.TautulliServerHash, user.TopRequest.RatingKey, user.TopRequest.Thumb)
+	}
 }
 
 // ExtractYearPosterReferences extracts unique poster references from the
@@ -331,6 +344,8 @@ func ExtractYearPosterReferences(reply models.WrapperrStatisticsReply) []PosterR
 	addEntriesToPosterMap(posterMap, reply.YearStats.YearMovies.Data.MoviesPlays)
 	addEntriesToPosterMap(posterMap, reply.YearStats.YearShows.Data.ShowsDuration)
 	addEntriesToPosterMap(posterMap, reply.YearStats.YearShows.Data.ShowsPlays)
+	addRequestUsersToPosterMap(posterMap, reply.YearStats.YearRequests.Data.TrendsettersTitles)
+	addRequestUsersToPosterMap(posterMap, reply.YearStats.YearRequests.Data.TrendsettersPercent)
 
 	return posterMapToSlice(posterMap)
 }
