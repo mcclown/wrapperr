@@ -44,7 +44,7 @@ function loadAdminPage() {
     html += '</div>';
 
     html += '<div class="form-group newline">';
-    html += `<button style="background-color: lightgrey;" type="button" class="form-control btn" id="test_seerr_connection" onclick="test_seerr_connection()"><img src="${root}/assets/synchronize.svg" class="btn_logo"><p2 id="test_seerr_text">Test Seerr connection</p2></button>`;
+    html += `<button style="background-color: lightgrey;" type="button" class="form-control btn" id="test_seerr_connection_button" onclick="test_seerr_connection()"><img src="${root}/assets/synchronize.svg" class="btn_logo"><p2 id="test_seerr_text">Test Seerr connection</p2></button>`;
     html += '</div>';
 
     html += '<div class="form-group newline">';
@@ -139,7 +139,7 @@ function set_seerr_settings_call() {
 }
 
 function test_seerr_connection() {
-    var button = document.getElementById('test_seerr_connection');
+    var button = document.getElementById('test_seerr_connection_button');
     button.disabled = true;
     button.style.opacity = '0.5';
     button.style.backgroundColor = 'lightgrey';
