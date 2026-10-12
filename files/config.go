@@ -234,7 +234,7 @@ func migrateV3_3_0toV3_4_0(data []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		for _, key := range []string{"get_user_request_stats", "get_year_stats_requests", "get_user_request_stats_followers", "get_year_stats_requests_trendsetters"} {
+		for _, key := range []string{"get_user_request_stats", "get_year_stats_requests", "get_user_request_stats_followers", "get_year_stats_requests_trendsetters", "get_user_request_stats_following", "stats_order_requests_by_titles", "stats_order_requests_by_percent"} {
 			if _, exists := customize[key]; !exists {
 				customize[key], _ = json.Marshal(true)
 				log.Printf("Migrated %s to true (%s).", key, newVersion)
@@ -456,6 +456,9 @@ func CreateConfigFile() error {
 	config.WrapperrCustomize.GetYearStatsRequests = true
 	config.WrapperrCustomize.GetUserRequestStatsFollowers = true
 	config.WrapperrCustomize.GetYearStatsRequestsTrendsetters = true
+	config.WrapperrCustomize.GetUserRequestStatsFollowing = true
+	config.WrapperrCustomize.StatsOrderRequestsByTitles = true
+	config.WrapperrCustomize.StatsOrderRequestsByPercent = true
 
 	// Write straight to disk without touching the cache or lock: this is only
 	// reached from inside the locked loader (which holds the write lock and then
@@ -698,6 +701,10 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 
 	if !config.WrapperrCustomize.StatsOrderByDuration && !config.WrapperrCustomize.StatsOrderByPlays {
 		config.WrapperrCustomize.StatsOrderByDuration = true
+	}
+
+	if !config.WrapperrCustomize.StatsOrderRequestsByTitles && !config.WrapperrCustomize.StatsOrderRequestsByPercent {
+		config.WrapperrCustomize.StatsOrderRequestsByTitles = true
 	}
 
 	if config.WrapperrCustomize.GetUserMovieStatsTitle == "" {
@@ -1092,6 +1099,10 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 		config.WrapperrCustomize.GetYearStatsRequestsTrendsettersTitle = config_default.WrapperrCustomize.GetYearStatsRequestsTrendsettersTitle
 	}
 
+	if config.WrapperrCustomize.GetUserRequestStatsFollowingTitle == "" {
+		config.WrapperrCustomize.GetUserRequestStatsFollowingTitle = config_default.WrapperrCustomize.GetUserRequestStatsFollowingTitle
+	}
+
 	if config.WrapperrCustomize.WrapperrAnd == "" {
 		config.WrapperrCustomize.WrapperrAnd = config_default.WrapperrCustomize.WrapperrAnd
 	}
@@ -1142,6 +1153,22 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 
 	if config.WrapperrCustomize.WrapperrSortDuration == "" {
 		config.WrapperrCustomize.WrapperrSortDuration = config_default.WrapperrCustomize.WrapperrSortDuration
+	}
+
+	if config.WrapperrCustomize.WrapperrSortTitles == "" {
+		config.WrapperrCustomize.WrapperrSortTitles = config_default.WrapperrCustomize.WrapperrSortTitles
+	}
+
+	if config.WrapperrCustomize.WrapperrSortPercent == "" {
+		config.WrapperrCustomize.WrapperrSortPercent = config_default.WrapperrCustomize.WrapperrSortPercent
+	}
+
+	if config.WrapperrCustomize.WrapperrViewer == "" {
+		config.WrapperrCustomize.WrapperrViewer = config_default.WrapperrCustomize.WrapperrViewer
+	}
+
+	if config.WrapperrCustomize.WrapperrViewerPlural == "" {
+		config.WrapperrCustomize.WrapperrViewerPlural = config_default.WrapperrCustomize.WrapperrViewerPlural
 	}
 
 	return config, nil

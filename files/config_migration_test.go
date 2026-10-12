@@ -18,6 +18,8 @@ func TestMigrateV3_3_0toV3_4_0(t *testing.T) {
 		Customize struct {
 			GetUserRequestStats  bool `json:"get_user_request_stats"`
 			GetYearStatsRequests bool `json:"get_year_stats_requests"`
+			Following            bool `json:"get_user_request_stats_following"`
+			OrderByPercent       bool `json:"stats_order_requests_by_percent"`
 		} `json:"wrapperr_customize"`
 	}
 	if err := json.Unmarshal(output, &migrated); err != nil {
@@ -29,6 +31,9 @@ func TestMigrateV3_3_0toV3_4_0(t *testing.T) {
 	}
 	if !migrated.Customize.GetUserRequestStats {
 		t.Errorf("expected missing get_user_request_stats to default to true")
+	}
+	if !migrated.Customize.Following || !migrated.Customize.OrderByPercent {
+		t.Errorf("expected missing following and percentage ordering settings to default to true")
 	}
 	if migrated.Customize.GetYearStatsRequests {
 		t.Errorf("expected existing get_year_stats_requests to be kept as false")

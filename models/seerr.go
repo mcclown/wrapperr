@@ -61,15 +61,24 @@ type WrapperrRequestUser struct {
 	// Distinct other users who watched this user's requests (trendsetters)
 	Viewers    int                  `json:"viewers"`
 	TopRequest WrapperrRequestTitle `json:"top_request"`
-	// Number of the current user's requested titles this user watched (followers)
-	TitlesWatched int `json:"titles_watched"`
-	Duration      int `json:"duration"`
+	// Requested titles that were watched, out of the requested titles they
+	// relate to. For trendsetters these are the user's requests watched by
+	// others, for followers the current user's requests watched by this user,
+	// and for following this user's requests watched by the current user.
+	TitlesWatched        int `json:"titles_watched"`
+	RequestedTitles      int `json:"requested_titles"`
+	TitlesWatchedPercent int `json:"titles_watched_percent"`
+	Duration             int `json:"duration"`
 }
 
 type WrapperrRequestTitle struct {
 	Title   string `json:"title"`
 	Year    int    `json:"year"`
 	Viewers int    `json:"viewers"`
+	// Poster details, taken from a play of the title
+	RatingKey          int    `json:"rating_key"`
+	Thumb              string `json:"thumb"`
+	TautulliServerHash string `json:"tautulli_server_hash"`
 }
 
 type WrapperrUserRequests struct {
@@ -83,6 +92,8 @@ type WrapperrUserRequests struct {
 		Viewers           int                    `json:"viewers"`
 		TopRequest        WrapperrRequestTitle   `json:"top_request"`
 		Followers         []WrapperrRequestUser  `json:"followers"`
+		FollowingTitles   []WrapperrRequestUser  `json:"following_titles"`
+		FollowingPercent  []WrapperrRequestUser  `json:"following_percent"`
 	} `json:"data"`
 	Message string `json:"message"`
 	Error   bool   `json:"error"`
@@ -90,10 +101,11 @@ type WrapperrUserRequests struct {
 
 type WrapperrYearRequests struct {
 	Data struct {
-		RequestCount int                    `json:"request_count"`
-		Requesters   []WrapperrRequestUser  `json:"requesters"`
-		Trendsetters []WrapperrRequestUser  `json:"trendsetters"`
-		Timeline     []WrapperrRequestMonth `json:"timeline"`
+		RequestCount        int                    `json:"request_count"`
+		Requesters          []WrapperrRequestUser  `json:"requesters"`
+		TrendsettersTitles  []WrapperrRequestUser  `json:"trendsetters_titles"`
+		TrendsettersPercent []WrapperrRequestUser  `json:"trendsetters_percent"`
+		Timeline            []WrapperrRequestMonth `json:"timeline"`
 	} `json:"data"`
 	Message string `json:"message"`
 	Error   bool   `json:"error"`

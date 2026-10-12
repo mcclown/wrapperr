@@ -127,6 +127,10 @@ type WrapperrCustomize struct {
 	GetUserRequestStatsReachTitleNone           string `json:"get_user_request_stats_reach_title_none"`
 	GetUserRequestStatsFollowersTitle           string `json:"get_user_request_stats_followers_title"`
 	GetYearStatsRequestsTrendsettersTitle       string `json:"get_year_stats_requests_trendsetters_title"`
+	GetUserRequestStatsFollowing                bool   `json:"get_user_request_stats_following"`
+	GetUserRequestStatsFollowingTitle           string `json:"get_user_request_stats_following_title"`
+	StatsOrderRequestsByTitles                  bool   `json:"stats_order_requests_by_titles"`
+	StatsOrderRequestsByPercent                 bool   `json:"stats_order_requests_by_percent"`
 	WrapperrAnd                                 string `json:"wrapperr_and"`
 	WrapperrPlay                                string `json:"wrapperr_play"`
 	WrapperrPlayPlural                          string `json:"wrapperr_play_plural"`
@@ -140,6 +144,10 @@ type WrapperrCustomize struct {
 	WrapperrSecondPlural                        string `json:"wrapperr_second_plural"`
 	WrapperrSortPlays                           string `json:"wrapperr_sort_plays"`
 	WrapperrSortDuration                        string `json:"wrapperr_sort_duration"`
+	WrapperrSortTitles                          string `json:"wrapperr_sort_titles"`
+	WrapperrSortPercent                         string `json:"wrapperr_sort_percent"`
+	WrapperrViewer                              string `json:"wrapperr_viewer"`
+	WrapperrViewerPlural                        string `json:"wrapperr_viewer_plural"`
 }
 
 type MovieBirthDecadeResult struct {
