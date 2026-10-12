@@ -75,12 +75,18 @@ func GetWrapperStatistics(user_name string, user_friendlyname string, user_id in
 	wrapperr_reply.Date = time.Now().Format("2006-01-02")
 	wrapperr_reply.Message = "Statistics retrieved."
 
+	// Names other users consistently across every list in the reply
+	namer := newOtherUserNamer(config.WrapperrCustomize.ObfuscateOtherUsers)
+
 	// Loop through Wrapperr data and format reply
-	wrapperrReply, err = WrapperrLoopData(user_id, config, wrapperr_data, wrapperr_reply)
+	wrapperrReply, err = WrapperrLoopData(user_id, config, wrapperr_data, wrapperr_reply, namer)
 	if err != nil {
 		log.Println("Failed to wrap data. Error: " + err.Error())
 		return wrapperrReply, cachingComplete, errors.New("Failed to wrap data.")
 	}
+
+	// Add request statistics from Seerr
+	wrapperrReply = WrapperrSeerrStatistics(user_id, config, namer, wrapperrReply)
 
 	return wrapperrReply, cachingComplete, err
 }
@@ -526,7 +532,7 @@ func CalculateShowBirthDecade(episodes []models.TautulliEntry, referenceYear int
 	}
 }
 
-func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, wrapperr_reply models.WrapperrStatisticsReply) (models.WrapperrStatisticsReply, error) {
+func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, wrapperr_reply models.WrapperrStatisticsReply, namer *otherUserNamer) (models.WrapperrStatisticsReply, error) {
 
 	end_loop_date := time.Unix(int64(config.WrappedEnd), 0)
 	start_loop_date := time.Unix(int64(config.WrappedStart), 0)
@@ -1275,9 +1281,6 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 
 		wrapperr_reply.YearStats.YearMusic.Message = "No tracks processed."
 	}
-
-	// Names other users consistently across the leaderboard and the show buddy
-	namer := newOtherUserNamer(config.WrapperrCustomize.ObfuscateOtherUsers)
 
 	// Format reply for universal user details
 	if (config.WrapperrCustomize.GetYearStatsMusic || config.WrapperrCustomize.GetYearStatsMovies || config.WrapperrCustomize.GetYearStatsShows) && config.WrapperrCustomize.GetYearStatsLeaderboard && len(wrapperr_year_user) > 0 {
