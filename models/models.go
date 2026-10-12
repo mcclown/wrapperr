@@ -111,6 +111,16 @@ type WrapperrCustomize struct {
 	GetYearStatsShowsDurationTitle              string `json:"get_year_stats_shows_duration_title"`
 	GetYearStatsMusicDurationTitle              string `json:"get_year_stats_music_duration_title"`
 	GetYearStatsDurationSumTitle                string `json:"get_year_stats_duration_sum_title"`
+	GetUserRequestStats                         bool   `json:"get_user_request_stats"`
+	GetUserRequestStatsTitle                    string `json:"get_user_request_stats_title"`
+	GetUserRequestStatsSubtitle                 string `json:"get_user_request_stats_subtitle"`
+	GetUserRequestStatsSubtitleOne              string `json:"get_user_request_stats_subtitle_one"`
+	GetUserRequestStatsSubtitleNone             string `json:"get_user_request_stats_subtitle_none"`
+	GetUserRequestStatsTimelineTitle            string `json:"get_user_request_stats_timeline_title"`
+	GetYearStatsRequests                        bool   `json:"get_year_stats_requests"`
+	GetYearStatsRequestsTitle                   string `json:"get_year_stats_requests_title"`
+	GetYearStatsRequestsTotalTitle              string `json:"get_year_stats_requests_total_title"`
+	GetYearStatsRequestsTimelineTitle           string `json:"get_year_stats_requests_timeline_title"`
 	WrapperrAnd                                 string `json:"wrapperr_and"`
 	WrapperrPlay                                string `json:"wrapperr_play"`
 	WrapperrPlayPlural                          string `json:"wrapperr_play_plural"`
@@ -253,6 +263,7 @@ type WrapperrStatisticsReply struct {
 			Message string `json:"message"`
 			Error   bool   `json:"error"`
 		} `json:"year_users"`
+		YearRequests WrapperrYearRequests `json:"year_requests"`
 	} `json:"year_stats"`
 }
 
@@ -358,6 +369,7 @@ type WrapperrStatisticsUser struct {
 		Message string `json:"message"`
 		Error   bool   `json:"error"`
 	} `json:"user_music"`
+	UserRequests WrapperrUserRequests `json:"user_requests"`
 }
 
 type WrapperrShowBuddy struct {

@@ -183,6 +183,7 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 		{
 			admin.POST("/validate/admin", routes.ApiValidateAdmin)
 			admin.POST("/get/tautulli-connection", routes.ApiGetTautulliConncection)
+			admin.POST("/get/seerr-connection", routes.ApiGetSeerrConnection)
 			admin.POST("/get/config", routes.ApiGetConfig)
 			admin.POST("/set/config", routes.ApiSetConfig)
 			admin.POST("/update/admin", routes.ApiUpdateAdmin)
@@ -230,6 +231,11 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 		// Static endpoint for Tautulli admin functions
 		router.GET(root+"/admin/tautulli", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "tautulli.html", nil)
+		})
+
+		// Static endpoint for Seerr admin functions
+		router.GET(root+"/admin/seerr", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "seerr.html", nil)
 		})
 
 		// Static endpoint for admin settings functions
