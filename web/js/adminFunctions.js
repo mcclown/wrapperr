@@ -149,6 +149,7 @@ function get_config(cookie) {
                 location.reload();
             } else {
                 tautulli = result.data.tautulli_config;
+                seerr = result.data.seerr_config;
 
                 timezone = result.data.timezone;
                 create_share_links = result.data.create_share_links;
@@ -341,6 +342,10 @@ function AdminPageRedirect() {
 function TautulliPageRedirect() {
     console.log(root)
     window.location.href = root+"/admin/tautulli";
+}
+
+function SeerrPageRedirect() {
+    window.location.href = root+"/admin/seerr";
 }
 
 function SettingsPageRedirect() {

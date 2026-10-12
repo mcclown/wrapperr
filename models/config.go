@@ -2,6 +2,7 @@ package models
 
 type WrapperrConfig struct {
 	TautulliConfig     []TautulliConfig  `json:"tautulli_config"`
+	SeerrConfig        SeerrConfig       `json:"seerr_config"`
 	WrapperrCustomize  WrapperrCustomize `json:"wrapperr_customize"`
 	WrapperrVersion    string            `json:"wrapperr_version"`
 	Timezone           string            `json:"timezone"`
@@ -29,6 +30,7 @@ type SetWrapperrConfig struct {
 	ClearPosterCache  bool              `json:"clear_poster_cache"`
 	DataType          string            `json:"data_type"`
 	TautulliConfig    []TautulliConfig  `json:"tautulli_config"`
+	SeerrConfig       SeerrConfig       `json:"seerr_config"`
 	WrapperrCustomize WrapperrCustomize `json:"wrapperr_customize"`
 	WrapperrData      struct {
 		UseCache           bool   `json:"use_cache"`
