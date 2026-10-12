@@ -110,6 +110,16 @@
         "get_year_stats_shows_duration_title":"All users combined spent {show_duration_sum} watching shows.",
         "get_year_stats_music_duration_title":"All users combined spent {music_duration_sum} listening to music.",
         "get_year_stats_duration_sum_title":"That is {all_duration_sum} of content!",
+        "get_user_request_stats":true,
+        "get_user_request_stats_title":"Requests!",
+        "get_user_request_stats_subtitle":"You requested {request_count} titles. That makes you number {request_rank} of {requester_count} requesters!",
+        "get_user_request_stats_subtitle_one":"You requested one title. Picky, are we?",
+        "get_user_request_stats_subtitle_none":"You didn't request anything. Happy with what's already here?",
+        "get_user_request_stats_timeline_title":"Your requests, month by month",
+        "get_year_stats_requests":true,
+        "get_year_stats_requests_title":"Top requesters",
+        "get_year_stats_requests_total_title":"Together, everyone requested {server_request_count} titles.",
+        "get_year_stats_requests_timeline_title":"Everyone's requests, month by month",
         "wrapperr_and":"and",
         "wrapperr_play":"play",
         "wrapperr_play_plural":"plays",
@@ -124,6 +134,14 @@
         "wrapperr_sort_plays":"Sort by plays",
         "wrapperr_sort_duration":"Sort by duration",
         "get_user_show_stats_buddy":true
+    },
+    "seerr_config": {
+        "seerr_enabled": false,
+        "seerr_apikey": "",
+        "seerr_ip": "",
+        "seerr_port": 5055,
+        "seerr_root": "",
+        "seerr_https": false
     },
     "tautulli_config": [
         {

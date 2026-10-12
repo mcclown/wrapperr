@@ -92,6 +92,16 @@ func ApiSetConfig(context *gin.Context) {
 			context.Abort()
 			return
 		}
+	} else if config_payload.DataType == "seerr_config" {
+		config.SeerrConfig = config_payload.SeerrConfig
+
+		err = files.SaveConfig(config)
+		if err != nil {
+			log.Println("Failed to save new Wrapperr configuration. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new Wrapperr configuration."})
+			context.Abort()
+			return
+		}
 	} else if config_payload.DataType == "wrapperr_customize" {
 		config.WrapperrCustomize = config_payload.WrapperrCustomize
 
@@ -792,4 +802,40 @@ func ApiDisableMFA(context *gin.Context) {
 	ipString := utilities.GetOriginIPString(context)
 	log.Println("Admin MFA disabled." + ipString)
 	context.JSON(http.StatusOK, gin.H{"message": "MFA disabled.", "error": false})
+}
+
+// API route used to test a Seerr connection.
+func ApiGetSeerrConnection(context *gin.Context) {
+	var seerr_connection models.SeerrConfig
+	if err := context.ShouldBindJSON(&seerr_connection); err != nil {
+		log.Println("Failed to parse request. Error: " + err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+
+	if seerr_connection.SeerrApiKey == "" || seerr_connection.SeerrIP == "" || seerr_connection.SeerrPort == 0 {
+		log.Println("Cannot test Seerr connection. Invalid Seerr connection details received.")
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Seerr connection details specified are invalid."})
+		context.Abort()
+		return
+	}
+
+	seerr_state, err := modules.SeerrTestConnection(seerr_connection)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+
+	booleanReply := models.BooleanReply{
+		Message: "Tested Seerr connection.",
+		Error:   false,
+		Data:    seerr_state,
+	}
+
+	ipString := utilities.GetOriginIPString(context)
+	log.Println("Tested Seerr connection." + ipString)
+
+	context.JSON(http.StatusOK, booleanReply)
 }
