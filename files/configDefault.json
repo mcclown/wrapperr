@@ -126,6 +126,10 @@
         "get_user_request_stats_reach_title_none":"Nobody else has watched your requests yet. Ahead of your time?",
         "get_user_request_stats_followers_title":"Your followers",
         "get_year_stats_requests_trendsetters_title":"Trendsetters",
+        "get_user_request_stats_following":true,
+        "get_user_request_stats_following_title":"Whose requests you watch",
+        "stats_order_requests_by_titles":true,
+        "stats_order_requests_by_percent":true,
         "wrapperr_and":"and",
         "wrapperr_play":"play",
         "wrapperr_play_plural":"plays",
@@ -139,6 +143,10 @@
         "wrapperr_second_plural":"seconds",
         "wrapperr_sort_plays":"Sort by plays",
         "wrapperr_sort_duration":"Sort by duration",
+        "wrapperr_sort_titles":"Sort by titles watched",
+        "wrapperr_sort_percent":"Sort by percentage watched",
+        "wrapperr_viewer":"viewer",
+        "wrapperr_viewer_plural":"viewers",
         "get_user_show_stats_buddy":true
     },
     "seerr_config": {

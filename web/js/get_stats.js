@@ -1276,9 +1276,10 @@ function load_requests() {
 
         var show_reach = show_user && functions.get_user_request_stats_followers && user_requests.data.request_count > 0;
         var show_followers = show_reach && user_requests.data.followers && user_requests.data.followers.length > 0;
-        var show_trendsetters = show_year && functions.get_year_stats_requests_trendsetters && year_requests.data.trendsetters && year_requests.data.trendsetters.length > 0;
+        var show_following = show_user && functions.get_user_request_stats_following && user_requests.data.following_titles && user_requests.data.following_titles.length > 0;
+        var show_trendsetters = show_year && functions.get_year_stats_requests_trendsetters && year_requests.data.trendsetters_titles && year_requests.data.trendsetters_titles.length > 0;
 
-        if(show_reach || show_trendsetters) {
+        if(show_reach || show_following || show_trendsetters) {
             text += "<div class='boks3'>";
 
                 if(show_reach) {
@@ -1287,11 +1288,21 @@ function load_requests() {
                         reach_title = functions.get_user_request_stats_reach_title.replaceAll('{top_request_title}', '<b>' + request_title(user_requests.data.top_request) + '</b>');
                     }
 
+                    var top_request = user_requests.data.top_request;
+
                     text += "<div class='boks2'>";
                         text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
                             text += "<div class='stats'>";
                                 text += ReplaceStandardStrings(reach_title);
-                                text += '<br><img src="assets/img/social-event.svg" style="margin: auto; display: block; width: 15em;">';
+                                text += '<br>';
+                                if(user_requests.data.viewers > 0 && has_request_poster(top_request)) {
+                                    text += posterImgTag(top_request.tautulli_server_hash, top_request.rating_key, top_request.thumb, {
+                                        className: "special-poster", alt: "Poster",
+                                        style: "margin: 1em auto; display: block;", fallback: "assets/img/social-event.svg"
+                                    });
+                                } else {
+                                    text += '<img src="assets/img/social-event.svg" style="margin: auto; display: block; width: 15em;">';
+                                }
                             text += "</div>";
                         text += "</div>";
                     text += "</div>";
@@ -1299,13 +1310,19 @@ function load_requests() {
 
                 if(show_followers) {
                     text += "<div class='boks2'>";
-                        text += top_list_requesters(user_requests.data.followers, functions.get_user_request_stats_followers_title, 'user_requests_followers', 'titles_watched');
+                        text += top_list_requesters(user_requests.data.followers, functions.get_user_request_stats_followers_title, 'user_requests_followers', 'reach');
+                    text += "</div>";
+                }
+
+                if(show_following) {
+                    text += "<div class='boks2'>";
+                        text += top_list_requesters_sortable(user_requests.data.following_titles, user_requests.data.following_percent, functions.get_user_request_stats_following_title, 'user_requests_following');
                     text += "</div>";
                 }
 
                 if(show_trendsetters) {
                     text += "<div class='boks2'>";
-                        text += top_list_requesters(year_requests.data.trendsetters, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters', 'viewers');
+                        text += top_list_requesters_sortable(year_requests.data.trendsetters_titles, year_requests.data.trendsetters_percent, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters');
                     text += "</div>";
                 }
 
@@ -1325,7 +1342,39 @@ function request_title(title) {
     return title.title;
 }
 
-// Lists users with the given count field, and their top request when present
+// Whether a requested title has what is needed to show its poster
+function has_request_poster(title) {
+    return functions.enable_posters && title && title.thumb && title.rating_key && title.tautulli_server_hash;
+}
+
+// Requester lists that can be ordered by titles watched or by percentage watched, by list ID
+var request_lists = {};
+
+// A requester list with a button to switch between ordering by titles watched and by percentage watched
+function top_list_requesters_sortable(array_titles, array_percent, title, div_id) {
+    var by_titles = functions.stats_order_requests_by_titles !== false;
+    var by_percent = functions.stats_order_requests_by_percent !== false && array_percent;
+    var list = {titles: array_titles, percent: array_percent, title: title, order: (by_titles || !by_percent) ? 'titles' : 'percent'};
+    request_lists[div_id] = list;
+
+    var html = "";
+    if(by_titles && by_percent) {
+        html += '<button class="form-control btn" style="margin: 0.5em auto; width: fit-content;" name="' + div_id + '_button" id="' + div_id + '_button" onclick="top_list_requesters_sort_by(\'' + div_id + '\');"><img src="assets/tweak.svg" class="btn_logo"><p2 id="' + div_id + '_button_text">' + functions.wrapperr_sort_percent + '</p2></button>';
+    }
+    html += top_list_requesters(list[list.order], title, div_id, 'reach');
+    return html;
+}
+
+// Toggle a requester list between ordering by titles watched and by percentage watched
+function top_list_requesters_sort_by(div_id) {
+    var list = request_lists[div_id];
+    list.order = list.order === 'titles' ? 'percent' : 'titles';
+    document.getElementById(div_id).outerHTML = top_list_requesters(list[list.order], list.title, div_id, 'reach');
+    document.getElementById(div_id + '_button_text').innerHTML = list.order === 'titles' ? functions.wrapperr_sort_percent : functions.wrapperr_sort_titles;
+}
+
+// Lists users with the given count field, or with titles watched when it is
+// 'reach', and their top request when present
 function top_list_requesters(array, title, div_id, count_field) {
     var html = "";
 
@@ -1347,6 +1396,15 @@ function top_list_requesters(array, title, div_id, count_field) {
                         html += i+1 + ". ";
                     html += "</div>";
 
+                    var top_request = array[i].top_request;
+                    if(has_request_poster(top_request)) {
+                        html += "<div class='poster-thumbnail'>";
+                            html += posterImgTag(top_request.tautulli_server_hash, top_request.rating_key, top_request.thumb, {
+                                alt: "Poster", fallback: "hide-parent"
+                            });
+                        html += "</div>";
+                    }
+
                     html += "<div class='name'>";
                         html += array[i].user;
 
@@ -1355,7 +1413,14 @@ function top_list_requesters(array, title, div_id, count_field) {
                         }
 
                         // Counts are zeroed when leaderboard numbers are hidden
-                        if(array[i][count_field] !== 0) {
+                        if(count_field === 'reach') {
+                            if(array[i].titles_watched) {
+                                html += "<br>" + number_with_spaces(array[i].titles_watched) + " / " + number_with_spaces(array[i].requested_titles) + " (" + array[i].titles_watched_percent + "%)";
+                            }
+                            if(array[i].viewers) {
+                                html += "<br>" + number_with_spaces(array[i].viewers) + " " + (array[i].viewers == 1 ? functions.wrapperr_viewer : functions.wrapperr_viewer_plural);
+                            }
+                        } else if(array[i][count_field] !== 0) {
                             html += "<br>" + number_with_spaces(array[i][count_field]);
                         }
                     html += "</div>";
