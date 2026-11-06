@@ -21,13 +21,15 @@ Rules:
 |---|---|---|---|---|---|---|
 | A1 | Seerr request statistics | `seerr-requests` | #1 | main | open | yes |
 | A2 | Seerr trendsetters and followers | `seerr-trendsetter` | #2 | `seerr-requests` | open | yes |
-| B | Fuller play records in the cache | `fork/play-cache-detail` | | main | planned | yes |
-| C | Viewing analysis (per-person layer, Go) | `fork/viewing-analysis` | | B | planned | yes |
+| C | Viewing analysis (per-account layer, Go) | `fork/viewing-analysis` | | main | planned | yes |
 | D | Plex metadata (episode counts, added dates, backdrops) | `fork/plex-metadata` | | C | planned | yes |
 | E | Voyage data (contract + API) | `fork/voyage-data` | | D | planned | maybe |
 | F | Voyage page | `fork/voyage-page` | | E | planned | maybe |
 | G | Voyage entry and handoff to the classic page | `fork/voyage-entry` | | F | planned | maybe |
 | H | Voyage static export | `fork/voyage-export` | | E | planned | maybe |
+
+Household splitting (split by device) was dropped on 2026-11-06 as too inaccurate, and theme B
+(fuller play records for it) went with it: every calculation is per Plex account.
 
 ## Merge order
 
