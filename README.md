@@ -121,6 +121,8 @@ How it works:
 | `USE_LOGS` | `--uselogs` | `use_logs` | bool | Write logs to file and stdout. |
 | `WINTER_THEME` | `--wintertheme` | `winter_theme` | bool | Enable the winter theme. |
 | `DISABLE_ADMIN_PAGE` | `--disableadminpage` | `disable_admin_page` | bool | Disable the admin web pages. |
+| `TRUSTED_PROXIES` | `--trustedproxies` | `trusted_proxies` | list | Comma-separated reverse proxy addresses or CIDRs whose client address headers (`CF-Connecting-IP`, `X-Forwarded-For`, `X-Real-IP`) are trusted. Empty trusts none. |
+| `ADMIN_NETWORKS` | `--adminnetworks` | `admin_networks` | list | Comma-separated addresses or CIDRs allowed to reach the admin pages and API; anyone else gets a 404. Empty allows everyone. |
 | `PUID` | _Docker only_ | — | int | UID the container runs Wrapperr as (default `1000`). |
 | `PGID` | _Docker only_ | — | int | GID the container runs Wrapperr as (default `1000`). |
 
@@ -131,6 +133,8 @@ Example:
 ```
 $ ./wrapperr --port 9090 --timezone America/New_York --plexauth true
 ```
+
+Exposing Wrapperr to the internet (a reverse proxy or a Cloudflare tunnel)? See [docs/exposing.md](docs/exposing.md).
 
 For Docker `run`/Compose examples (including `PUID`/`PGID` and volume mounts) see the [Docker documentation in the Wiki](https://github.com/aunefyren/wrapperr/wiki).
 
