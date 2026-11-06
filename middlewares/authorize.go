@@ -121,10 +121,10 @@ func AuthGetPayloadFromAuthorization(authorizationHeader string, config models.W
 			return payload, http.StatusUnauthorized, errors.New("Session token not accepted. Please relog.")
 		}
 
-		token, found := strings.CutPrefix(authorizationHeader, "Basic ")
-		if !found {
+		if len(authorizationHeader) < 6 || authorizationHeader[5] != ' ' {
 			return payload, http.StatusBadRequest, errors.New("'Basic' part of header not found.")
 		}
+		token := authorizationHeader[6:]
 
 		rawDecodedtoken, err := base64.StdEncoding.DecodeString(token)
 		if err != nil {

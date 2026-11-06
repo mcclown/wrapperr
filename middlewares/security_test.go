@@ -121,6 +121,18 @@ func TestAdminAllowedAfterRestart(t *testing.T) {
 	}
 }
 
+func TestConfigureClientIPFailureKeepsSettings(t *testing.T) {
+	if err := ConfigureClientIP(gin.New(), []string{"192.168.1.5"}, "CF-Connecting-IP"); err != nil {
+		t.Fatal(err)
+	}
+	if err := ConfigureClientIP(gin.New(), []string{"not-a-network"}, ""); err == nil {
+		t.Fatal("expected an error for a bad proxy")
+	}
+	if got := currentProxy(); got.header != "CF-Connecting-IP" || len(got.trusted) != 1 {
+		t.Fatalf("settings after a failed call = %+v, want the earlier ones", got)
+	}
+}
+
 func TestClientIPHeader(t *testing.T) {
 	for setting, want := range map[string]string{"": "X-Forwarded-For", "cf-connecting-ip": "CF-Connecting-IP", " X-Real-IP ": "X-Real-IP"} {
 		if got, ok := ClientIPHeader(setting); !ok || got != want {

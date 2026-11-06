@@ -194,7 +194,12 @@ func AdminNetworks() gin.HandlerFunc {
 			return
 		}
 		if !AdminAllowed(context, config.AdminNetworks) {
-			log.Println("Admin request refused from outside admin_networks - Origin: " + context.ClientIP())
+			if headerMissing(context, currentProxy()) {
+				log.Println("Admin request refused: it came from trusted proxy " + context.RemoteIP() + " without its client_ip_header, " +
+					"so its origin is unknown. Open the admin pages from your own address, not the proxy's.")
+			} else {
+				log.Println("Admin request refused from outside admin_networks - Origin: " + context.ClientIP())
+			}
 			context.AbortWithStatus(http.StatusNotFound)
 			return
 		}
@@ -205,10 +210,19 @@ func AdminNetworks() gin.HandlerFunc {
 // AdminAllowed reports whether a request may reach the admin side under the given admin_networks: everyone when
 // the list is empty, otherwise only a client inside it whose address is known. An invalid list lets nobody in.
 func AdminAllowed(context *gin.Context, adminNetworks []string) bool {
+	return adminAllowed(context, currentProxy(), adminNetworks)
+}
+
+func currentProxy() proxySettings {
 	activeProxyMu.Lock()
-	settings := activeProxy
-	activeProxyMu.Unlock()
-	return adminAllowed(context, settings, adminNetworks)
+	defer activeProxyMu.Unlock()
+	return activeProxy
+}
+
+// headerMissing reports a request from a trusted proxy without its client address header. Its origin is unknown:
+// a tunnel set to strip visitor IP headers, say, would otherwise pass every visitor off as the proxy's own address.
+func headerMissing(context *gin.Context, settings proxySettings) bool {
+	return InNetworks(context.RemoteIP(), settings.trusted) && context.GetHeader(settings.header) == ""
 }
 
 func adminAllowed(context *gin.Context, settings proxySettings, adminNetworks []string) bool {
@@ -220,9 +234,7 @@ func adminAllowed(context *gin.Context, settings proxySettings, adminNetworks []
 		log.Println("Invalid admin_networks, refusing admin access. Error: " + err.Error())
 		return false
 	}
-	// A request from a trusted proxy without its client address header has an unknown origin: a tunnel set to strip
-	// visitor IP headers, say, would otherwise pass every visitor off as the proxy's own (local) address
-	if InNetworks(context.RemoteIP(), settings.trusted) && context.GetHeader(settings.header) == "" {
+	if headerMissing(context, settings) {
 		return false
 	}
 	return !ProxiedButUntrusted(context) && InNetworks(context.ClientIP(), networks)
