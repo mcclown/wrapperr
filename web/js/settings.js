@@ -140,6 +140,15 @@ function loadAdminPage() {
     html += '</div>';
 
     html += '<div class="form-group">';
+    html += '<label for="client_ip_header" title="The header your trusted proxy puts the visitor\'s address in. A Cloudflare tunnel sets CF-Connecting-IP; nginx, Caddy and Traefik usually X-Forwarded-For. Requires a Wrapperr restart.">Client IP header:<br>';
+    html += '<select class="form-control" id="client_ip_header">';
+    ['X-Forwarded-For', 'X-Real-IP', 'CF-Connecting-IP'].forEach(function(header) {
+        html += '<option value="' + header + '"' + ((client_ip_header || 'X-Forwarded-For') === header ? ' selected' : '') + '>' + header + '</option>';
+    });
+    html += '</select></label>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
     html += '<label for="admin_networks" title="Comma-separated addresses or CIDR ranges allowed to reach the admin pages. Anyone else gets a not-found. Leave empty to allow everyone.">Admin networks:<br>';
     html += '<input type="text" class="form-control" id="admin_networks" placeholder="e.g. 192.168.1.0/24" value="' + escapeAttribute((admin_networks || []).join(', ')) + '" /></label>';
     html += '</div>';
@@ -231,6 +240,7 @@ function set_wrapperr_settings_call() {
     wrapped_dynamic = document.getElementById('wrapped_dynamic').checked;
     wrapped_dynamic_days = document.getElementById('wrapped_dynamic_days').value;
     trusted_proxies = splitList(document.getElementById('trusted_proxies').value);
+    client_ip_header = document.getElementById('client_ip_header').value;
     admin_networks = splitList(document.getElementById('admin_networks').value);
 
     if(wrapperr_root_original !== wrapperr_root) {
@@ -306,6 +316,7 @@ function set_wrapperr_settings_call() {
             "wrapped_dynamic_days" : parseInt(wrapped_dynamic_days),
             "winter_theme" : winter_theme,
             "trusted_proxies" : trusted_proxies,
+            "client_ip_header" : client_ip_header,
             "admin_networks" : admin_networks
         }
     };

@@ -121,7 +121,8 @@ How it works:
 | `USE_LOGS` | `--uselogs` | `use_logs` | bool | Write logs to file and stdout. |
 | `WINTER_THEME` | `--wintertheme` | `winter_theme` | bool | Enable the winter theme. |
 | `DISABLE_ADMIN_PAGE` | `--disableadminpage` | `disable_admin_page` | bool | Disable the admin web pages. |
-| `TRUSTED_PROXIES` | `--trustedproxies` | `trusted_proxies` | list | Comma-separated reverse proxy addresses or CIDRs whose client address headers (`CF-Connecting-IP`, `X-Forwarded-For`, `X-Real-IP`) are trusted. Empty trusts none. |
+| `TRUSTED_PROXIES` | `--trustedproxies` | `trusted_proxies` | list | Comma-separated reverse proxy addresses or CIDRs whose `client_ip_header` is trusted. Empty trusts none. |
+| `CLIENT_IP_HEADER` | `--clientipheader` | `client_ip_header` | string | The header a trusted proxy puts the visitor's address in: `X-Forwarded-For` (default), `X-Real-IP`, or `CF-Connecting-IP` for a Cloudflare tunnel. |
 | `ADMIN_NETWORKS` | `--adminnetworks` | `admin_networks` | list | Comma-separated addresses or CIDRs allowed to reach the admin pages and API; anyone else gets a 404. Empty allows everyone. |
 | `PUID` | _Docker only_ | — | int | UID the container runs Wrapperr as (default `1000`). |
 | `PGID` | _Docker only_ | — | int | GID the container runs Wrapperr as (default `1000`). |

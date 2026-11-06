@@ -111,19 +111,35 @@ func ApiSetConfig(context *gin.Context) {
 			return
 		}
 
-		if _, err := middlewares.ParseNetworks(config_payload.WrapperrData.TrustedProxies); err != nil {
+		// The proxy and admin network settings, kept as they are when the save leaves them out
+		trustedProxies, clientIPHeader, adminNetworks := config.TrustedProxies, config.ClientIPHeader, config.AdminNetworks
+		if config_payload.WrapperrData.TrustedProxies != nil {
+			trustedProxies = *config_payload.WrapperrData.TrustedProxies
+		}
+		if config_payload.WrapperrData.ClientIPHeader != nil {
+			clientIPHeader = *config_payload.WrapperrData.ClientIPHeader
+		}
+		if config_payload.WrapperrData.AdminNetworks != nil {
+			adminNetworks = *config_payload.WrapperrData.AdminNetworks
+		}
+		if _, err := middlewares.ParseNetworks(trustedProxies); err != nil {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Trusted proxies must be IP addresses or CIDR ranges."})
 			context.Abort()
 			return
 		}
-		if _, err := middlewares.ParseNetworks(config_payload.WrapperrData.AdminNetworks); err != nil {
+		if _, ok := middlewares.ClientIPHeader(clientIPHeader); !ok {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Client IP header must be X-Forwarded-For, X-Real-IP or CF-Connecting-IP."})
+			context.Abort()
+			return
+		}
+		if _, err := middlewares.ParseNetworks(adminNetworks); err != nil {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Admin networks must be IP addresses or CIDR ranges."})
 			context.Abort()
 			return
 		}
-		// Refuse a list that would shut out the admin saving it
-		if !middlewares.AdminAllowed(context, config_payload.WrapperrData.AdminNetworks) {
-			context.JSON(http.StatusBadRequest, gin.H{"error": "Your address (" + context.ClientIP() + ") is not in those admin networks, so saving them would lock you out."})
+		// Refuse settings that would shut out the admin saving them, now or once the proxy settings apply on restart
+		if !middlewares.AdminAllowed(context, adminNetworks) || !middlewares.AdminAllowedAfterRestart(context, trustedProxies, clientIPHeader, adminNetworks) {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Your address (" + context.ClientIP() + ") would not be in those admin networks, now or after a restart with these proxy settings, so saving them would lock you out."})
 			context.Abort()
 			return
 		}
@@ -142,8 +158,9 @@ func ApiSetConfig(context *gin.Context) {
 		config.WrappedDynamic = config_payload.WrapperrData.WrappedDynamic
 		config.WrappedDynamicDays = config_payload.WrapperrData.WrappedDynamicDays
 		config.WinterTheme = config_payload.WrapperrData.WinterTheme
-		config.TrustedProxies = config_payload.WrapperrData.TrustedProxies
-		config.AdminNetworks = config_payload.WrapperrData.AdminNetworks
+		config.TrustedProxies = trustedProxies
+		config.ClientIPHeader = clientIPHeader
+		config.AdminNetworks = adminNetworks
 
 		err = files.SaveConfig(config)
 		if err != nil {

@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -91,16 +92,65 @@ func InNetworks(ip string, networks []*net.IPNet) bool {
 	return false
 }
 
-// ProxiedButUntrusted reports a request that carries a reverse proxy's client address header but did not come
-// through a trusted proxy, so its real origin is unknown: a Cloudflare tunnel's cloudflared, say, before it is
-// listed in trusted_proxies, whose own (local) address would otherwise pass for the client's.
+// ProxyHeaders are the client address headers reverse proxies send. client_ip_header picks the one Wrapperr reads.
+var ProxyHeaders = []string{"X-Forwarded-For", "X-Real-IP", "CF-Connecting-IP"}
+
+// ClientIPHeader returns the canonical name of a client_ip_header setting ("" means X-Forwarded-For), or false
+// when it isn't one of ProxyHeaders.
+func ClientIPHeader(setting string) (string, bool) {
+	setting = strings.TrimSpace(setting)
+	if setting == "" {
+		return ProxyHeaders[0], true
+	}
+	for _, header := range ProxyHeaders {
+		if strings.EqualFold(setting, header) {
+			return header, true
+		}
+	}
+	return "", false
+}
+
+// ConfigureClientIP makes the engine take the client's address from the one configured header, and only when the
+// request comes from one of the trusted proxies. Only one header is read: a proxy passes on headers it doesn't set
+// itself (nginx forwards a visitor's own CF-Connecting-IP, say), so reading several would let a visitor choose
+// their address. With no trusted proxies no header is read at all.
+func ConfigureClientIP(engine *gin.Engine, trustedProxies []string, header string) error {
+	canonical, ok := ClientIPHeader(header)
+	if !ok {
+		return fmt.Errorf("client_ip_header must be one of %s", strings.Join(ProxyHeaders, ", "))
+	}
+	engine.ForwardedByClientIP = true
+	engine.RemoteIPHeaders = []string{canonical}
+	return engine.SetTrustedProxies(trustedProxies)
+}
+
+// ProxiedButUntrusted reports a request that carries a reverse proxy's client address header but whose address
+// wasn't taken from it, because it did not come through a trusted proxy (or its proxy sent a different header).
+// Its real origin is unknown: a Cloudflare tunnel's cloudflared, say, before it is listed in trusted_proxies,
+// whose own (local) address would otherwise pass for the client's.
 func ProxiedButUntrusted(context *gin.Context) bool {
-	for _, header := range []string{"CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP"} {
-		if context.GetHeader(header) != "" && context.ClientIP() == context.RemoteIP() {
+	if context.ClientIP() != context.RemoteIP() {
+		return false
+	}
+	for _, header := range ProxyHeaders {
+		if context.GetHeader(header) != "" {
 			return true
 		}
 	}
 	return false
+}
+
+// untrustedProxyWarning is logged once: proxied requests from an untrusted address mean every visitor shares the
+// proxy's address, so the per-address rate limits act as one limit for all of them.
+var untrustedProxyWarning sync.Once
+
+func warnUntrustedProxy(context *gin.Context) {
+	if ProxiedButUntrusted(context) {
+		untrustedProxyWarning.Do(func() {
+			log.Println("Warning: requests arrive through a proxy at " + context.RemoteIP() + " that is not in trusted_proxies " +
+				"(or doesn't send client_ip_header). Every visitor then looks like the proxy, so rate limits are shared by all of them.")
+		})
+	}
 }
 
 // AdminNetworks limits the admin pages and API to the configured admin_networks. Anyone else gets a 404, so the
@@ -128,7 +178,7 @@ func AdminAllowed(context *gin.Context, adminNetworks []string) bool {
 	if len(adminNetworks) == 0 {
 		return true
 	}
-	networks, err := ParseNetworks(adminNetworks)
+	networks, err := parseNetworksCached(adminNetworks)
 	if err != nil {
 		log.Println("Invalid admin_networks, refusing admin access. Error: " + err.Error())
 		return false
@@ -136,13 +186,54 @@ func AdminAllowed(context *gin.Context, adminNetworks []string) bool {
 	return !ProxiedButUntrusted(context) && InNetworks(context.ClientIP(), networks)
 }
 
-// RateLimiter counts requests per client IP in fixed windows.
+// AdminAllowedAfterRestart reports whether the request would still reach the admin side once Wrapperr restarts
+// with these trusted_proxies and client_ip_header (they take effect on restart) and admin_networks.
+func AdminAllowedAfterRestart(context *gin.Context, trustedProxies []string, header string, adminNetworks []string) bool {
+	engine := gin.New()
+	if err := ConfigureClientIP(engine, trustedProxies, header); err != nil {
+		return false
+	}
+	future := gin.CreateTestContextOnly(discardWriter{http.Header{}}, engine)
+	future.Request = context.Request
+	return AdminAllowed(future, adminNetworks)
+}
+
+// discardWriter is a ResponseWriter for a context that only answers questions about a request.
+type discardWriter struct{ header http.Header }
+
+func (w discardWriter) Header() http.Header         { return w.header }
+func (w discardWriter) Write(b []byte) (int, error) { return len(b), nil }
+func (w discardWriter) WriteHeader(int)             {}
+
+// The admin networks last parsed, so each admin request doesn't parse them again
+var (
+	networksMu     sync.Mutex
+	networksKey    *string
+	networksParsed []*net.IPNet
+	networksErr    error
+)
+
+func parseNetworksCached(entries []string) ([]*net.IPNet, error) {
+	key := strings.Join(entries, "\x00")
+	networksMu.Lock()
+	defer networksMu.Unlock()
+	if networksKey == nil || *networksKey != key {
+		networksKey = &key
+		networksParsed, networksErr = ParseNetworks(entries)
+	}
+	return networksParsed, networksErr
+}
+
+// RateLimiter counts requests per client in fixed windows. An IPv6 client is counted by its /64, which one
+// household or server usually has to itself, so cycling addresses inside it doesn't reset the limit.
 type RateLimiter struct {
-	limit  int
-	window time.Duration
-	mu     sync.Mutex
-	hits   map[string]*rateWindow
-	now    func() time.Time
+	limit     int
+	window    time.Duration
+	maxKeys   int
+	mu        sync.Mutex
+	hits      map[string]*rateWindow
+	lastSweep time.Time
+	now       func() time.Time
 }
 
 type rateWindow struct {
@@ -150,26 +241,40 @@ type rateWindow struct {
 	count int
 }
 
-// NewRateLimiter allows limit requests per client IP in each window.
+// NewRateLimiter allows limit requests per client in each window.
 func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
-	return &RateLimiter{limit: limit, window: window, hits: map[string]*rateWindow{}, now: time.Now}
+	return &RateLimiter{limit: limit, window: window, maxKeys: 100000, hits: map[string]*rateWindow{}, now: time.Now}
 }
 
-// Allow records a request from key and reports whether it is within the limit, and if not, how long until the
-// window resets.
-func (r *RateLimiter) Allow(key string) (bool, time.Duration) {
+// rateKey is the client a request is counted against: its address, or its /64 for IPv6.
+func rateKey(ip string) string {
+	parsed := net.ParseIP(ip)
+	if parsed == nil || parsed.To4() != nil {
+		return ip
+	}
+	return parsed.Mask(net.CIDRMask(64, 128)).String() + "/64"
+}
+
+// Allow records a request from the client at ip and reports whether it is within the limit, and if not, how long
+// until it may try again.
+func (r *RateLimiter) Allow(ip string) (bool, time.Duration) {
+	key := rateKey(ip)
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	now := r.now()
-	if len(r.hits) > 10000 { // drop finished windows so the map can't grow without bound
+	if now.Sub(r.lastSweep) >= r.window { // drop finished windows, once a window
 		for k, w := range r.hits {
 			if now.Sub(w.start) >= r.window {
 				delete(r.hits, k)
 			}
 		}
+		r.lastSweep = now
 	}
 	w, ok := r.hits[key]
 	if !ok || now.Sub(w.start) >= r.window {
+		if !ok && len(r.hits) >= r.maxKeys { // more clients in one window than it tracks: refuse new ones
+			return false, r.window
+		}
 		r.hits[key] = &rateWindow{start: now, count: 1}
 		return true, 0
 	}
@@ -180,10 +285,11 @@ func (r *RateLimiter) Allow(key string) (bool, time.Duration) {
 	return true, 0
 }
 
-// RateLimit answers 429 once a client IP has made limit requests to this route in the window.
+// RateLimit answers 429 once a client has made limit requests to this route in the window.
 func RateLimit(limit int, window time.Duration) gin.HandlerFunc {
 	limiter := NewRateLimiter(limit, window)
 	return func(context *gin.Context) {
+		warnUntrustedProxy(context)
 		ok, wait := limiter.Allow(context.ClientIP())
 		if !ok {
 			seconds := int(wait.Seconds()) + 1

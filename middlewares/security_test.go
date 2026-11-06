@@ -9,14 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// request runs one request from remoteAddr with headers through an engine trusting the given proxies, and returns
-// what the handler saw.
+// request runs one request from remoteAddr with headers through an engine trusting the given proxies' header
+// (the first entry of trusted may be "header=<name>" to pick it), and returns what the handler saw.
 func request(t *testing.T, trusted []string, remoteAddr string, headers map[string]string, handle func(*gin.Context)) *httptest.ResponseRecorder {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
-	engine.RemoteIPHeaders = []string{"CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP"}
-	if err := engine.SetTrustedProxies(trusted); err != nil {
+	header := ""
+	if len(trusted) > 0 && len(trusted[0]) > 7 && trusted[0][:7] == "header=" {
+		header, trusted = trusted[0][7:], trusted[1:]
+	}
+	if err := ConfigureClientIP(engine, trusted, header); err != nil {
 		t.Fatal(err)
 	}
 	engine.Use(SecurityHeaders())
@@ -41,8 +44,11 @@ func TestClientIPOnlyFromTrustedProxies(t *testing.T) {
 	}{
 		{"direct", nil, "192.168.1.20:5000", nil, "192.168.1.20"},
 		{"spoofed header, no trusted proxies", nil, "203.0.113.9:5000", map[string]string{"X-Forwarded-For": "192.168.1.20"}, "203.0.113.9"},
-		{"tunnel, cloudflared trusted", []string{"172.17.0.1"}, "172.17.0.1:5000", map[string]string{"CF-Connecting-IP": "198.51.100.7"}, "198.51.100.7"},
-		{"header from an untrusted address", []string{"172.17.0.1"}, "192.168.1.50:5000", map[string]string{"CF-Connecting-IP": "192.168.1.20"}, "192.168.1.50"},
+		{"tunnel, cloudflared trusted", []string{"header=CF-Connecting-IP", "172.17.0.1"}, "172.17.0.1:5000", map[string]string{"CF-Connecting-IP": "198.51.100.7"}, "198.51.100.7"},
+		{"header from an untrusted address", []string{"header=CF-Connecting-IP", "172.17.0.1"}, "192.168.1.50:5000", map[string]string{"CF-Connecting-IP": "192.168.1.20"}, "192.168.1.50"},
+		// nginx passes a visitor's own CF-Connecting-IP through; only its X-Forwarded-For is read
+		{"nginx with a forged CF-Connecting-IP", []string{"192.168.1.5"}, "192.168.1.5:5000", map[string]string{"CF-Connecting-IP": "192.168.1.20", "X-Forwarded-For": "203.0.113.9"}, "203.0.113.9"},
+		{"forged X-Forwarded-For through nginx", []string{"192.168.1.5"}, "192.168.1.5:5000", map[string]string{"X-Forwarded-For": "192.168.1.20, 203.0.113.9"}, "203.0.113.9"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -70,8 +76,10 @@ func TestAdminAllowed(t *testing.T) {
 		{"internet, direct", lan, nil, "203.0.113.9:5000", nil, false},
 		// cloudflared on the LAN but not listed as a trusted proxy: its own address would pass for the client's
 		{"tunnel through an untrusted cloudflared", lan, nil, "192.168.1.5:5000", map[string]string{"CF-Connecting-IP": "198.51.100.7"}, false},
-		{"tunnel through a trusted cloudflared", lan, []string{"192.168.1.5"}, "192.168.1.5:5000", map[string]string{"CF-Connecting-IP": "198.51.100.7"}, false},
+		{"tunnel through a trusted cloudflared", lan, []string{"header=CF-Connecting-IP", "192.168.1.5"}, "192.168.1.5:5000", map[string]string{"CF-Connecting-IP": "198.51.100.7"}, false},
 		{"LAN through a trusted proxy", lan, []string{"192.168.1.5"}, "192.168.1.5:5000", map[string]string{"X-Forwarded-For": "192.168.1.20"}, true},
+		{"internet through nginx, forging CF-Connecting-IP", lan, []string{"192.168.1.5"}, "192.168.1.5:5000", map[string]string{"CF-Connecting-IP": "192.168.1.20", "X-Forwarded-For": "203.0.113.9"}, false},
+		{"trusted proxy sending a different header", lan, []string{"header=CF-Connecting-IP", "192.168.1.5"}, "192.168.1.5:5000", map[string]string{"X-Forwarded-For": "192.168.1.20"}, false},
 		{"single address", []string{"192.168.1.20"}, nil, "192.168.1.20:5000", nil, true},
 		{"invalid list: nobody", []string{"not-a-network"}, nil, "192.168.1.20:5000", nil, false},
 	}
@@ -83,6 +91,32 @@ func TestAdminAllowed(t *testing.T) {
 				t.Fatalf("AdminAllowed = %v, want %v", got, c.want)
 			}
 		})
+	}
+}
+
+func TestAdminAllowedAfterRestart(t *testing.T) {
+	lan := []string{"192.168.1.0/24"}
+	// The admin is on the LAN behind a trusted nginx today
+	nginx := map[string]string{"X-Forwarded-For": "192.168.1.20"}
+	var now, cleared, kept bool
+	request(t, []string{"192.168.1.5"}, "192.168.1.5:5000", nginx, func(ctx *gin.Context) {
+		now = AdminAllowed(ctx, lan)
+		cleared = AdminAllowedAfterRestart(ctx, nil, "", lan)                  // trusted_proxies cleared in the same save
+		kept = AdminAllowedAfterRestart(ctx, []string{"192.168.1.5"}, "", lan) // left as it is
+	})
+	if !now || cleared || !kept {
+		t.Fatalf("now %v, after clearing trusted_proxies %v (want false), keeping it %v", now, cleared, kept)
+	}
+}
+
+func TestClientIPHeader(t *testing.T) {
+	for setting, want := range map[string]string{"": "X-Forwarded-For", "cf-connecting-ip": "CF-Connecting-IP", " X-Real-IP ": "X-Real-IP"} {
+		if got, ok := ClientIPHeader(setting); !ok || got != want {
+			t.Fatalf("ClientIPHeader(%q) = %q, %v", setting, got, ok)
+		}
+	}
+	if _, ok := ClientIPHeader("True-Client-IP"); ok {
+		t.Fatal("an unknown header should be refused")
 	}
 }
 
@@ -117,6 +151,29 @@ func TestRateLimiter(t *testing.T) {
 	now = now.Add(time.Minute)
 	if ok, _ := limiter.Allow("a"); !ok {
 		t.Fatal("the window should have reset")
+	}
+}
+
+func TestRateLimiterIPv6AndCap(t *testing.T) {
+	now := time.Unix(1000, 0)
+	limiter := NewRateLimiter(1, time.Minute)
+	limiter.now = func() time.Time { return now }
+	limiter.maxKeys = 2
+	if ok, _ := limiter.Allow("2001:db8:1:2::1"); !ok {
+		t.Fatal("first request refused")
+	}
+	if ok, _ := limiter.Allow("2001:db8:1:2:aaaa::9"); ok {
+		t.Fatal("another address in the same /64 should share its limit")
+	}
+	if ok, _ := limiter.Allow("2001:db8:1:3::1"); !ok {
+		t.Fatal("another /64 should have its own limit")
+	}
+	if ok, _ := limiter.Allow("198.51.100.7"); ok {
+		t.Fatal("a new client beyond maxKeys should be refused")
+	}
+	now = now.Add(time.Minute) // finished windows are swept, making room again
+	if ok, _ := limiter.Allow("198.51.100.7"); !ok {
+		t.Fatal("after the sweep a new client should be allowed")
 	}
 }
 

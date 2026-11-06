@@ -32,6 +32,7 @@ v=$(pick USE_LOGS uselogs);                [ -n "$v" ] && set -- "$@" --uselogs 
 v=$(pick WINTER_THEME wintertheme);        [ -n "$v" ] && set -- "$@" --wintertheme "$v"
 v=$(pick DISABLE_ADMIN_PAGE disableadminpage); [ -n "$v" ] && set -- "$@" --disableadminpage "$v"
 v=$(pick TRUSTED_PROXIES trustedproxies);  [ -n "$v" ] && set -- "$@" --trustedproxies "$v"
+v=$(pick CLIENT_IP_HEADER clientipheader); [ -n "$v" ] && set -- "$@" --clientipheader "$v"
 v=$(pick ADMIN_NETWORKS adminnetworks);    [ -n "$v" ] && set -- "$@" --adminnetworks "$v"
 
 # Drop privileges to PUID:PGID (default 1000:1000) when started as root.

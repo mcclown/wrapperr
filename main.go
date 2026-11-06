@@ -110,6 +110,20 @@ func main() {
 	// Alert what port is in use
 	log.Println("Starting Wrapperr on port " + strconv.Itoa(config.WrapperrPort) + ".")
 
+	// Refuse to start with proxy or admin network settings that can't be read, rather than run with them half applied
+	if _, err := middlewares.ParseNetworks(config.TrustedProxies); err != nil {
+		log.Println("Invalid trusted_proxies (config.json, --trustedproxies or TRUSTED_PROXIES). Error: " + err.Error())
+		os.Exit(1)
+	}
+	if _, ok := middlewares.ClientIPHeader(config.ClientIPHeader); !ok {
+		log.Println("Invalid client_ip_header (config.json, --clientipheader or CLIENT_IP_HEADER): use X-Forwarded-For, X-Real-IP or CF-Connecting-IP.")
+		os.Exit(1)
+	}
+	if _, err := middlewares.ParseNetworks(config.AdminNetworks); err != nil {
+		log.Println("Invalid admin_networks (config.json, --adminnetworks or ADMIN_NETWORKS). Error: " + err.Error())
+		os.Exit(1)
+	}
+
 	// Warn about settings that matter once Wrapperr is reachable from the internet
 	if !config.PlexAuth {
 		log.Println("Warning: Plex Auth is off, so anyone who can reach Wrapperr can view any user's wrapped by name.")
@@ -154,12 +168,12 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 
 	router := gin.Default()
 
-	// The client's real address: taken from a proxy's header only when the request comes from one of the
+	// The client's real address: taken from client_ip_header only when the request comes from one of the
 	// trusted_proxies (for a Cloudflare tunnel, cloudflared's address). With none listed, no header is trusted.
-	router.RemoteIPHeaders = []string{"CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP"}
-	if err := router.SetTrustedProxies(config.TrustedProxies); err != nil {
-		log.Println("Invalid trusted_proxies, trusting no proxy. Error: " + err.Error())
-		_ = router.SetTrustedProxies(nil)
+	// The settings were checked at startup.
+	if err := middlewares.ConfigureClientIP(router, config.TrustedProxies, config.ClientIPHeader); err != nil {
+		log.Println("Invalid proxy settings, trusting no proxy. Error: " + err.Error())
+		_ = middlewares.ConfigureClientIP(router, nil, "")
 	}
 
 	router.Use(middlewares.SecurityHeaders())
@@ -360,6 +374,7 @@ func parseFlags(configFile models.WrapperrConfig) (models.WrapperrConfig, error)
 	var winterTheme = flag.String("wintertheme", boolToFlagString(configFile.WinterTheme), "If the winter theme is enabled.")
 	var disableAdminPage = flag.String("disableadminpage", boolToFlagString(configFile.DisableAdminPage), "If the admin web pages are disabled.")
 	var trustedProxies = flag.String("trustedproxies", strings.Join(configFile.TrustedProxies, ","), "Comma-separated reverse proxy addresses or CIDRs whose client address headers are trusted (for a Cloudflare tunnel, cloudflared's).")
+	var clientIPHeader = flag.String("clientipheader", configFile.ClientIPHeader, "The header a trusted proxy puts the client's address in: X-Forwarded-For (default), X-Real-IP or CF-Connecting-IP (a Cloudflare tunnel).")
 	var adminNetworks = flag.String("adminnetworks", strings.Join(configFile.AdminNetworks, ","), "Comma-separated addresses or CIDRs allowed to reach the admin pages; empty allows everyone.")
 
 	// Parse flags
@@ -410,6 +425,9 @@ func parseFlags(configFile models.WrapperrConfig) (models.WrapperrConfig, error)
 	}
 	if provided["trustedproxies"] {
 		configFile.TrustedProxies = splitList(*trustedProxies)
+	}
+	if provided["clientipheader"] {
+		configFile.ClientIPHeader = *clientIPHeader
 	}
 	if provided["adminnetworks"] {
 		configFile.AdminNetworks = splitList(*adminNetworks)
