@@ -22,6 +22,8 @@ type WrapperrConfig struct {
 	BasicAuth          bool              `json:"basic_auth"`
 	WinterTheme        bool              `json:"winter_theme"`
 	DisableAdminPage   bool              `json:"disable_admin_page"`
+	TrustedProxies     []string          `json:"trusted_proxies"`
+	AdminNetworks      []string          `json:"admin_networks"`
 }
 
 type SetWrapperrConfig struct {
@@ -31,19 +33,21 @@ type SetWrapperrConfig struct {
 	TautulliConfig    []TautulliConfig  `json:"tautulli_config"`
 	WrapperrCustomize WrapperrCustomize `json:"wrapperr_customize"`
 	WrapperrData      struct {
-		UseCache           bool   `json:"use_cache"`
-		UseLogs            bool   `json:"use_logs"`
-		PlexAuth           bool   `json:"plex_auth"`
-		BasicAuth          bool   `json:"basic_auth"`
-		WrapperrRoot       string `json:"wrapperr_root"`
-		CreateShareLinks   bool   `json:"create_share_links"`
-		Timezone           string `json:"timezone"`
-		ApplicationName    string `json:"application_name"`
-		ApplicationURL     string `json:"application_url"`
-		WrappedStart       int    `json:"wrapped_start"`
-		WrappedEnd         int    `json:"wrapped_end"`
-		WinterTheme        bool   `json:"winter_theme"`
-		WrappedDynamic     bool   `json:"wrapped_dynamic"`
-		WrappedDynamicDays int    `json:"wrapped_dynamic_days"`
+		UseCache           bool     `json:"use_cache"`
+		UseLogs            bool     `json:"use_logs"`
+		PlexAuth           bool     `json:"plex_auth"`
+		BasicAuth          bool     `json:"basic_auth"`
+		WrapperrRoot       string   `json:"wrapperr_root"`
+		CreateShareLinks   bool     `json:"create_share_links"`
+		Timezone           string   `json:"timezone"`
+		ApplicationName    string   `json:"application_name"`
+		ApplicationURL     string   `json:"application_url"`
+		WrappedStart       int      `json:"wrapped_start"`
+		WrappedEnd         int      `json:"wrapped_end"`
+		WinterTheme        bool     `json:"winter_theme"`
+		WrappedDynamic     bool     `json:"wrapped_dynamic"`
+		WrappedDynamicDays int      `json:"wrapped_dynamic_days"`
+		TrustedProxies     []string `json:"trusted_proxies"`
+		AdminNetworks      []string `json:"admin_networks"`
 	} `json:"wrapperr_data"`
 }

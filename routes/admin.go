@@ -111,6 +111,23 @@ func ApiSetConfig(context *gin.Context) {
 			return
 		}
 
+		if _, err := middlewares.ParseNetworks(config_payload.WrapperrData.TrustedProxies); err != nil {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Trusted proxies must be IP addresses or CIDR ranges."})
+			context.Abort()
+			return
+		}
+		if _, err := middlewares.ParseNetworks(config_payload.WrapperrData.AdminNetworks); err != nil {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Admin networks must be IP addresses or CIDR ranges."})
+			context.Abort()
+			return
+		}
+		// Refuse a list that would shut out the admin saving it
+		if !middlewares.AdminAllowed(context, config_payload.WrapperrData.AdminNetworks) {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "Your address (" + context.ClientIP() + ") is not in those admin networks, so saving them would lock you out."})
+			context.Abort()
+			return
+		}
+
 		config.UseCache = config_payload.WrapperrData.UseCache
 		config.UseLogs = config_payload.WrapperrData.UseLogs
 		config.PlexAuth = config_payload.WrapperrData.PlexAuth
@@ -125,6 +142,8 @@ func ApiSetConfig(context *gin.Context) {
 		config.WrappedDynamic = config_payload.WrapperrData.WrappedDynamic
 		config.WrappedDynamicDays = config_payload.WrapperrData.WrappedDynamicDays
 		config.WinterTheme = config_payload.WrapperrData.WinterTheme
+		config.TrustedProxies = config_payload.WrapperrData.TrustedProxies
+		config.AdminNetworks = config_payload.WrapperrData.AdminNetworks
 
 		err = files.SaveConfig(config)
 		if err != nil {
