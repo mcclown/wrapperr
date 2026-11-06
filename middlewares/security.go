@@ -272,8 +272,11 @@ func (r *RateLimiter) Allow(ip string) (bool, time.Duration) {
 	}
 	w, ok := r.hits[key]
 	if !ok || now.Sub(w.start) >= r.window {
-		if !ok && len(r.hits) >= r.maxKeys { // more clients in one window than it tracks: refuse new ones
-			return false, r.window
+		if !ok && len(r.hits) >= r.maxKeys { // more clients in one window than it tracks: forget an arbitrary one
+			for k := range r.hits {
+				delete(r.hits, k)
+				break
+			}
 		}
 		r.hits[key] = &rateWindow{start: now, count: 1}
 		return true, 0

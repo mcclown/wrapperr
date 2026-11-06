@@ -428,6 +428,9 @@ func parseFlags(configFile models.WrapperrConfig) (models.WrapperrConfig, error)
 	}
 	if provided["clientipheader"] {
 		configFile.ClientIPHeader = *clientIPHeader
+		if canonical, ok := middlewares.ClientIPHeader(*clientIPHeader); ok {
+			configFile.ClientIPHeader = canonical // stored as the Settings page shows it
+		}
 	}
 	if provided["adminnetworks"] {
 		configFile.AdminNetworks = splitList(*adminNetworks)

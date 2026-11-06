@@ -127,11 +127,13 @@ func ApiSetConfig(context *gin.Context) {
 			context.Abort()
 			return
 		}
-		if _, ok := middlewares.ClientIPHeader(clientIPHeader); !ok {
+		canonicalHeader, ok := middlewares.ClientIPHeader(clientIPHeader)
+		if !ok {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Client IP header must be X-Forwarded-For, X-Real-IP or CF-Connecting-IP."})
 			context.Abort()
 			return
 		}
+		clientIPHeader = canonicalHeader
 		if _, err := middlewares.ParseNetworks(adminNetworks); err != nil {
 			context.JSON(http.StatusBadRequest, gin.H{"error": "Admin networks must be IP addresses or CIDR ranges."})
 			context.Abort()

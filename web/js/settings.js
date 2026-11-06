@@ -143,7 +143,7 @@ function loadAdminPage() {
     html += '<label for="client_ip_header" title="The header your trusted proxy puts the visitor\'s address in. A Cloudflare tunnel sets CF-Connecting-IP; nginx, Caddy and Traefik usually X-Forwarded-For. Requires a Wrapperr restart.">Client IP header:<br>';
     html += '<select class="form-control" id="client_ip_header">';
     ['X-Forwarded-For', 'X-Real-IP', 'CF-Connecting-IP'].forEach(function(header) {
-        html += '<option value="' + header + '"' + ((client_ip_header || 'X-Forwarded-For') === header ? ' selected' : '') + '>' + header + '</option>';
+        html += '<option value="' + header + '"' + ((client_ip_header || 'X-Forwarded-For').trim().toLowerCase() === header.toLowerCase() ? ' selected' : '') + '>' + header + '</option>';
     });
     html += '</select></label>';
     html += '</div>';

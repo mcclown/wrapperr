@@ -168,12 +168,13 @@ func TestRateLimiterIPv6AndCap(t *testing.T) {
 	if ok, _ := limiter.Allow("2001:db8:1:3::1"); !ok {
 		t.Fatal("another /64 should have its own limit")
 	}
-	if ok, _ := limiter.Allow("198.51.100.7"); ok {
-		t.Fatal("a new client beyond maxKeys should be refused")
-	}
-	now = now.Add(time.Minute) // finished windows are swept, making room again
+	// A new client beyond maxKeys is still let in (an arbitrary one is forgotten), so a flood of clients can't
+	// lock out everyone else
 	if ok, _ := limiter.Allow("198.51.100.7"); !ok {
-		t.Fatal("after the sweep a new client should be allowed")
+		t.Fatal("a new client beyond maxKeys should be allowed")
+	}
+	if len(limiter.hits) != 2 {
+		t.Fatalf("tracking %d clients, want maxKeys (2)", len(limiter.hits))
 	}
 }
 
