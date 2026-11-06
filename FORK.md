@@ -14,8 +14,9 @@ Rules:
   first) and into `develop`.
 - Reviews: before a theme's PR opens, run the `code-review` skill at `high` on it and apply the findings on the
   theme branch (re-run at `medium` after later fix rounds). Internet-facing themes also get `security-review`.
-  Some surfaces are exposed through a Cloudflare tunnel: no new unauthenticated endpoints, no stored IPs, and
-  `/admin*` is not routed through the tunnel (or sits behind Cloudflare Access). See theme S.
+  Everything Wrapperr serves (admin included) is exposed through a Cloudflare tunnel: no new unauthenticated
+  endpoints, no stored IPs, the real client IP only from trusted proxies, and admin limited to `admin_networks`.
+  See theme S.
 - `scripts/fork/rebuild-develop.sh` rebuilds `main` + the merge order below and diffs it with `develop`.
   Run it before deploying; any difference outside the develop-only files is drift.
 
