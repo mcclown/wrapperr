@@ -19,6 +19,8 @@ Rules:
   See theme S.
 - `scripts/fork/rebuild-develop.sh` rebuilds `main` + the merge order below and diffs it with `develop`.
   Run it before deploying; any difference outside the develop-only files is drift.
+- When two themes conflict, merge into develop with `git -c rerere.enabled=true merge --no-ff <branch>`, so the
+  resolution is recorded and the drift check replays it. The rerere cache is local to this clone.
 
 ## Themes
 
