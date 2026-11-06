@@ -98,8 +98,11 @@ func tautulliGeoIP(server models.TautulliConfig, ip string) (geoIPLocation, erro
 // publicIP reports an address that says where someone is: not a LAN, loopback or link-local one.
 func publicIP(address string) bool {
 	ip := net.ParseIP(strings.TrimSpace(address))
-	return ip != nil && !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsLinkLocalUnicast() && !ip.IsUnspecified()
+	return ip != nil && !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsLinkLocalUnicast() && !ip.IsUnspecified() && !sharedAddressSpace.Contains(ip)
 }
+
+// sharedAddressSpace is carrier-grade NAT and Tailscale's range (100.64.0.0/10), which says nothing about location
+var sharedAddressSpace = &net.IPNet{IP: net.IPv4(100, 64, 0, 0), Mask: net.CIDRMask(10, 32)}
 
 // lookupTimezone finds an account's time zone from the public address it has played from most, through
 // Tautulli's GeoIP lookup. It reports false when there's no public address (a LAN viewer keeps the server's zone)
@@ -154,6 +157,7 @@ func UsersLookupTimezones() (found int, err error) {
 	// don't hold a stale copy that would undo other changes
 	type result struct{ zone, label string }
 	results := map[int]result{}
+	failed := map[string]bool{}
 	for _, user := range users {
 		if user.Ignore || user.TimezoneSource == TimezoneSourceAdmin {
 			continue
@@ -163,10 +167,15 @@ func UsersLookupTimezones() (found int, err error) {
 			if !ok {
 				continue
 			}
+			if failed[name] {
+				continue
+			}
 			zone, label, ok, err := lookupTimezone(server, user.UserID)
 			if err != nil {
-				log.Println("Failed to look up a time zone for user ID " + strconv.Itoa(user.UserID) + ". Error: " + err.Error())
-				break
+				// Don't wait on a server that isn't answering for every other account too
+				log.Println("Failed to look up time zones on Tautulli server " + name + ", skipping it. Error: " + err.Error())
+				failed[name] = true
+				continue
 			}
 			if ok {
 				results[user.UserID] = result{zone, label}
@@ -175,20 +184,19 @@ func UsersLookupTimezones() (found int, err error) {
 		}
 	}
 
-	users, err = files.GetUsers()
-	if err != nil {
-		return 0, errors.New("Failed to get users.")
-	}
-	for i := range users {
-		r, ok := results[users[i].UserID]
-		if !ok || users[i].TimezoneSource == TimezoneSourceAdmin {
-			continue
+	err = files.UpdateUsers(func(users []models.WrapperrUser) ([]models.WrapperrUser, error) {
+		for i := range users {
+			r, ok := results[users[i].UserID]
+			if !ok || users[i].TimezoneSource == TimezoneSourceAdmin {
+				continue
+			}
+			users[i].Timezone, users[i].TimezoneLabel, users[i].TimezoneSource = r.zone, r.label, TimezoneSourceGeoIP
+			found++
 		}
-		users[i].Timezone, users[i].TimezoneLabel, users[i].TimezoneSource = r.zone, r.label, TimezoneSourceGeoIP
-		found++
-	}
-	if err := files.SaveUsers(users); err != nil {
-		return found, errors.New("Failed to save users.")
+		return users, nil
+	})
+	if err != nil {
+		return 0, errors.New("Failed to save users.")
 	}
 	return found, nil
 }
@@ -202,25 +210,27 @@ func UsersSetTimezone(userID int, zone string) error {
 			return errors.New("Unknown time zone.")
 		}
 	}
-	users, err := files.GetUsers()
-	if err != nil {
-		return errors.New("Failed to get users.")
+	errNotFound := errors.New("Failed to find user based on ID.")
+	err := files.UpdateUsers(func(users []models.WrapperrUser) ([]models.WrapperrUser, error) {
+		for i := range users {
+			if users[i].UserID != userID {
+				continue
+			}
+			if zone == "" {
+				users[i].Timezone, users[i].TimezoneLabel, users[i].TimezoneSource = "", "", ""
+			} else {
+				users[i].Timezone, users[i].TimezoneLabel, users[i].TimezoneSource = zone, "", TimezoneSourceAdmin
+			}
+			return users, nil
+		}
+		return users, errNotFound
+	})
+	if err == errNotFound {
+		return err
+	} else if err != nil {
+		return errors.New("Failed to save users.")
 	}
-	for i := range users {
-		if users[i].UserID != userID {
-			continue
-		}
-		if zone == "" {
-			users[i].Timezone, users[i].TimezoneLabel, users[i].TimezoneSource = "", "", ""
-		} else {
-			users[i].Timezone, users[i].TimezoneLabel, users[i].TimezoneSource = zone, "", TimezoneSourceAdmin
-		}
-		if err := files.SaveUsers(users); err != nil {
-			return errors.New("Failed to save users.")
-		}
-		return nil
-	}
-	return errors.New("Failed to find user based on ID.")
+	return nil
 }
 
 // UsersTimezones are the accounts' time zones by user ID, for the analysis; accounts without one use the server's.

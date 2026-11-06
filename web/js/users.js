@@ -341,7 +341,7 @@ function getTimezoneOptions() {
             } catch(error) {
                 return;
             }
-            if(!result.error) {
+            if(!result.error && Array.isArray(result.data)) {
                 var dataList = document.getElementById("timezones");
                 result.data.forEach(function(item) {
                     var option = document.createElement('option');

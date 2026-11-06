@@ -13,7 +13,7 @@ import (
 
 func TestPublicIP(t *testing.T) {
 	for ip, want := range map[string]bool{"203.0.113.5": true, "192.168.1.2": false, "10.0.0.1": false, "127.0.0.1": false,
-		"fe80::1": false, "2001:db8::1": true, "not-an-ip": false} {
+		"fe80::1": false, "100.100.1.2": false, "2001:db8::1": true, "not-an-ip": false} {
 		if publicIP(ip) != want {
 			t.Errorf("publicIP(%s) = %v, want %v", ip, !want, want)
 		}
@@ -62,5 +62,14 @@ func TestLookupTimezone(t *testing.T) {
 	lan := fakeTautulli(t, []string{"192.168.1.2", "10.0.0.4"}, nil)
 	if _, _, ok, err := lookupTimezone(lan, 1); ok || err != nil {
 		t.Fatalf("a LAN-only viewer should keep the server zone, got ok %v err %v", ok, err)
+	}
+}
+
+func TestSetTimezoneRefusesUnknownZones(t *testing.T) {
+	// Refused before users.json is read
+	for _, zone := range []string{"Mars/Base", "Local", "../../etc/passwd"} {
+		if err := UsersSetTimezone(1, zone); err == nil || err.Error() != "Unknown time zone." {
+			t.Errorf("UsersSetTimezone(%q) = %v, want Unknown time zone.", zone, err)
+		}
 	}
 }

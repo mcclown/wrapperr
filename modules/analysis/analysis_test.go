@@ -114,3 +114,36 @@ func TestLocalDayAndHourPerAccount(t *testing.T) {
 		t.Fatalf("Dublin: day %d hour %d, want 0 and 23", abroad.Day, abroad.Hour)
 	}
 }
+
+func TestDayStaysInPeriod(t *testing.T) {
+	sydney, dublin, auckland := mustZone(t, "Australia/Sydney"), mustZone(t, "Europe/Dublin"), mustZone(t, "Pacific/Auckland")
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, sydney).Unix()
+	end := time.Date(2026, 1, 7, 23, 59, 59, 0, sydney).Unix()
+	// Just after the start in Sydney is the day before in Dublin; just before the end, the day after in Auckland
+	a := Analyse(days(movie(0, "A", int(start+60), 1, "", 90, 600), movie(1, "B", int(end-60), 2, "", 90, 600)),
+		Options{Start: start, End: end, ServerZone: sydney, Zones: map[int]*time.Location{0: dublin, 1: auckland}})
+	if a.LastDay != 6 {
+		t.Fatalf("LastDay %d, want 6", a.LastDay)
+	}
+	if a.Sessions[0].Day != 0 || a.Sessions[1].Day != 6 {
+		t.Fatalf("days %d and %d, want 0 and 6", a.Sessions[0].Day, a.Sessions[1].Day)
+	}
+}
+
+func TestEmptyAndServers(t *testing.T) {
+	empty := Analyse(nil, Options{Start: 0, End: 100})
+	if empty.Titles == nil || empty.Sessions == nil {
+		t.Fatal("no plays should give empty lists, not nil (they encode as null)")
+	}
+	a, b := movie(0, "A", 10, 1, "plex://movie/x", 90, 600), movie(1, "A", 20, 99, "plex://movie/x", 90, 600)
+	b.TautulliServerHash = "s2"
+	c, d := movie(0, "C", 30, 5, "", 90, 600), movie(1, "D", 40, 5, "", 90, 600)
+	d.TautulliServerHash = "s2" // the same key on another server is another film
+	got := Analyse(days(a, b, c, d), Options{Start: 0, End: 100})
+	if got.Sessions[0].Title != got.Sessions[1].Title {
+		t.Fatal("a GUID should match a movie across servers")
+	}
+	if got.Sessions[2].Title == got.Sessions[3].Title {
+		t.Fatal("rating keys should not match across servers")
+	}
+}

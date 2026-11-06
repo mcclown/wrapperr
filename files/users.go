@@ -7,13 +7,17 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 
 	"github.com/aunefyren/wrapperr/models"
 )
 
 var usersPath, _ = filepath.Abs("./config/users.json")
 
-// Saves the given users struct as users.json
+// usersMu serialises changes to users.json, so two changes at once can't undo each other
+var usersMu sync.Mutex
+
+// Saves the given users struct as users.json. The file is replaced in one step, so a reader never sees half of it.
 func SaveUsers(users []models.WrapperrUser) (err error) {
 	err = nil
 
@@ -22,12 +26,32 @@ func SaveUsers(users []models.WrapperrUser) (err error) {
 		return err
 	}
 
-	err = os.WriteFile(usersPath, file, 0644)
-	if err != nil {
+	temp := usersPath + ".tmp"
+	if err = os.WriteFile(temp, file, 0644); err != nil {
+		return err
+	}
+	if err = os.Rename(temp, usersPath); err != nil {
+		os.Remove(temp)
 		return err
 	}
 
 	return nil
+}
+
+// UpdateUsers reads users.json, lets change edit the users, and saves them, with no other UpdateUsers in between.
+// When change returns an error nothing is saved.
+func UpdateUsers(change func(users []models.WrapperrUser) ([]models.WrapperrUser, error)) error {
+	usersMu.Lock()
+	defer usersMu.Unlock()
+	users, err := GetUsers()
+	if err != nil {
+		return err
+	}
+	users, err = change(users)
+	if err != nil {
+		return err
+	}
+	return SaveUsers(users)
 }
 
 // Creates empty users.json

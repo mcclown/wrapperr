@@ -48,6 +48,9 @@ func loadZones() []zoneRow {
 
 // parseISO6709 reads tzdb's ±DDMM±DDDMM or ±DDMMSS±DDDMMSS into degrees.
 func parseISO6709(s string) (lat, lon float64, ok bool) {
+	if len(s) < 2 {
+		return 0, 0, false
+	}
 	split := strings.IndexAny(s[1:], "+-") + 1
 	if split <= 0 {
 		return 0, 0, false

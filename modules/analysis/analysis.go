@@ -37,7 +37,7 @@ type Session struct {
 	Start     int64   `json:"start"`
 	Minutes   float64 `json:"minutes"`
 	Watched   bool    `json:"watched"`
-	Day       int     `json:"day"` // local days since the first day of the period
+	Day       int     `json:"day"` // local days since the first day of the period, 0 to Analysis.LastDay
 	Hour      int     `json:"hour"`
 	RatingKey int     `json:"rating_key"` // the movie or episode played
 }
@@ -55,6 +55,7 @@ type Options struct {
 // Analysis is the period's titles and sessions.
 type Analysis struct {
 	First    time.Time // midnight on the first day of the period, in the server zone
+	LastDay  int       // the day number of the period's last day
 	Titles   []Title
 	Sessions []Session
 }
@@ -103,8 +104,10 @@ func itemKey(play models.TautulliEntry) (titleKey, bool) {
 // Analyse reads the cached plays in the period into titles and sessions.
 //
 // Movies are matched on their Plex GUID (local:// GUIDs aside), with rating keys and GUIDs linked, so a re-added
-// movie (new key, same GUID) and a re-matched one (same key, new GUID) each stay one title. Shows are matched on
-// their key. Keys are per Tautulli server; GUIDs match across servers.
+// movie (new key, same GUID) and a re-matched one (same key, new GUID) each stay one title. The linking is
+// transitive: a key once mis-matched to another film's GUID joins the two films. Shows are matched on their key.
+// Keys are per Tautulli server (its hash, which changes if its address does); GUIDs match across servers, so a
+// movie on two servers is one title but a show is one per server.
 func Analyse(days []models.WrapperrDay, opt Options) Analysis {
 	server := opt.ServerZone
 	if server == nil {
@@ -112,7 +115,11 @@ func Analyse(days []models.WrapperrDay, opt Options) Analysis {
 	}
 	startLocal := time.Unix(opt.Start, 0).In(server)
 	first := time.Date(startLocal.Year(), startLocal.Month(), startLocal.Day(), 0, 0, 0, 0, server)
-	result := Analysis{First: first}
+	firstDay := time.Date(first.Year(), first.Month(), first.Day(), 0, 0, 0, 0, time.UTC)
+	dayNumber := func(t time.Time) int {
+		return int(time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC).Sub(firstDay).Hours() / 24)
+	}
+	result := Analysis{First: first, LastDay: dayNumber(time.Unix(opt.End, 0).In(server)), Titles: []Title{}, Sessions: []Session{}}
 
 	var plays []models.TautulliEntry
 	for _, day := range days {
@@ -165,8 +172,9 @@ func Analyse(days []models.WrapperrDay, opt Options) Analysis {
 			zone = z
 		}
 		local := time.Unix(int64(play.Date), 0).In(zone)
-		localDay := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
-		firstDay := time.Date(first.Year(), first.Month(), first.Day(), 0, 0, 0, 0, time.UTC)
+		// An account west of the server can start the period on the day before, one east of it end on the day
+		// after: those plays count on the first and last days
+		day := min(max(dayNumber(local), 0), result.LastDay)
 		result.Sessions = append(result.Sessions, Session{
 			UserID:    play.UserID,
 			Account:   play.User,
@@ -174,7 +182,7 @@ func Analyse(days []models.WrapperrDay, opt Options) Analysis {
 			Start:     int64(play.Date),
 			Minutes:   SessionMinutes(play.Duration),
 			Watched:   play.PercentComplete >= WatchedPct,
-			Day:       int(localDay.Sub(firstDay).Hours() / 24),
+			Day:       day,
 			Hour:      local.Hour(),
 			RatingKey: play.RatingKey,
 		})
