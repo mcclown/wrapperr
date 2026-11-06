@@ -26,7 +26,7 @@ Rules:
 |---|---|---|---|---|---|---|---|
 | A1 | Seerr request statistics | `seerr-requests` | #1 | main | open | yes | |
 | A2 | Seerr trendsetters and followers | `seerr-trendsetter` | #2 | `seerr-requests` | open | yes | |
-| S | Hardening for exposure through a Cloudflare tunnel | `fork/hardening` | | main | planned | yes | |
+| S | Hardening for exposure through a Cloudflare tunnel | `fork/hardening` | | main | in develop, PR to open | yes | 2026-11-06: code-review high (10 fixed), medium (2 fixed), security-review (0 at bar; 2 lower fixed), medium (2 of 3 fixed) |
 | C | Viewing analysis (per-account layer, Go) | `fork/viewing-analysis` | | S | planned | yes | |
 | D | Plex metadata (episode counts, added dates, backdrops) | `fork/plex-metadata` | | C | planned | yes | |
 | E | Voyage data (contract + API) | `fork/voyage-data` | | D | planned | maybe | |
@@ -44,6 +44,7 @@ parents are in.
 
 <!-- merge-order -->
 - seerr-trendsetter
+- fork/hardening
 <!-- /merge-order -->
 
 ## Develop-only files
