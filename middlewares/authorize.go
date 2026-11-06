@@ -115,23 +115,29 @@ func AuthGetPayloadFromAuthorization(authorizationHeader string, config models.W
 
 		payload = *payloadTwo
 	} else if strings.HasPrefix(strings.ToLower(authorizationHeader), "basic") {
-		token, found := strings.CutPrefix(authorizationHeader, "Basic ")
-		if !found {
+		// HTTP Basic credentials are only an admin login when basic_auth is on. Otherwise they are refused like any
+		// unknown token, without checking them, so they can't be used to skip MFA or to test passwords.
+		if !config.BasicAuth {
+			return payload, http.StatusUnauthorized, errors.New("Session token not accepted. Please relog.")
+		}
+
+		if len(authorizationHeader) < 6 || authorizationHeader[5] != ' ' {
 			return payload, http.StatusBadRequest, errors.New("'Basic' part of header not found.")
 		}
+		token := authorizationHeader[6:]
 
 		rawDecodedtoken, err := base64.StdEncoding.DecodeString(token)
 		if err != nil {
-			return payload, http.StatusInternalServerError, errors.New("Failed to decode Base64.")
+			return payload, http.StatusBadRequest, errors.New("Failed to decode Base64.")
 		}
 
-		authParts := strings.Split(string(rawDecodedtoken), ":")
-		if len(authParts) < 2 {
-			log.Println("Failed to parse basic auth header. Error: " + err.Error())
+		username, password, found := strings.Cut(string(rawDecodedtoken), ":")
+		if !found {
+			log.Println("Failed to parse basic auth header: no username and password.")
 			return payload, http.StatusBadRequest, errors.New("Failed to parse basic auth header.")
 		}
 
-		err = modules.ValidateBasicAuth(authParts[0], authParts[1])
+		err = modules.ValidateBasicAuth(username, password)
 		if err != nil {
 			log.Println("Failed to validate basic auth header. Error: " + err.Error())
 			return payload, http.StatusUnauthorized, errors.New("Failed to validate basic auth header.")

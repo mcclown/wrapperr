@@ -110,20 +110,51 @@ func main() {
 	// Alert what port is in use
 	log.Println("Starting Wrapperr on port " + strconv.Itoa(config.WrapperrPort) + ".")
 
+	// Refuse to start with proxy or admin network settings that can't be read, rather than run with them half applied
+	if _, err := middlewares.ParseNetworks(config.TrustedProxies); err != nil {
+		log.Println("Invalid trusted_proxies (config.json, --trustedproxies or TRUSTED_PROXIES). Error: " + err.Error())
+		os.Exit(1)
+	}
+	if _, ok := middlewares.ClientIPHeader(config.ClientIPHeader); !ok {
+		log.Println("Invalid client_ip_header (config.json, --clientipheader or CLIENT_IP_HEADER): use X-Forwarded-For, X-Real-IP or CF-Connecting-IP.")
+		os.Exit(1)
+	}
+	if _, err := middlewares.ParseNetworks(config.AdminNetworks); err != nil {
+		log.Println("Invalid admin_networks (config.json, --adminnetworks or ADMIN_NETWORKS). Error: " + err.Error())
+		os.Exit(1)
+	}
+
+	// Warn about settings that matter once Wrapperr is reachable from the internet
+	if !config.PlexAuth {
+		log.Println("Warning: Plex Auth is off, so anyone who can reach Wrapperr can view any user's wrapped by name.")
+	}
+	if len(config.AdminNetworks) > 0 && len(config.TrustedProxies) == 0 {
+		log.Println("Warning: admin_networks is set but trusted_proxies is empty. Requests through a reverse proxy or tunnel can't be told apart and are refused admin access.")
+	}
+
 	// Initialize Router
 	router := initRouter(config)
 
 	// Get TSL
 	certFound := files.CheckCertFiles()
 
+	// No write timeout: the first statistics request can spend minutes filling the cache.
+	server := &http.Server{
+		Addr:              ":" + strconv.Itoa(config.WrapperrPort),
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
 	// Start server
 	if certFound {
 		log.Println("Starting using HTTPS.")
 		certPath, certKeyPath := files.GetCertPaths()
-		log.Fatal(router.RunTLS(":"+strconv.Itoa(config.WrapperrPort), certPath, certKeyPath))
+		log.Fatal(server.ListenAndServeTLS(certPath, certKeyPath))
 	} else {
 		log.Println("Starting using HTTP.")
-		log.Fatal(router.Run(":" + strconv.Itoa(config.WrapperrPort)))
+		log.Fatal(server.ListenAndServe())
 	}
 }
 
@@ -136,6 +167,17 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 	}
 
 	router := gin.Default()
+
+	// The client's real address: taken from client_ip_header only when the request comes from one of the
+	// trusted_proxies (for a Cloudflare tunnel, cloudflared's address). With none listed, no header is trusted.
+	// The settings were checked at startup.
+	if err := middlewares.ConfigureClientIP(router, config.TrustedProxies, config.ClientIPHeader); err != nil {
+		log.Println("Invalid proxy settings, trusting no proxy. Error: " + err.Error())
+		_ = middlewares.ConfigureClientIP(router, nil, "")
+	}
+
+	router.Use(middlewares.SecurityHeaders())
+	router.Use(middlewares.BodyLimit(1 << 20))
 
 	router.LoadHTMLGlob("web/*/*.html")
 
@@ -151,22 +193,22 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 			open.POST("/get/functions", routes.ApiGetFunctions)
 			open.POST("/get/config-state", routes.ApiWrapperrConfigured)
 
-			// usage pages
-			open.POST("/get/share-link", routes.ApiGetShareLink)
-			open.POST("/login/plex-auth", routes.ApiLoginPlexAuth)
+			// usage pages (rate limited per client IP: guessing share links, hammering Plex sign-in)
+			open.POST("/get/share-link", middlewares.RateLimit(30, time.Minute), routes.ApiGetShareLink)
+			open.POST("/login/plex-auth", middlewares.RateLimit(20, time.Minute), routes.ApiLoginPlexAuth)
 			open.GET("/get/poster/:serverHash/:filename", routes.ApiGetPoster)
-			open.POST("/download/poster", routes.ApiDownloadPoster)
+			open.POST("/download/poster", middlewares.RateLimit(300, time.Minute), routes.ApiDownloadPoster)
 
-			// admin pages
-			open.POST("/login/admin", routes.ApiLogInAdmin)
-			open.POST("/create/admin", routes.ApiCreateAdmin)
+			// admin pages: only from admin_networks, and a slow rate for password guessing
+			open.POST("/login/admin", middlewares.AdminNetworks(), middlewares.RateLimit(10, 15*time.Minute), routes.ApiLogInAdmin)
+			open.POST("/create/admin", middlewares.AdminNetworks(), middlewares.RateLimit(10, 15*time.Minute), routes.ApiCreateAdmin)
 		}
 
 		// Can be user auth based on config
 		both := api.Group("")
 		{
-			both.POST("/create/share-link", routes.ApiCreateShareLink)
-			both.POST("/get/statistics", routes.ApiWrapperGetStatistics)
+			both.POST("/create/share-link", middlewares.RateLimit(10, time.Minute), routes.ApiCreateShareLink)
+			both.POST("/get/statistics", middlewares.RateLimit(20, time.Minute), routes.ApiWrapperGetStatistics)
 		}
 
 		// Must include an auth token (With Plex auth)
@@ -179,7 +221,7 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 		}
 
 		// Must include an auth token (With admin)
-		admin := api.Group("").Use(middlewares.AuthMiddleware(true))
+		admin := api.Group("").Use(middlewares.AdminNetworks(), middlewares.AuthMiddleware(true))
 		{
 			admin.POST("/validate/admin", routes.ApiValidateAdmin)
 			admin.POST("/get/tautulli-connection", routes.ApiGetTautulliConncection)
@@ -223,13 +265,15 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 	})
 
 	if !config.DisableAdminPage {
+		adminPages := router.Group("", middlewares.AdminNetworks())
+
 		// Static endpoint for admin functions
-		router.GET(root+"/admin", func(c *gin.Context) {
+		adminPages.GET(root+"/admin", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "admin.html", nil)
 		})
 
 		// Static endpoint for Tautulli admin functions
-		router.GET(root+"/admin/tautulli", func(c *gin.Context) {
+		adminPages.GET(root+"/admin/tautulli", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "tautulli.html", nil)
 		})
 
@@ -239,27 +283,27 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 		})
 
 		// Static endpoint for admin settings functions
-		router.GET(root+"/admin/settings", func(c *gin.Context) {
+		adminPages.GET(root+"/admin/settings", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "settings.html", nil)
 		})
 
 		// Static endpoint for admin customization functions
-		router.GET(root+"/admin/customization", func(c *gin.Context) {
+		adminPages.GET(root+"/admin/customization", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "customization.html", nil)
 		})
 
 		// Static endpoint for admin caching functions
-		router.GET(root+"/admin/caching", func(c *gin.Context) {
+		adminPages.GET(root+"/admin/caching", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "caching.html", nil)
 		})
 
 		// Static endpoint for admin log functions
-		router.GET(root+"/admin/logs", func(c *gin.Context) {
+		adminPages.GET(root+"/admin/logs", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "logs.html", nil)
 		})
 
 		// Static endpoint for admin users functions
-		router.GET(root+"/admin/users", func(c *gin.Context) {
+		adminPages.GET(root+"/admin/users", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "users.html", nil)
 		})
 	}
@@ -294,6 +338,17 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 	return router
 }
 
+// splitList turns a comma-separated flag value into its trimmed, non-empty entries.
+func splitList(value string) []string {
+	var list []string
+	for _, entry := range strings.Split(value, ",") {
+		if entry = strings.TrimSpace(entry); entry != "" {
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
 // boolToFlagString renders a bool as the "true"/"false" string used by the string-based boolean flags.
 func boolToFlagString(value bool) string {
 	if value {
@@ -324,6 +379,9 @@ func parseFlags(configFile models.WrapperrConfig) (models.WrapperrConfig, error)
 	var useLogs = flag.String("uselogs", boolToFlagString(configFile.UseLogs), "If logs are written to file and stdout.")
 	var winterTheme = flag.String("wintertheme", boolToFlagString(configFile.WinterTheme), "If the winter theme is enabled.")
 	var disableAdminPage = flag.String("disableadminpage", boolToFlagString(configFile.DisableAdminPage), "If the admin web pages are disabled.")
+	var trustedProxies = flag.String("trustedproxies", strings.Join(configFile.TrustedProxies, ","), "Comma-separated reverse proxy addresses or CIDRs whose client address headers are trusted (for a Cloudflare tunnel, cloudflared's).")
+	var clientIPHeader = flag.String("clientipheader", configFile.ClientIPHeader, "The header a trusted proxy puts the client's address in: X-Forwarded-For (default), X-Real-IP or CF-Connecting-IP (a Cloudflare tunnel).")
+	var adminNetworks = flag.String("adminnetworks", strings.Join(configFile.AdminNetworks, ","), "Comma-separated addresses or CIDRs allowed to reach the admin pages; empty allows everyone.")
 
 	// Parse flags
 	flag.Parse()
@@ -370,6 +428,18 @@ func parseFlags(configFile models.WrapperrConfig) (models.WrapperrConfig, error)
 	}
 	if provided["disableadminpage"] {
 		configFile.DisableAdminPage = strings.EqualFold(*disableAdminPage, "true")
+	}
+	if provided["trustedproxies"] {
+		configFile.TrustedProxies = splitList(*trustedProxies)
+	}
+	if provided["clientipheader"] {
+		configFile.ClientIPHeader = *clientIPHeader
+		if canonical, ok := middlewares.ClientIPHeader(*clientIPHeader); ok {
+			configFile.ClientIPHeader = canonical // stored as the Settings page shows it
+		}
+	}
+	if provided["adminnetworks"] {
+		configFile.AdminNetworks = splitList(*adminNetworks)
 	}
 
 	// Failsafe, if port is 0, set to default 8282

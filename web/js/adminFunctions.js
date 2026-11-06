@@ -155,6 +155,9 @@ function get_config(cookie) {
                 create_share_links = result.data.create_share_links;
                 plex_auth = result.data.plex_auth;
                 basic_auth = result.data.basic_auth;
+                trusted_proxies = result.data.trusted_proxies || [];
+                client_ip_header = result.data.client_ip_header || 'X-Forwarded-For';
+                admin_networks = result.data.admin_networks || [];
                 use_cache = result.data.use_cache;
 				use_logs = result.data.use_logs;
                 clientID = result.data.clientID;
