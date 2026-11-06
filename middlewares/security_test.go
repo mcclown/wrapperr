@@ -80,6 +80,9 @@ func TestAdminAllowed(t *testing.T) {
 		{"LAN through a trusted proxy", lan, []string{"192.168.1.5"}, "192.168.1.5:5000", map[string]string{"X-Forwarded-For": "192.168.1.20"}, true},
 		{"internet through nginx, forging CF-Connecting-IP", lan, []string{"192.168.1.5"}, "192.168.1.5:5000", map[string]string{"CF-Connecting-IP": "192.168.1.20", "X-Forwarded-For": "203.0.113.9"}, false},
 		{"trusted proxy sending a different header", lan, []string{"header=CF-Connecting-IP", "192.168.1.5"}, "192.168.1.5:5000", map[string]string{"X-Forwarded-For": "192.168.1.20"}, false},
+		// a tunnel set to remove visitor IP headers: the request looks like it is from cloudflared on the LAN
+		{"trusted proxy sending no header", lan, []string{"header=CF-Connecting-IP", "192.168.1.5"}, "192.168.1.5:5000", nil, false},
+		{"LAN, direct, with a trusted proxy configured", lan, []string{"header=CF-Connecting-IP", "192.168.1.5"}, "192.168.1.20:5000", nil, true},
 		{"single address", []string{"192.168.1.20"}, nil, "192.168.1.20:5000", nil, true},
 		{"invalid list: nobody", []string{"not-a-network"}, nil, "192.168.1.20:5000", nil, false},
 	}
@@ -106,6 +109,15 @@ func TestAdminAllowedAfterRestart(t *testing.T) {
 	})
 	if !now || cleared || !kept {
 		t.Fatalf("now %v, after clearing trusted_proxies %v (want false), keeping it %v", now, cleared, kept)
+	}
+	// Browsing from the proxy's own address: allowed today, but not once it is a trusted proxy
+	var direct, asProxy bool
+	request(t, nil, "192.168.1.5:5000", nil, func(ctx *gin.Context) {
+		direct = AdminAllowed(ctx, lan)
+		asProxy = AdminAllowedAfterRestart(ctx, []string{"192.168.1.5"}, "", lan)
+	})
+	if !direct || asProxy {
+		t.Fatalf("from the proxy's address: now %v, once it is trusted %v (want false)", direct, asProxy)
 	}
 }
 

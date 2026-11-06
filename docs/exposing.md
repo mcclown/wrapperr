@@ -22,12 +22,16 @@ unless you limit them. These settings are found on the admin Settings page, or s
 - **Admin networks** (`admin_networks`), for example `192.168.1.0/24`. The admin pages, the admin login and every admin
   API then answer 404 to anyone outside those networks, so from the internet the admin side does not exist. A request
   that carries a proxy header but didn't come through a trusted proxy is always refused, so a tunnel can't pass for
-  the local network before its proxy is listed. Saving settings that would leave your own address outside the list,
+  the local network before its proxy is listed. So is a request from a trusted proxy that doesn't carry the client IP
+  header (a tunnel set to remove visitor IP headers, say), so open the admin pages from your own address, not from
+  the proxy's. Saving settings that would leave your own address outside the list,
   now or after the restart that applies new proxy settings, is refused, so you can't lock yourself out from the
   Settings page. If you do (through config.json, a flag or an environment variable), clear `admin_networks` in
   `config.json`, remove any `--adminnetworks` flag or `ADMIN_NETWORKS` variable (they are written back to
   config.json at every start), and restart. Wrapperr refuses to start with a list it can't read.
 - **Admin MFA.** Turn it on from the admin page as a second line of defence for the admin login.
+- **HTTP Basic auth** (`basic_auth`). Leave it off: it skips MFA. Admin credentials sent as an HTTP Basic header are
+  only accepted while it is on.
 
 ## What Wrapperr does for you
 

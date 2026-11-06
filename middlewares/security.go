@@ -115,13 +115,43 @@ func ClientIPHeader(setting string) (string, bool) {
 // itself (nginx forwards a visitor's own CF-Connecting-IP, say), so reading several would let a visitor choose
 // their address. With no trusted proxies no header is read at all.
 func ConfigureClientIP(engine *gin.Engine, trustedProxies []string, header string) error {
+	settings, err := configureEngine(engine, trustedProxies, header)
+	if err != nil {
+		return err
+	}
+	activeProxyMu.Lock()
+	activeProxy = settings
+	activeProxyMu.Unlock()
+	return nil
+}
+
+// proxySettings are the trusted proxies and client address header an engine runs with.
+type proxySettings struct {
+	trusted []*net.IPNet
+	header  string
+}
+
+// The settings the server's engine runs with, which AdminAllowed checks requests against
+var (
+	activeProxyMu sync.Mutex
+	activeProxy   proxySettings
+)
+
+func configureEngine(engine *gin.Engine, trustedProxies []string, header string) (proxySettings, error) {
 	canonical, ok := ClientIPHeader(header)
 	if !ok {
-		return fmt.Errorf("client_ip_header must be one of %s", strings.Join(ProxyHeaders, ", "))
+		return proxySettings{}, fmt.Errorf("client_ip_header must be one of %s", strings.Join(ProxyHeaders, ", "))
+	}
+	trusted, err := ParseNetworks(trustedProxies)
+	if err != nil {
+		return proxySettings{}, err
 	}
 	engine.ForwardedByClientIP = true
 	engine.RemoteIPHeaders = []string{canonical}
-	return engine.SetTrustedProxies(trustedProxies)
+	if err := engine.SetTrustedProxies(trustedProxies); err != nil {
+		return proxySettings{}, err
+	}
+	return proxySettings{trusted: trusted, header: canonical}, nil
 }
 
 // ProxiedButUntrusted reports a request that carries a reverse proxy's client address header but whose address
@@ -175,12 +205,24 @@ func AdminNetworks() gin.HandlerFunc {
 // AdminAllowed reports whether a request may reach the admin side under the given admin_networks: everyone when
 // the list is empty, otherwise only a client inside it whose address is known. An invalid list lets nobody in.
 func AdminAllowed(context *gin.Context, adminNetworks []string) bool {
+	activeProxyMu.Lock()
+	settings := activeProxy
+	activeProxyMu.Unlock()
+	return adminAllowed(context, settings, adminNetworks)
+}
+
+func adminAllowed(context *gin.Context, settings proxySettings, adminNetworks []string) bool {
 	if len(adminNetworks) == 0 {
 		return true
 	}
 	networks, err := parseNetworksCached(adminNetworks)
 	if err != nil {
 		log.Println("Invalid admin_networks, refusing admin access. Error: " + err.Error())
+		return false
+	}
+	// A request from a trusted proxy without its client address header has an unknown origin: a tunnel set to strip
+	// visitor IP headers, say, would otherwise pass every visitor off as the proxy's own (local) address
+	if InNetworks(context.RemoteIP(), settings.trusted) && context.GetHeader(settings.header) == "" {
 		return false
 	}
 	return !ProxiedButUntrusted(context) && InNetworks(context.ClientIP(), networks)
@@ -190,12 +232,13 @@ func AdminAllowed(context *gin.Context, adminNetworks []string) bool {
 // with these trusted_proxies and client_ip_header (they take effect on restart) and admin_networks.
 func AdminAllowedAfterRestart(context *gin.Context, trustedProxies []string, header string, adminNetworks []string) bool {
 	engine := gin.New()
-	if err := ConfigureClientIP(engine, trustedProxies, header); err != nil {
+	settings, err := configureEngine(engine, trustedProxies, header)
+	if err != nil {
 		return false
 	}
 	future := gin.CreateTestContextOnly(discardWriter{http.Header{}}, engine)
 	future.Request = context.Request
-	return AdminAllowed(future, adminNetworks)
+	return adminAllowed(future, settings, adminNetworks)
 }
 
 // discardWriter is a ResponseWriter for a context that only answers questions about a request.
