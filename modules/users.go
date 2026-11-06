@@ -9,30 +9,23 @@ import (
 )
 
 func UsersSaveUserEntry(newUser models.WrapperrUser) (err error) {
-	err = nil
-
-	users, err := files.GetUsers()
-	if err != nil {
-		log.Println("Failed to get users. Error: " + err.Error())
-		return errors.New("Failed to get users.")
-	}
-
-	var userFound = false
-	var userIndex = 0
-	for index, user := range users {
-		if user.UserID == newUser.UserID || user.User == newUser.User {
-			userFound = true
-			userIndex = index
+	err = files.UpdateUsers(func(users []models.WrapperrUser) ([]models.WrapperrUser, error) {
+		var userFound = false
+		var userIndex = 0
+		for index, user := range users {
+			if user.UserID == newUser.UserID || user.User == newUser.User {
+				userFound = true
+				userIndex = index
+			}
 		}
-	}
 
-	if userFound {
-		users[userIndex].Wrappings = append(users[userIndex].Wrappings, newUser.Wrappings...)
-	} else {
-		users = append(users, newUser)
-	}
-
-	err = files.SaveUsers(users)
+		if userFound {
+			users[userIndex].Wrappings = append(users[userIndex].Wrappings, newUser.Wrappings...)
+		} else {
+			users = append(users, newUser)
+		}
+		return users, nil
+	})
 	if err != nil {
 		log.Println("Failed to save new users. Error: " + err.Error())
 		return errors.New("Failed to save new users.")
@@ -61,36 +54,25 @@ func UsersGetUser(userID int) (user models.WrapperrUser, err error) {
 }
 
 func UsersUpdateUser(userID int, FriendlyName string, userName string, Email string, Active bool, TautulliServers []string, Ignore bool) (err error) {
-	err = nil
-
-	users, err := files.GetUsers()
-	if err != nil {
-		log.Println("Failed to get users. Error: " + err.Error())
-		return errors.New("Failed to get users.")
-	}
-
-	userFound := false
-	userIndex := 0
-	for index, foundUser := range users {
-		if foundUser.UserID == userID {
-			userFound = true
-			userIndex = index
+	errNotFound := errors.New("Failed to find user based on ID.")
+	err = files.UpdateUsers(func(users []models.WrapperrUser) ([]models.WrapperrUser, error) {
+		for index := range users {
+			if users[index].UserID != userID {
+				continue
+			}
+			users[index].Active = Active
+			users[index].Email = Email
+			users[index].FriendlyName = FriendlyName
+			users[index].User = userName
+			users[index].TautulliServers = TautulliServers
+			users[index].Ignore = Ignore
+			return users, nil
 		}
-	}
-
-	if !userFound {
-		return errors.New("Failed to find user based on ID.")
-	}
-
-	users[userIndex].Active = Active
-	users[userIndex].Email = Email
-	users[userIndex].FriendlyName = FriendlyName
-	users[userIndex].User = userName
-	users[userIndex].TautulliServers = TautulliServers
-	users[userIndex].Ignore = Ignore
-
-	err = files.SaveUsers(users)
-	if err != nil {
+		return users, errNotFound
+	})
+	if err == errNotFound {
+		return err
+	} else if err != nil {
 		log.Println("Failed to save users. Error: " + err.Error())
 		return errors.New("Failed to save users.")
 	}

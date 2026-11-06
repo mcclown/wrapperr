@@ -877,3 +877,45 @@ func ApiGetSeerrConnection(context *gin.Context) {
 
 	context.JSON(http.StatusOK, booleanReply)
 }
+
+// ApiLookupUserTimezones sets every account's time zone from GeoIP through Tautulli, leaving those an admin set.
+func ApiLookupUserTimezones(context *gin.Context) {
+	found, err := modules.UsersLookupTimezones()
+	if err != nil {
+		log.Println("Failed to look up time zones. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to look up time zones."})
+		context.Abort()
+		return
+	}
+	users, err := files.GetUsers()
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get users."})
+		context.Abort()
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"message": "Found time zones for " + strconv.Itoa(found) + " accounts.", "data": users})
+}
+
+// ApiSetUserTimezone sets one account's time zone by hand; an empty zone clears it.
+func ApiSetUserTimezone(context *gin.Context) {
+	userID, err := strconv.Atoi(context.Param("userId"))
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse user ID."})
+		context.Abort()
+		return
+	}
+	var request struct {
+		Timezone string `json:"user_timezone"`
+	}
+	if err := context.ShouldBindJSON(&request); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse request."})
+		context.Abort()
+		return
+	}
+	if err := modules.UsersSetTimezone(userID, request.Timezone); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.Abort()
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"message": "Time zone saved."})
+}

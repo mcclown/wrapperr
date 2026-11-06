@@ -411,6 +411,25 @@ a {
     padding: 0;
 }
 
+.user-timezone {
+    margin: 0.25em 0.5em;
+    width: 10em;
+}
+
+.user-timezone input {
+    height: 2em;
+    padding: 0 0.4em;
+    font-size: 0.85em;
+}
+
+.user-header-timezone {
+    margin: 0.25em 0.5em;
+    text-align: center;
+    width: 10em;
+    overflow: hidden;
+    text-decoration: underline;
+}
+
 .user-details {
     display: flex;
     flex-direction: row;

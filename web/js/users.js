@@ -20,6 +20,12 @@ function loadAdminPage() {
             <button class="form-control btn" type="submit" name="tautulliSyncButton" id="tautulliSyncButton" onclick="syncTautulli();"><img src="${root}/assets/synchronize.svg" class="btn_logo"></img><p2 id="tautulliSyncButtonImage">Sync with Tautulli</p2></button>
         </div>
 
+        <div class="form-group newline">
+            <button class="form-control btn" name="timezoneLookupButton" id="timezoneLookupButton" onclick="lookupTimezones();" title="Sets each account's time zone from where it has played from most (Tautulli's GeoIP lookup). Zones set by hand are kept; only the zone and country are stored, never addresses."><img src="${root}/assets/synchronize.svg" class="btn_logo"></img><p2 id="timezoneLookupButtonText">Look up time zones</p2></button>
+        </div>
+
+        <datalist id="timezones"></datalist>
+
         <div class='form-group newline'>
             <h3>
                 Wrapperr users
@@ -33,6 +39,7 @@ function loadAdminPage() {
 
     document.getElementById("setup").innerHTML = html;
     getUsers();
+    getTimezoneOptions();
 }
 
 function getUsers() {
@@ -74,6 +81,7 @@ function placeUsers(usersArray) {
             <div class="user-header">Email</div>
             <div class="user-header-short">Active</div>
             <div class="user-header">Tautulli servers</div>
+            <div class="user-header-timezone">Time zone</div>
             <div class="user-header-short">Ignore user</div>
             <div class="user-header-short">History</div>
             <div class="user-header-short">View As User</div>
@@ -139,6 +147,9 @@ function placeUsers(usersArray) {
                         </div>
                     </div>
                     <div class="user-tautulli-servers">${tautulliServersString}</div>
+                    <div class="user-timezone" title="${escapeText(timezoneTitle(user))}">
+                        <input class="form-control" list="timezones" id="timezone_user_${user.user_id}" value="${escapeText(user.user_timezone || '')}" placeholder="Server zone" onchange="setUserTimezone(${user.user_id}, this.value);">
+                    </div>
                     <div class="user-ignore">
                         <input style="margin: auto;" class="clickable" type="checkbox" id="ignore_user_check_${user.user_id}" name="ignore_user_check_${user.user_id}" onclick="toggleUserIgnore('${user.user_id}', ${user.user_ignore})" value="" ${ignoredUserString}>
                     </div>
@@ -306,4 +317,96 @@ function viewUserWrapped(userId) {
     xhttp.setRequestHeader("Authorization", cookie);
     xhttp.send();
     return;
+}
+
+function escapeText(value) {
+    return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function timezoneTitle(user) {
+    if(user.user_timezone_source === 'admin') {
+        return 'Set by hand. Clear it to use the server zone, or GeoIP after the next lookup.';
+    } else if(user.user_timezone_source === 'geoip') {
+        return 'From GeoIP: ' + (user.user_timezone_label || user.user_timezone) + '. Change it to set it by hand.';
+    }
+    return 'The server zone. Look up time zones, or set one by hand.';
+}
+
+function getTimezoneOptions() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                var result = JSON.parse(this.responseText);
+            } catch(error) {
+                return;
+            }
+            if(!result.error && Array.isArray(result.data)) {
+                var dataList = document.getElementById("timezones");
+                result.data.forEach(function(item) {
+                    var option = document.createElement('option');
+                    option.value = item;
+                    dataList.appendChild(option);
+                });
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "get/timezones");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", cookie);
+    xhttp.send();
+}
+
+function setUserTimezone(userId, timezone) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            try {
+                var result = JSON.parse(this.responseText);
+            } catch(error) {
+                alert('Failed to parse API response.');
+                return;
+            }
+            if(result.error) {
+                alert(result.error);
+            }
+            getUsers();
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "set/users/" + userId + "/timezone");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", cookie);
+    xhttp.send(JSON.stringify({"user_timezone": timezone}));
+}
+
+function lookupTimezones() {
+    var button = document.getElementById("timezoneLookupButton");
+    button.disabled = true;
+    button.style.opacity = '0.5';
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+            button.disabled = false;
+            button.style.opacity = '1';
+            try {
+                var result = JSON.parse(this.responseText);
+            } catch(error) {
+                alert('Failed to parse API response.');
+                return;
+            }
+            if(result.error) {
+                alert(result.error);
+            } else {
+                placeUsers(result.data);
+                alert(result.message);
+            }
+        }
+    };
+    xhttp.withCredentials = true;
+    xhttp.open("post", api_url + "lookup/users/timezones");
+    xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhttp.setRequestHeader("Authorization", cookie);
+    xhttp.send();
 }
