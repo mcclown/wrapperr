@@ -20,12 +20,20 @@ cleanup() { git -C "$repo" worktree remove --force "$tmp" >/dev/null 2>&1 || tru
 trap cleanup EXIT
 
 git -C "$repo" worktree add --detach --quiet "$tmp" "$base"
+# Conflicts between themes are resolved once, when merging into develop with rerere on (as below), and replayed
+# from git's rerere cache here
+rerere=(-c rerere.enabled=true -c rerere.autoUpdate=true)
 for b in "${branches[@]}"; do
   echo "merging $b"
-  if ! git -C "$tmp" merge --no-ff --quiet --no-edit "$b" >/dev/null; then
-    echo "conflict merging $b onto $base + earlier themes" >&2
-    git -C "$tmp" diff --name-only --diff-filter=U >&2
-    exit 2
+  if ! git "${rerere[@]}" -C "$tmp" merge --no-ff --quiet --no-edit "$b" >/dev/null 2>&1; then
+    if [ -n "$(git -C "$tmp" diff --name-only --diff-filter=U)" ]; then
+      echo "conflict merging $b onto $base + earlier themes, with no recorded resolution" >&2
+      git -C "$tmp" diff --name-only --diff-filter=U >&2
+      echo "resolve it with: git -c rerere.enabled=true merge ... in develop (or train rerere on the merge)" >&2
+      exit 2
+    fi
+    echo "  replayed a recorded conflict resolution"
+    git -C "$tmp" commit --quiet --no-edit
   fi
 done
 
