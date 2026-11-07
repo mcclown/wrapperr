@@ -71,7 +71,7 @@ function sign_out() {
 // voyage_front_page picks which of the two comes first.
 function voyage_entry(first) {
     document.getElementById('set_sail_div').style.display = 'block';
-    document.getElementById('search_wrapped_button_text').innerHTML = 'Read the log';
+    document.getElementById('search_wrapped_button_text').textContent = 'Read the log';
     if(first !== 'log') {
         var log = document.getElementById('search_wrapped_div');
         log.parentNode.insertBefore(document.getElementById('set_sail_div'), log);
@@ -81,8 +81,12 @@ function voyage_entry(first) {
 }
 
 function set_sail_ready(ready) {
-    document.getElementById("set_sail_button").disabled = !ready;
-    document.getElementById("set_sail_button").style.opacity = ready ? '1' : '0.5';
+    var button = document.getElementById("set_sail_button");
+    if(!button) {
+        return;
+    }
+    button.disabled = !ready;
+    button.style.opacity = ready ? '1' : '0.5';
 }
 
 function set_sail() {
@@ -270,6 +274,7 @@ function validate_cookie_user(cookie) {
                 get_user_links(cookie);
                 if(open_log) {
                     open_log = false;
+                    history.replaceState(null, '', window.location.pathname);
                     search_wrapperr();
                 }
             }
