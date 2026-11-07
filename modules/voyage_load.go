@@ -40,6 +40,23 @@ type builtVoyage struct {
 // VoyageForUser is an account's voyage document, built from the play cache as it stands (callers refresh it first).
 // It returns voyage.ErrNoSessions for an account with nothing played in the period.
 func VoyageForUser(userID int, config models.WrapperrConfig) (voyage.Document, error) {
+	built, err := buildVoyage(userID, config)
+	if err != nil {
+		return voyage.Document{}, err
+	}
+	// Posters and backdrops download in the background; the queue skips those already cached
+	if config.WrapperrCustomize.EnablePosters {
+		refs := make([]files.PosterReference, 0, len(built.images))
+		for _, image := range built.images {
+			refs = append(refs, files.PosterReference{ServerHash: image.Server, RatingKey: image.RatingKey, ThumbPath: image.Path, Kind: image.Kind})
+		}
+		files.EnqueuePosters(refs, config.TautulliConfig, config.WrapperrCustomize.PosterCacheMaxAgeDays)
+	}
+	return built.document, nil
+}
+
+// buildVoyage is an account's voyage and the images it points at, kept until anything it comes from changes.
+func buildVoyage(userID int, config models.WrapperrConfig) (builtVoyage, error) {
 	// The events file is created first, so its stamp is in the fingerprint from the start
 	files.GetVoyageEvents(voyage.DefaultEvents)
 	voyages.Lock()
@@ -47,14 +64,14 @@ func VoyageForUser(userID int, config models.WrapperrConfig) (voyage.Document, e
 	// Under the lock, so requests can't overwrite each other's newer state with an older fingerprint
 	fingerprint, users, err := voyageFingerprint(config)
 	if err != nil {
-		return voyage.Document{}, err
+		return builtVoyage{}, err
 	}
 	if voyages.sea == nil || voyages.fingerprint != fingerprint {
 		// Read after the fingerprint: a file changed in between is read as it is now, and seen as changed next time
 		events := voyageEvents()
 		a, err := LoadAnalysis()
 		if err != nil {
-			return voyage.Document{}, err
+			return builtVoyage{}, err
 		}
 		metadata, err := files.GetMetadata()
 		if err != nil {
@@ -86,20 +103,12 @@ func VoyageForUser(userID int, config models.WrapperrConfig) (voyage.Document, e
 			Images:    config.WrapperrCustomize.EnablePosters,
 		})
 		if err != nil {
-			return voyage.Document{}, err
+			return builtVoyage{}, err
 		}
 		built = builtVoyage{document: document, images: images}
 		voyages.built[userID] = built
 	}
-	// Posters and backdrops download in the background; the queue skips those already cached
-	if config.WrapperrCustomize.EnablePosters {
-		refs := make([]files.PosterReference, 0, len(built.images))
-		for _, image := range built.images {
-			refs = append(refs, files.PosterReference{ServerHash: image.Server, RatingKey: image.RatingKey, ThumbPath: image.Path, Kind: image.Kind})
-		}
-		files.EnqueuePosters(refs, config.TautulliConfig, config.WrapperrCustomize.PosterCacheMaxAgeDays)
-	}
-	return built.document, nil
+	return built, nil
 }
 
 // voyageEvents reads config/voyage_events.json (creating it from the built-in events), or the built-in events

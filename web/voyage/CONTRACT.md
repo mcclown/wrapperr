@@ -17,6 +17,19 @@ never a friendly name.
 Both refresh the play cache first, as a statistics request does, and need the cache on. The document is kept until
 the play cache, the Plex metadata, the events, the settings or the users' time zones change.
 
+### The static export
+
+`wrapperr voyage export --user <Plex username> --out <folder> [--refresh] [--music <audio file>]`, run from
+Wrapperr's folder, writes one account's voyage as a site that needs nothing else: the page with the document set
+on it as `window.VOYAGE`, three.js, the fonts, the models and the sound effects, and the posters and backdrops
+under `img/` (downloaded first if they aren't cached). A title whose image can't be had has none.
+
+- It uses the play cache as it stands, or with `--refresh` brings it up to date from Tautulli first.
+- No music is included unless `--music` names an audio file of your own, which is copied in as `audio/music.<ext>`
+  (`window.VOYAGE_MUSIC`, empty without one).
+- The folder must be new or empty. Serve it over HTTP to open it: browsers don't run its modules from `file://`.
+- The end screen has no link to the classic page, since there's no Wrapperr behind it.
+
 ## The document
 
 | Field | | |
