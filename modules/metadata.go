@@ -2,6 +2,7 @@ package modules
 
 import (
 	"bytes"
+	"errors"
 	"log"
 	"net/url"
 	"strconv"
@@ -110,10 +111,14 @@ func tautulliMetadata(server models.TautulliConfig, ratingKey int, now time.Time
 	if err := tautulliGet(server, "get_metadata", url.Values{"rating_key": {strconv.Itoa(ratingKey)}}, &reply); err != nil {
 		return entry, false, err
 	}
+	// An error is the server's, not the title's: it is tried again on the next refresh
+	if reply.Response.Result != "success" {
+		return entry, false, errors.New("Tautulli replied " + strconv.Quote(reply.Response.Result) + " to get_metadata.")
+	}
 	data := reply.Response.Data
 	entry.Checked = now.Unix()
 	// An unknown key is a success with no data
-	if reply.Response.Result != "success" || data.MediaType == "" {
+	if data.MediaType == "" {
 		entry.Missing = true
 		return entry, false, nil
 	}

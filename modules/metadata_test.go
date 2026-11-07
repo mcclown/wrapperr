@@ -26,6 +26,10 @@ func fakeMetadata(t *testing.T, replies map[string]string, calls *int32) models.
 		if !ok {
 			data = `{}`
 		}
+		if data == "error" {
+			w.Write([]byte(`{"response":{"result":"error","message":"Database is locked","data":{}}}`))
+			return
+		}
 		w.Write([]byte(`{"response":{"result":"success","message":null,"data":` + data + `}}`))
 	}))
 	t.Cleanup(server.Close)
@@ -47,8 +51,12 @@ const (
 
 func TestTautulliMetadata(t *testing.T) {
 	var calls int32
-	server := fakeMetadata(t, map[string]string{"10": movieMetadata, "30": showMetadata}, &calls)
+	server := fakeMetadata(t, map[string]string{"10": movieMetadata, "30": showMetadata, "50": "error"}, &calls)
 	now := time.Unix(1_800_000_000, 0)
+
+	if _, found, err := tautulliMetadata(server, 50, now); err == nil || found {
+		t.Fatalf("a Tautulli error should be an error, not a missing title: found %v, err %v", found, err)
+	}
 
 	movie, found, err := tautulliMetadata(server, 10, now)
 	if err != nil || !found {
