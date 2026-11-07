@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voyage mockups</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<style>
+/* The voyage's own look: parchment on a night sea, brass trim */
+:root { color-scheme: dark; --ink: #2b1d0e; --ink-soft: #5a4327; --parchment: #f1e2c0; --parchment-edge: #c9a96b; --brass: #c8963e; --brass-hi: #f2c76b; --night: #0c1620;
+  --serif: "IM Fell English", Georgia, serif; --display: "Pirata One", "IM Fell English", Georgia, serif; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at top, #1c3346, var(--night) 70%); color: #f6ead0; font: 16px/1.45 var(--serif); }
+main { max-width: 720px; margin: 0 auto; padding: 32px 16px 48px; }
+h1 { font-family: var(--display); font-weight: normal; color: var(--brass-hi); font-size: 2.4rem; margin: 0 0 4px; }
+.sub { color: #d7c7a4; margin-bottom: 20px; }
+.card { background: linear-gradient(180deg, #f6e9c9, var(--parchment) 40%, #e8d3a4); color: var(--ink); border: 1px solid var(--parchment-edge); border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 0 40px rgba(150, 110, 50, 0.25); padding: 14px 20px; margin-bottom: 16px; }
+h2 { font-family: var(--display); font-weight: normal; margin: 0 0 6px; font-size: 1.5rem; }
+h2 small { font-family: var(--serif); font-size: 0.85rem; color: var(--ink-soft); }
+ul { list-style: none; margin: 0; padding: 0; }
+li { display: flex; gap: 10px; align-items: baseline; padding: 5px 0; border-top: 1px dashed rgba(90, 67, 39, 0.3); flex-wrap: wrap; }
+li:first-child { border-top: 0; }
+a { color: #7a3d12; }
+li a { font-size: 1.05rem; }
+code { font-size: 0.8rem; color: var(--ink-soft); }
+.tier { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 1px 7px; border-radius: 9px; background: rgba(90, 67, 39, 0.15); color: var(--ink-soft); }
+.tier.cine { background: var(--brass-hi); color: var(--ink); }
+.tier.loud { background: #c8553d; color: #fff3df; }
+.all { display: inline-block; margin-bottom: 20px; padding: 8px 16px; border-radius: 8px; background: var(--brass); color: var(--ink); text-decoration: none; font-family: var(--display); font-size: 1.2rem; }
+.empty { color: var(--ink-soft); font-style: italic; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Voyage mockups</h1>
+  <div class="sub">New sightings, played in the real voyage before their data exists. Each opens a calm day with the sighting a few days ahead.</div>
+  <a class="all" id="all" hidden>▶ All, one after another</a>
+  <div id="files"></div>
+</main>
+<script type="module">
+// The same files and order the page loads (template.html, MOCK_FILES); a missing one is skipped
+const FILES = ["scenes-example.js", "scenes-creatures.js", "scenes-seerr.js", "scenes-end.js"];
+const groups = [];
+for (const f of FILES) {
+  const found = [];
+  window.registerMock = m => found.push(m);
+  try { await import(`./${f}`); } catch (e) { continue; }
+  groups.push([f, found]);
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const link = id => `../?mock=${encodeURIComponent(id)}`;
+document.getElementById("files").innerHTML = groups.map(([f, ms]) => `<section class="card"><h2>${esc(f.replace(/^scenes-|\.js$/g, ""))} <small>${esc(f)}</small></h2>` +
+  (ms.length ? `<ul>${ms.map(m => `<li><a href="${link(m.id)}">${esc(m.title)}</a><span class="tier ${esc(m.tier)}">${esc(m.tier)}</span><code>${esc(m.id)}</code></li>`).join("")}</ul>` : `<div class="empty">Nothing registered yet</div>`) +
+  `</section>`).join("");
+const ids = groups.flatMap(([, ms]) => ms.map(m => m.id));
+if (ids.length > 1) Object.assign(document.getElementById("all"), { hidden: false, href: `${link(ids[0])}&next=${ids.slice(1).map(encodeURIComponent).join(",")}&auto` });
+</script>
+</body>
+</html>
