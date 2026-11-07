@@ -149,5 +149,6 @@
     "client_ip_header": "X-Forwarded-For",
     "admin_networks": [],
     "voyage_enabled": false,
-    "voyage_music": ""
+    "voyage_music": "",
+    "voyage_front_page": "voyage"
 }
