@@ -15,6 +15,29 @@ import (
 
 var voyageEventsPath, _ = filepath.Abs("./config/voyage_events.json")
 
+var voyageMusicDir, _ = filepath.Abs("./config/voyage")
+
+// voyageMusicTypes are the audio files the voyage's music may be, as browsers play them
+var voyageMusicTypes = map[string]string{".m4a": "audio/mp4", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".opus": "audio/ogg",
+	".wav": "audio/wav", ".aac": "audio/aac"}
+
+// VoyageMusicPath is where the voyage's music file (the voyage_music setting) is: a plain file name with an audio
+// extension, in config/voyage/. None ships with Wrapperr. It reports false for any other name.
+func VoyageMusicPath(name string) (string, bool) {
+	if name == "" || name != filepath.Base(name) || strings.ContainsAny(name, `/\:`) || strings.HasPrefix(name, ".") {
+		return "", false
+	}
+	if _, ok := voyageMusicTypes[strings.ToLower(filepath.Ext(name))]; !ok {
+		return "", false
+	}
+	return filepath.Join(voyageMusicDir, name), true
+}
+
+// VoyageMusicType is the content type of a voyage music file.
+func VoyageMusicType(name string) string {
+	return voyageMusicTypes[strings.ToLower(filepath.Ext(name))]
+}
+
 var voyageEventsMu sync.Mutex
 
 // GetVoyageEvents reads config/voyage_events.json, the voyage's world events and easter eggs, writing seed there

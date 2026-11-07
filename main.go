@@ -179,7 +179,7 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 	router.Use(middlewares.SecurityHeaders())
 	router.Use(middlewares.BodyLimit(1 << 20))
 
-	router.LoadHTMLGlob("web/*/*.html")
+	router.LoadHTMLGlob("web/html/*.html")
 
 	// API endpoint
 	api := router.Group(root + "/api")
@@ -261,6 +261,23 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 	// Static endpoint for different directories
 	router.Static(root+"/assets", "./web/assets")
 	router.Static(root+"/js", "./web/js")
+
+	// The voyage page (web/voyage): its own folders only, with no directory listings. It draws the voyage.v1
+	// document from /api/get/voyage; the page itself holds nothing about anyone.
+	router.GET(root+"/voyage", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, root+"/voyage/")
+	})
+	voyagePolicy := routes.VoyagePagePolicy("./web/voyage/index.html")
+	router.GET(root+"/voyage/", func(c *gin.Context) {
+		c.Header("Content-Security-Policy", voyagePolicy)
+		c.File("./web/voyage/index.html")
+	})
+	router.StaticFile(root+"/voyage/voyage.js", "./web/voyage/voyage.js")
+	for _, folder := range []string{"vendor", "fonts", "models", "mock", "audio/sfx"} {
+		router.Static(root+"/voyage/"+folder, "./web/voyage/"+folder)
+	}
+	router.GET(root+"/voyage/audio/music", routes.ApiVoyageMusic)
+	router.HEAD(root+"/voyage/audio/music", routes.ApiVoyageMusic)
 
 	// Static endpoint for homepage
 	router.GET(root+"/", func(c *gin.Context) {

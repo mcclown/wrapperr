@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -166,6 +167,23 @@ func ApiSetConfig(context *gin.Context) {
 		// Kept as it is when the save leaves it out
 		if config_payload.WrapperrData.VoyageEnabled != nil {
 			config.VoyageEnabled = *config_payload.WrapperrData.VoyageEnabled
+		}
+		if music := config_payload.WrapperrData.VoyageMusic; music != nil {
+			if *music != "" {
+				path, ok := files.VoyageMusicPath(*music)
+				if !ok {
+					context.JSON(http.StatusBadRequest, gin.H{"error": "The voyage music must be the name of an audio file (.m4a, .mp3, .ogg, .opus, .wav or .aac) in config/voyage/."})
+					context.Abort()
+					return
+				}
+				// Checked when the name changes, so a file gone missing later doesn't block saving other settings
+				if info, err := os.Stat(path); *music != config.VoyageMusic && (err != nil || !info.Mode().IsRegular()) {
+					context.JSON(http.StatusBadRequest, gin.H{"error": "There is no file called " + *music + " in config/voyage/ (names are case-sensitive)."})
+					context.Abort()
+					return
+				}
+			}
+			config.VoyageMusic = *music
 		}
 
 		err = files.SaveConfig(config)

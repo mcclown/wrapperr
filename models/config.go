@@ -26,6 +26,7 @@ type WrapperrConfig struct {
 	ClientIPHeader     string            `json:"client_ip_header"`
 	AdminNetworks      []string          `json:"admin_networks"`
 	VoyageEnabled      bool              `json:"voyage_enabled"`
+	VoyageMusic        string            `json:"voyage_music"` // an audio file in config/voyage/, or "" for none
 }
 
 type SetWrapperrConfig struct {
@@ -53,5 +54,6 @@ type SetWrapperrConfig struct {
 		ClientIPHeader     *string   `json:"client_ip_header"`
 		AdminNetworks      *[]string `json:"admin_networks"`
 		VoyageEnabled      *bool     `json:"voyage_enabled"`
+		VoyageMusic        *string   `json:"voyage_music"`
 	} `json:"wrapperr_data"`
 }
