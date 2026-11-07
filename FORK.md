@@ -28,10 +28,10 @@ Rules:
 |---|---|---|---|---|---|---|---|
 | A1 | Seerr request statistics | `seerr-requests` | #1 | main | open | yes | |
 | A2 | Seerr trendsetters and followers | `seerr-trendsetter` | #2 | `seerr-requests` | open | yes | |
-| S | Hardening for exposure through a Cloudflare tunnel | `fork/hardening` | #3 | main | in develop, PR open | yes | 2026-11-06: code-review high (10 fixed), medium (2 fixed), security-review (0 at bar; 2 lower fixed), medium (2 of 3 fixed) |
+| S | Hardening for exposure through a Cloudflare tunnel | `fork/hardening` | #3 | main | in develop, PR open | yes | 2026-11-06: code-review high (10 fixed), medium (2 fixed), security-review (0 at bar; 2 lower fixed), medium (2 of 3 fixed); 2026-11-07: no-session fix (anonymous share links), medium (1 fixed), medium (clean) |
 | C | Viewing analysis (per-account layer, Go) | `fork/viewing-analysis` | #4 | S | in develop, PR open | yes | 2026-11-06: code-review high (3 medium + 6 low; medium and 4 low fixed, rest documented), security-review (0 at bar), medium (1 fixed) |
 | D | Plex metadata (episode counts, added dates, backdrops) | `fork/plex-metadata` | #5 | C | in develop, PR open | yes | 2026-11-07: code-review high (9: 8 fixed, 1 by design), security-review (0 at bar; 2 lower fixed), medium (1 fixed), medium (1 low fixed) |
-| E | Voyage data (contract + API) | `fork/voyage-data` | | D | planned | maybe | |
+| E | Voyage data (contract + API) | `fork/voyage-data` | #6 | D | in develop, PR open | maybe | 2026-11-07: code-review high (10: 8 fixed, 2 answered), security-review (0 at bar; 2 lower fixed), medium (1 fixed, 1 partly, 1 matches build.py) |
 | F | Voyage page | `fork/voyage-page` | | E | planned | maybe | |
 | G | Voyage entry and handoff to the classic page | `fork/voyage-entry` | | F | planned | maybe | |
 | H | Voyage static export | `fork/voyage-export` | | E | planned | maybe | |
@@ -47,7 +47,7 @@ parents are in.
 <!-- merge-order -->
 - seerr-trendsetter
 - fork/hardening
-- fork/plex-metadata
+- fork/voyage-data
 <!-- /merge-order -->
 
 ## Develop-only files
