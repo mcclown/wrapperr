@@ -28,7 +28,7 @@ var validThumbPath = regexp.MustCompile(`^/library/metadata/\d+/thumb(/\d+)?$`)
 // cannot express a directory traversal (no "/", "\", "." beyond the extension),
 // closing the path-injection surface before the values reach the filesystem.
 var validServerHash = regexp.MustCompile(`^[a-f0-9]{16}$`)
-var validPosterFilename = regexp.MustCompile(`^[0-9]+\.jpg$`)
+var validPosterFilename = regexp.MustCompile(`^[0-9]+(-art)?\.jpg$`)
 
 // validLinkUserID and validLinkUUID constrain the share link file name taken
 // from the (unauthenticated) share link request. Links are saved as either a
