@@ -509,6 +509,25 @@ func GetConfig() (models.WrapperrConfig, error) {
 	return deepCopyConfig(*configCache)
 }
 
+// LoadConfigReadOnly loads the config without writing its normalized form back, for a tool run beside the server,
+// which owns config.json. Later GetConfig calls in the same process return it.
+func LoadConfigReadOnly() (models.WrapperrConfig, error) {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	if configCache == nil {
+		loaded, err := loadConfigFromDisk()
+		if err != nil {
+			return models.WrapperrConfig{}, err
+		}
+		cached, err := deepCopyConfig(loaded)
+		if err != nil {
+			return models.WrapperrConfig{}, err
+		}
+		configCache = &cached
+	}
+	return deepCopyConfig(*configCache)
+}
+
 // loadConfigFromDisk reads config.json, runs migrations, fills in missing values
 // from the default template and returns the normalized config. It does not touch
 // the cache or write the result; the caller is responsible for both.

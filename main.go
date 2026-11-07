@@ -24,6 +24,11 @@ import (
 )
 
 func main() {
+	// wrapperr voyage export: write a voyage as a static site, then exit (no server)
+	if len(os.Args) > 2 && os.Args[1] == "voyage" && os.Args[2] == "export" {
+		os.Exit(voyageExport(os.Args[3:]))
+	}
+
 	utilities.PrintASCII()
 	gin.SetMode(gin.ReleaseMode)
 
