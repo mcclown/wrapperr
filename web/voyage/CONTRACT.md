@@ -26,7 +26,8 @@ under `img/` (downloaded first if they aren't cached). A title whose image can't
 
 - It uses the play cache as the server last brought it up to date: open the voyage or the statistics in Wrapperr
   first for the latest plays. It only reads Wrapperr's files (apart from adding images to the poster cache), so it
-  can run while the server does, for example with `docker exec`.
+  can run while the server does, for example with `docker exec`. If the server happens to be saving the play cache
+  as it is read, the export fails and can simply be run again.
 - No music is included unless `--music` names an audio file of your own, which is copied in as `audio/music.<ext>`
   (`window.VOYAGE_MUSIC`, empty without one).
 - The folder must be new or empty, and is emptied again if the export fails. Serve it over HTTP to open it:

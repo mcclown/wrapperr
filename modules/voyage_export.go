@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +27,7 @@ var voyageExportParts = []string{"index.html", "voyage.js", "vendor", "fonts", "
 // ExportVoyage writes an account's voyage as a static site in out, which must be empty or not exist yet: the page
 // with the voyage.v1 document in it, and the posters and backdrops it shows under img/. The voyage is built from the
 // play cache as the server last brought it up to date; the export only reads Wrapperr's files (apart from adding
-// images to the poster cache), so it is safe while the server runs. Music is never included unless music names an
+// images to the poster cache), so it can run beside the server. Music is never included unless music names an
 // audio file to copy in. If it fails part-way, out is left empty again.
 func ExportVoyage(username string, out string, music string, config models.WrapperrConfig) (images int, err error) {
 	if !config.UseCache {
@@ -60,7 +61,8 @@ func ExportVoyage(username string, out string, music string, config models.Wrapp
 	if errors.Is(err, voyage.ErrNoSessions) {
 		return 0, fmt.Errorf("%s has no plays to sail through in the period", user.User)
 	} else if err != nil {
-		return 0, err
+		// The server rewrites the play cache in place, so one read in the middle of a save can fail
+		return 0, fmt.Errorf("%w (if the server was saving the play cache just then, run the export again)", err)
 	}
 
 	// The posters and backdrops, downloaded first if they aren't cached yet. A title whose image can't be had shows
@@ -77,8 +79,12 @@ func ExportVoyage(username string, out string, music string, config models.Wrapp
 			}
 			from, err := cachedImage(image, config)
 			if err != nil {
-				// A server that fails three in a row is given up on, rather than waiting on each image in turn
-				failed[image.Server]++
+				// A server that can't be reached three times in a row is given up on, rather than waiting on each
+				// image in turn. A title Plex has no image for any more is only that title.
+				var unreachable *url.Error
+				if errors.As(err, &unreachable) {
+					failed[image.Server]++
+				}
 				log.Println("Failed to get an image for the export (" + image.File + "). Error: " + err.Error())
 				continue
 			}

@@ -37,13 +37,14 @@ func voyageExport(args []string) int {
 		fmt.Fprintln(os.Stderr, "There is no config/config.json here: run the export from Wrapperr's folder.")
 		return 1
 	}
-	if configured, err := files.GetConfigState(); err != nil || !configured {
-		fmt.Fprintln(os.Stderr, "Wrapperr is not configured yet.")
-		return 1
-	}
-	config, err := files.GetConfig()
+	// Read without writing it back: the server owns config.json, and an admin may be saving settings meanwhile
+	config, err := files.LoadConfigReadOnly()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to load the configuration: "+err.Error())
+		return 1
+	}
+	if configured, err := files.GetConfigState(); err != nil || !configured {
+		fmt.Fprintln(os.Stderr, "Wrapperr is not configured yet.")
 		return 1
 	}
 	if config.Timezone != "" {
