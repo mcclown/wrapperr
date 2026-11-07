@@ -176,7 +176,8 @@ func ApiSetConfig(context *gin.Context) {
 					context.Abort()
 					return
 				}
-				if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+				// Checked when the name changes, so a file gone missing later doesn't block saving other settings
+				if info, err := os.Stat(path); *music != config.VoyageMusic && (err != nil || !info.Mode().IsRegular()) {
 					context.JSON(http.StatusBadRequest, gin.H{"error": "There is no file called " + *music + " in config/voyage/ (names are case-sensitive)."})
 					context.Abort()
 					return
