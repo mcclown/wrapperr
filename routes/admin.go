@@ -167,6 +167,16 @@ func ApiSetConfig(context *gin.Context) {
 		if config_payload.WrapperrData.VoyageEnabled != nil {
 			config.VoyageEnabled = *config_payload.WrapperrData.VoyageEnabled
 		}
+		if music := config_payload.WrapperrData.VoyageMusic; music != nil {
+			if *music != "" {
+				if _, ok := files.VoyageMusicPath(*music); !ok {
+					context.JSON(http.StatusBadRequest, gin.H{"error": "The voyage music must be the name of an audio file (.m4a, .mp3, .ogg, .opus, .wav or .aac) in config/voyage/."})
+					context.Abort()
+					return
+				}
+			}
+			config.VoyageMusic = *music
+		}
 
 		err = files.SaveConfig(config)
 		if err != nil {

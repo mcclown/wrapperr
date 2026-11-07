@@ -1,9 +1,13 @@
 package routes
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"log"
 	"net/http"
+	"os"
+	"regexp"
 	"strconv"
 
 	"github.com/aunefyren/wrapperr/files"
@@ -140,6 +144,47 @@ func ApiGetVoyage(context *gin.Context) {
 		return
 	}
 	refreshAndSail(context, user, config, adminConfig)
+}
+
+// VoyagePagePolicy is the voyage page's Content Security Policy, in place of the site-wide one: everything from
+// Wrapperr itself (three.js and the fonts are bundled), its one inline script (the import map) allowed by its hash,
+// and blob: for the textures three.js unpacks from its models.
+func VoyagePagePolicy(page string) string {
+	script := "'unsafe-inline'"
+	if raw, err := os.ReadFile(page); err == nil {
+		// The hash is of the script's text as served, which is one line
+		if m := importMap.FindSubmatch(raw); m != nil {
+			sum := sha256.Sum256(m[1])
+			script = "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
+		}
+	}
+	return "default-src 'self'; script-src 'self' " + script + "; style-src 'self' 'unsafe-inline'; font-src 'self'; " +
+		"img-src 'self' data: blob:; connect-src 'self' blob:; media-src 'self'; worker-src 'self' blob:; " +
+		"frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+}
+
+var importMap = regexp.MustCompile(`<script type="importmap">([^<]*)</script>`)
+
+// ApiVoyageMusic serves the voyage's background music: the file named by the voyage_music setting in
+// config/voyage/, while the voyage is enabled. None ships with Wrapperr, so without one this is a 404 and the
+// voyage sails with its sound effects only.
+func ApiVoyageMusic(context *gin.Context) {
+	config, err := files.GetConfig()
+	if err != nil || !config.VoyageEnabled || config.VoyageMusic == "" {
+		context.Status(http.StatusNotFound)
+		return
+	}
+	path, ok := files.VoyageMusicPath(config.VoyageMusic)
+	if !ok {
+		context.Status(http.StatusNotFound)
+		return
+	}
+	if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+		context.Status(http.StatusNotFound)
+		return
+	}
+	context.Header("Content-Type", files.VoyageMusicType(config.VoyageMusic))
+	context.File(path)
 }
 
 // ApiGetUserVoyage answers an admin with any user's voyage, whether or not the voyage is enabled for users yet.
