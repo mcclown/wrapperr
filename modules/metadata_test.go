@@ -186,6 +186,23 @@ func TestRefreshMetadata(t *testing.T) {
 	if cached[files.MetadataKey(flakyHash, 1)].Missing {
 		t.Fatal("a Tautulli error should not mark a title missing")
 	}
+
+	// An empty reply for a title that had metadata (Plex out of reach, or the title deleted) keeps what was known
+	var goneCalls int32
+	gone := fakeMetadata(t, map[string]string{}, &goneCalls)
+	goneKey := files.MetadataKey(files.GetTautulliServerHash(gone), 10)
+	known := map[string]models.PlexMetadata{goneKey: {MediaType: "movie", Year: 2020, Art: "/library/metadata/10/art/1", Checked: now.Unix()}}
+	later := now.Add(metadataMaxAge)
+	keep := func(batch map[string]models.PlexMetadata) error {
+		for k, v := range batch {
+			known[k] = v
+		}
+		return nil
+	}
+	refreshMetadata(map[metadataWant]int64{{files.GetTautulliServerHash(gone), 10}: 1}, []models.TautulliConfig{gone}, known, keep, later)
+	if e := known[goneKey]; !e.Missing || e.Year != 2020 || e.Art == "" || e.Checked != later.Unix() {
+		t.Fatalf("after an empty reply: %+v; want the old metadata kept, marked missing", e)
+	}
 }
 
 func TestTitleMetadata(t *testing.T) {
@@ -200,6 +217,11 @@ func TestTitleMetadata(t *testing.T) {
 	}
 	if _, _, ok := TitleMetadata(metadata, analysis.Title{Keys: []analysis.Key{{Server: "s2", RatingKey: 10}}}); ok {
 		t.Fatal("a key on another server should not match")
+	}
+	// What was known for a key Plex has since lost is still better than nothing
+	metadata[files.MetadataKey("s1", 10)] = models.PlexMetadata{MediaType: "movie", Year: 2020, Missing: true}
+	if entry, key, ok := TitleMetadata(metadata, title); !ok || entry.Year != 2020 || key.RatingKey != 10 {
+		t.Fatalf("TitleMetadata = %+v, %+v, %v; want the last known metadata", entry, key, ok)
 	}
 }
 

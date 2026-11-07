@@ -178,6 +178,11 @@ func refreshMetadata(wants map[metadataWant]int64, servers []models.TautulliConf
 			continue
 		}
 		failures[want.server] = 0
+		if fresh.Missing && ok && entry.MediaType != "" {
+			// Keep what was known: Tautulli says the same when Plex is briefly out of reach
+			entry.Missing, entry.Checked = true, fresh.Checked
+			fresh = entry
+		}
 		batch[key] = fresh
 		fetched++
 		if time.Since(lastSave) >= metadataSaveEvery {
@@ -240,11 +245,15 @@ func RefreshMetadataInBackground(days []models.WrapperrDay, servers []models.Tau
 	}()
 }
 
-// TitleMetadata is the cached metadata for one of the analysis' titles: that of its newest key Plex still knows.
+// TitleMetadata is the cached metadata for one of the analysis' titles: that of its most recently played key Plex
+// still knows, or failing that, what was last known for any of its keys.
 func TitleMetadata(metadata map[string]models.PlexMetadata, title analysis.Title) (models.PlexMetadata, analysis.Key, bool) {
-	for _, key := range title.Keys {
-		if entry, ok := metadata[files.MetadataKey(key.Server, key.RatingKey)]; ok && !entry.Missing {
-			return entry, key, true
+	for _, known := range []bool{true, false} {
+		for _, key := range title.Keys {
+			entry, ok := metadata[files.MetadataKey(key.Server, key.RatingKey)]
+			if ok && entry.MediaType != "" && (!known || !entry.Missing) {
+				return entry, key, true
+			}
 		}
 	}
 	return models.PlexMetadata{}, analysis.Key{}, false

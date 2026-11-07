@@ -14,7 +14,8 @@ type PlexMetadata struct {
 	Genres         []string `json:"genres"`
 	Thumb          string   `json:"thumb"` // the poster's Plex path
 	Art            string   `json:"art"`   // the backdrop's Plex path
-	// Checked is when it was last fetched, Unix seconds. Missing means Plex no longer knows the key.
+	// Checked is when it was last fetched, Unix seconds. Missing means Plex didn't know the key then; what was known
+	// before is kept, since Tautulli gives the same reply when Plex is briefly out of reach.
 	Checked int64 `json:"checked"`
 	Missing bool  `json:"missing,omitempty"`
 }
