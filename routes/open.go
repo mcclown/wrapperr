@@ -19,16 +19,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// validThumbPath restricts poster thumb paths to Tautulli's metadata image form,
-// preventing the download endpoint from being used to proxy arbitrary URLs.
-var validThumbPath = regexp.MustCompile(`^/library/metadata/\d+/thumb(/\d+)?$`)
-
 // validServerHash and validPosterFilename are strict allowlists for the poster
 // serve route. They constrain the user-provided path segments to characters that
 // cannot express a directory traversal (no "/", "\", "." beyond the extension),
 // closing the path-injection surface before the values reach the filesystem.
 var validServerHash = regexp.MustCompile(`^[a-f0-9]{16}$`)
-var validPosterFilename = regexp.MustCompile(`^[0-9]+\.jpg$`)
+var validPosterFilename = regexp.MustCompile(`^[0-9]+(-art)?\.jpg$`)
 
 // validLinkUserID and validLinkUUID constrain the share link file name taken
 // from the (unauthenticated) share link request. Links are saved as either a
@@ -625,7 +621,7 @@ func ApiDownloadPoster(context *gin.Context) {
 
 	// Validate the thumb path so this endpoint cannot be used to make Wrapperr
 	// request arbitrary URLs from Tautulli using its API key (SSRF protection).
-	if !validThumbPath.MatchString(request.ThumbPath) {
+	if !files.ValidImagePath(request.ThumbPath, "") {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid thumb path"})
 		return
 	}

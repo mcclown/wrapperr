@@ -24,9 +24,16 @@ type Title struct {
 	Name string `json:"name"`
 	Year int    `json:"year"`
 	Type string `json:"type"` // "movie" or "show"
-	// RatingKeys are the Plex rating keys seen for it (a movie's, or a show's grandparent key), newest first
-	RatingKeys []int `json:"keys"`
-	named      int
+	// Keys are the Plex rating keys seen for it (a movie's, or a show's grandparent key), the most recently played
+	// first (rating keys are numbered per server, so they can't be compared across servers)
+	Keys  []Key `json:"keys"`
+	named int
+}
+
+// Key is a Plex rating key on one Tautulli server (its hash).
+type Key struct {
+	Server    string `json:"server"`
+	RatingKey int    `json:"rating_key"`
 }
 
 // Session is one play (as Wrapperr's cache groups them) by one account.
@@ -159,12 +166,12 @@ func Analyse(days []models.WrapperrDay, opt Options) Analysis {
 			if title.Name == "" || play.Date >= title.named {
 				title.Name, title.Year, title.Type, title.named = play.Title, play.Year, "movie", play.Date
 			}
-			title.RatingKeys = addKey(title.RatingKeys, play.RatingKey)
+			title.Keys = addKey(title.Keys, Key{play.TautulliServerHash, play.RatingKey})
 		} else {
 			if title.Name == "" || play.Date >= title.named {
 				title.Name, title.Year, title.Type, title.named = play.GrandparentTitle, 0, "show", play.Date
 			}
-			title.RatingKeys = addKey(title.RatingKeys, play.GrandparentRatingKey)
+			title.Keys = addKey(title.Keys, Key{play.TautulliServerHash, play.GrandparentRatingKey})
 		}
 
 		zone := server
@@ -211,16 +218,17 @@ func SessionMinutes(durationSeconds int) float64 {
 	return minutes
 }
 
-// addKey adds a rating key, keeping the list newest (highest) first without repeats.
-func addKey(keys []int, key int) []int {
-	for _, k := range keys {
+// addKey puts a just-played rating key first, without repeats. Plays come in time order, so the keys end up the
+// most recently played first.
+func addKey(keys []Key, key Key) []Key {
+	for i, k := range keys {
 		if k == key {
+			copy(keys[1:i+1], keys[:i])
+			keys[0] = key
 			return keys
 		}
 	}
-	keys = append(keys, key)
-	sort.Sort(sort.Reverse(sort.IntSlice(keys)))
-	return keys
+	return append([]Key{key}, keys...)
 }
 
 // Watched is the set of titles each account watched (a session reaching WatchedPct), by user ID.

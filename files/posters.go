@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -79,10 +80,15 @@ func InitializePosterDirectories(config models.WrapperrConfig) error {
 	return nil
 }
 
-// DownloadPoster downloads a single poster from Tautulli's pms_image_proxy endpoint
-func DownloadPoster(tautulliConfig models.TautulliConfig, thumbPath string, ratingKey int) (string, error) {
+// DownloadPoster downloads a single poster, or a backdrop, from Tautulli's pms_image_proxy endpoint
+func DownloadPoster(tautulliConfig models.TautulliConfig, ref PosterReference) (string, error) {
+	thumbPath, ratingKey := ref.ThumbPath, ref.RatingKey
 	if thumbPath == "" {
 		return "", errors.New("empty thumb path")
+	}
+	width, height := "300", "450"
+	if ref.Kind == BackdropKind {
+		width, height = "960", "540"
 	}
 
 	// Build Tautulli base URL
@@ -106,13 +112,18 @@ func DownloadPoster(tautulliConfig models.TautulliConfig, thumbPath string, rati
 	// Parameters are escaped by net/url so no value can inject additional
 	// parameters or alter the request target.
 	posterURL := baseURL.JoinPath("api", "v2")
-	posterURL.RawQuery = url.Values{
+	parameters := url.Values{
 		"apikey": {tautulliConfig.TautulliApiKey},
 		"cmd":    {"pms_image_proxy"},
 		"img":    {thumbPath},
-		"width":  {"300"},
-		"height": {"450"},
-	}.Encode()
+		"width":  {width},
+		"height": {height},
+	}
+	if ref.Kind == BackdropKind {
+		// Tautulli sends PNG unless asked, several times the size for a backdrop
+		parameters.Set("img_format", "jpg")
+	}
+	posterURL.RawQuery = parameters.Encode()
 
 	// Create HTTP request
 	req, err := http.NewRequest("GET", posterURL.String(), nil)
@@ -140,7 +151,7 @@ func DownloadPoster(tautulliConfig models.TautulliConfig, thumbPath string, rati
 
 	// Generate filename and path
 	serverHash := GetTautulliServerHash(tautulliConfig)
-	filename := fmt.Sprintf("%d.jpg", ratingKey)
+	filename := PosterFilename(ratingKey, ref.Kind)
 	serverDir := filepath.Join(posters_base_path, serverHash)
 	posterPath := filepath.Join(serverDir, filename)
 
@@ -174,14 +185,15 @@ func DownloadPoster(tautulliConfig models.TautulliConfig, thumbPath string, rati
 		return "", fmt.Errorf("failed to move poster into place: %w", err)
 	}
 
-	log.Printf("[Posters] Downloaded poster for rating_key %d (server: %s)", ratingKey, tautulliConfig.TautulliName)
+	log.Printf("[Posters] Downloaded %s for rating_key %d (server: %s)", ref.kindName(), ratingKey, tautulliConfig.TautulliName)
 	return posterPath, nil
 }
 
-// PosterExists checks if poster exists and is not expired
-func PosterExists(tautulliConfig models.TautulliConfig, ratingKey int, maxAgeDays int) (bool, string) {
+// PosterExists checks if poster (or backdrop) exists and is not expired
+func PosterExists(tautulliConfig models.TautulliConfig, ref PosterReference, maxAgeDays int) (bool, string) {
+	ratingKey := ref.RatingKey
 	serverHash := GetTautulliServerHash(tautulliConfig)
-	filename := fmt.Sprintf("%d.jpg", ratingKey)
+	filename := PosterFilename(ratingKey, ref.Kind)
 	posterPath := filepath.Join(posters_base_path, serverHash, filename)
 
 	info, err := os.Stat(posterPath)
@@ -193,7 +205,7 @@ func PosterExists(tautulliConfig models.TautulliConfig, ratingKey int, maxAgeDay
 	if maxAgeDays > 0 {
 		ageThreshold := time.Now().AddDate(0, 0, -maxAgeDays)
 		if info.ModTime().Before(ageThreshold) {
-			log.Printf("[Posters] Poster expired for rating_key %d (age: %v)", ratingKey, time.Since(info.ModTime()))
+			log.Printf("[Posters] %s expired for rating_key %d (age: %v)", ref.kindName(), ratingKey, time.Since(info.ModTime()))
 			return false, posterPath // Exists but expired
 		}
 	}
@@ -293,7 +305,46 @@ func GetPosterPath(serverHash string, filename string) (string, error) {
 type PosterReference struct {
 	ServerHash string
 	RatingKey  int
-	ThumbPath  string
+	ThumbPath  string // the image's Plex path: a thumb, or a backdrop's art
+	Kind       string // "" for a poster, BackdropKind for a backdrop
+}
+
+// BackdropKind marks a PosterReference for a title's backdrop (its Plex art, 960x540), cached as <key>-art.jpg
+// next to its poster. Backdrops are queued only by Wrapperr itself, from the art paths in cached Plex metadata (the
+// voyage queues them for the titles it shows); the poster download route never takes a kind.
+const BackdropKind = "art"
+
+// validImagePath is the form of a poster's (thumb) or backdrop's (art) Plex path. Checking it keeps the poster
+// download from being used to make Tautulli fetch anything else with Wrapperr's API key.
+var validImagePath = map[string]*regexp.Regexp{
+	"":           regexp.MustCompile(`^/library/metadata/\d+/thumb(/\d+)?$`),
+	BackdropKind: regexp.MustCompile(`^/library/metadata/\d+/art(/\d+)?$`),
+}
+
+// ValidImagePath reports whether path is a Plex image path of the given kind.
+func ValidImagePath(path string, kind string) bool {
+	pattern, ok := validImagePath[kind]
+	return ok && pattern.MatchString(path)
+}
+
+// PosterFilename is the cached file name of a title's poster or backdrop.
+func PosterFilename(ratingKey int, kind string) string {
+	if kind == BackdropKind {
+		return fmt.Sprintf("%d-art.jpg", ratingKey)
+	}
+	return fmt.Sprintf("%d.jpg", ratingKey)
+}
+
+func (ref PosterReference) kindName() string {
+	if ref.Kind == BackdropKind {
+		return "backdrop"
+	}
+	return "poster"
+}
+
+// queueKey identifies a download in the queue
+func (ref PosterReference) queueKey() string {
+	return fmt.Sprintf("%s_%d_%s", ref.ServerHash, ref.RatingKey, ref.Kind)
 }
 
 // ExtractUserPosterReferences extracts all unique poster references from the
@@ -420,12 +471,12 @@ func startPosterQueue() {
 
 func posterQueueWorker() {
 	for job := range posterQueue {
-		key := fmt.Sprintf("%s_%d", job.ref.ServerHash, job.ref.RatingKey)
+		key := job.ref.queueKey()
 
-		exists, _ := PosterExists(job.config, job.ref.RatingKey, job.maxAgeDays)
+		exists, _ := PosterExists(job.config, job.ref, job.maxAgeDays)
 		if !exists {
-			if _, err := DownloadPoster(job.config, job.ref.ThumbPath, job.ref.RatingKey); err != nil {
-				log.Printf("[Posters] Failed to download poster for rating_key %d: %v", job.ref.RatingKey, err)
+			if _, err := DownloadPoster(job.config, job.ref); err != nil {
+				log.Printf("[Posters] Failed to download %s for rating_key %d: %v", job.ref.kindName(), job.ref.RatingKey, err)
 			} else {
 				// Light rate limiting between actual downloads to avoid hammering Tautulli.
 				time.Sleep(100 * time.Millisecond)
@@ -445,10 +496,14 @@ func EnqueuePoster(config models.TautulliConfig, ref PosterReference, maxAgeDays
 	if ref.ServerHash == "" || ref.RatingKey == 0 || ref.ThumbPath == "" {
 		return
 	}
+	if !ValidImagePath(ref.ThumbPath, ref.Kind) {
+		log.Printf("[Posters] Skipped %s with an unexpected path for rating_key %d", ref.kindName(), ref.RatingKey)
+		return
+	}
 
 	startPosterQueue()
 
-	key := fmt.Sprintf("%s_%d", ref.ServerHash, ref.RatingKey)
+	key := ref.queueKey()
 
 	posterInflightMu.Lock()
 	if _, busy := posterInflight[key]; busy {
@@ -466,7 +521,7 @@ func EnqueuePoster(config models.TautulliConfig, ref PosterReference, maxAgeDays
 		posterInflightMu.Lock()
 		delete(posterInflight, key)
 		posterInflightMu.Unlock()
-		log.Printf("[Posters] Queue full, dropped poster job for rating_key %d", ref.RatingKey)
+		log.Printf("[Posters] Queue full, dropped %s job for rating_key %d", ref.kindName(), ref.RatingKey)
 	}
 }
 
