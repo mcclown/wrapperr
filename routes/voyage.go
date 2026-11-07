@@ -38,11 +38,16 @@ func loadVoyageConfig(context *gin.Context) (models.WrapperrConfig, models.Admin
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load Wrapperr admin configuration."})
 		return models.WrapperrConfig{}, models.AdminConfig{}, false
 	}
+	return config, adminConfig, true
+}
+
+// cacheOn answers the request itself when the cache is off, which the voyage needs.
+func cacheOn(context *gin.Context, config models.WrapperrConfig) bool {
 	if !config.UseCache {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "The voyage needs the cache turned on."})
-		return models.WrapperrConfig{}, models.AdminConfig{}, false
+		return false
 	}
-	return config, adminConfig, true
+	return true
 }
 
 // refreshAndSail brings the play cache up to date from Tautulli, as a statistics request does, then answers with
@@ -95,6 +100,9 @@ func ApiGetVoyage(context *gin.Context) {
 		context.JSON(http.StatusForbidden, gin.H{"error": "The voyage needs Plex Auth."})
 		return
 	}
+	if !cacheOn(context, config) {
+		return
+	}
 
 	// A missing or unknown Authorization header gives an empty session, not an error, so the Plex login is checked
 	// here: a session without a Plex token, or a token Plex doesn't know (which reads as user 0, Tautulli's
@@ -138,6 +146,9 @@ func ApiGetVoyage(context *gin.Context) {
 func ApiGetUserVoyage(context *gin.Context) {
 	config, adminConfig, ok := loadVoyageConfig(context)
 	if !ok {
+		return
+	}
+	if !cacheOn(context, config) {
 		return
 	}
 	userID, err := strconv.Atoi(context.Param("userId"))

@@ -12,8 +12,9 @@ import (
 
 // sea builds an analysis by hand: titles, then sessions added with play
 type sea struct {
-	a     analysis.Analysis
-	start int64
+	a        analysis.Analysis
+	start    int64
+	inactive map[int]bool
 }
 
 func newSea(titles ...analysis.Title) *sea {
@@ -37,7 +38,7 @@ func (s *sea) play(user int, account string, title, day, key int, minutes float6
 
 func (s *sea) build(t *testing.T, user int, metadata map[int]models.PlexMetadata, events Events) Document {
 	t.Helper()
-	doc, _, err := Build(Input{Analysis: s.a, UserID: user, Events: events, Generated: time.Unix(0, 0), ImageBase: "/api/get/poster/", Images: true,
+	doc, _, err := Build(Input{Analysis: s.a, UserID: user, Events: events, Inactive: s.inactive, Generated: time.Unix(0, 0), ImageBase: "/api/get/poster/", Images: true,
 		Metadata: func(title analysis.Title) (models.PlexMetadata, analysis.Key, bool) {
 			m, ok := metadata[title.Keys[0].RatingKey]
 			return m, title.Keys[0], ok
@@ -201,6 +202,10 @@ func TestTwin(t *testing.T) {
 		s.play(3, "hoarder", i, 9, 100+i, 100) // all six in common, but fourteen more
 	}
 	s.play(4, "nearly", 0, 1, 100, 100) // too few in common, however close
+	for i := 0; i < 6; i++ {
+		s.play(5, "gone", i, 9, 100+i, 100) // all six and nothing else, but no longer on the server
+	}
+	s.inactive = map[int]bool{5: true}
 	doc := s.build(t, 1, nil, Events{})
 	tw := creatures(doc)["twin"]
 	if len(tw) != 1 || tw[0].User != "twin" || tw[0].N != 5 || *tw[0].Pct != 83 || name(doc, tw[0]) != "Film E" || tw[0].Day != 7 {
@@ -215,7 +220,7 @@ func TestEventsAndEggs(t *testing.T) {
 	events, err := ParseEvents([]byte(`{"events": [
 		{"date": "2026-01-05", "headline": "first of January"},
 		{"date": "2026-01-02", "headline": "earlier, not picked"},
-		{"date": "2026-01-20", "headline": "picked", "pick": true},
+		{"date": "2026-01-20", "headline": "picked", "pick": 1, "script": "<b>not passed on</b>"},
 		{"date": "2026-02-03", "headline": "February"},
 		{"date": "2026-03-01", "headline": "after the voyage"},
 		{"date": "not a date", "headline": "broken"}],
@@ -228,7 +233,7 @@ func TestEventsAndEggs(t *testing.T) {
 	for _, e := range doc.Events {
 		heads = append(heads, e["headline"].(string))
 	}
-	if strings.Join(heads, ",") != "picked,February" || doc.Events[0]["day"] != 19 {
+	if strings.Join(heads, ",") != "picked,February" || doc.Events[0]["day"] != 19 || doc.Events[0]["script"] != nil {
 		t.Fatalf("events %v", doc.Events)
 	}
 	if len(doc.Eggs) != 2 || doc.Eggs[1]["day"] != 358 {
@@ -276,6 +281,21 @@ func TestImagesAndContract(t *testing.T) {
 	if _, _, err := Build(Input{Analysis: s.a, UserID: 2}); err != ErrNoSessions {
 		t.Fatalf("an account with no plays: %v", err)
 	}
+	// Metadata found for an older key, without a thumb path: the poster's path and its file are that key's
+	s.a.Titles[1].Keys = []analysis.Key{{Server: "s1", RatingKey: 250}, {Server: "s2", RatingKey: 200}}
+	_, images, _ = Build(Input{Analysis: s.a, UserID: 1, Images: true,
+		Metadata: func(title analysis.Title) (models.PlexMetadata, analysis.Key, bool) {
+			if title.Name == "Show" {
+				return models.PlexMetadata{MediaType: "show"}, title.Keys[1], true
+			}
+			return models.PlexMetadata{}, analysis.Key{}, false
+		}})
+	for _, image := range images {
+		if image.RatingKey == 200 && (image.Server != "s2" || image.Path != "/library/metadata/200/thumb") {
+			t.Fatalf("poster image %+v: its path should be its own key's", image)
+		}
+	}
+
 	none, _, _ := Build(Input{Analysis: s.a, UserID: 1, Images: false})
 	if none.Titles[0].Poster != nil {
 		t.Fatal("with posters off there are no images")

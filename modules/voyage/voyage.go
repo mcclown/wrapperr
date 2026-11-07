@@ -150,6 +150,7 @@ type Input struct {
 	// Metadata is a title's cached Plex metadata (see modules.TitleMetadata)
 	Metadata  func(title analysis.Title) (models.PlexMetadata, analysis.Key, bool)
 	Events    Events
+	Inactive  map[int]bool // accounts no longer on the server, which can't be anyone's twin
 	Generated time.Time
 	ImageBase string
 	Images    bool // posters are enabled
@@ -168,7 +169,8 @@ func Build(in Input) (Document, []Image, error) {
 	var rows []row
 	account := ""
 	for _, s := range a.ForAccount(in.UserID) {
-		rows = append(rows, row{s.Title, s.Day, s.Hour, s.RatingKey, s.Minutes, s.Watched})
+		// Minutes to a tenth, as the prototype exported them, so thresholds and totals come out the same
+		rows = append(rows, row{s.Title, s.Day, s.Hour, s.RatingKey, round(s.Minutes, 1), s.Watched})
 		account = s.Account
 	}
 	if len(rows) == 0 {
@@ -218,7 +220,7 @@ func Build(in Input) (Document, []Image, error) {
 		}
 	}
 
-	if twin := others.twin(in.UserID); twin != nil {
+	if twin := others.twin(in.UserID, in.Inactive); twin != nil {
 		milestones = append(milestones, *twin)
 	}
 	creatures := sightings(marks, isMovie, others.solo(in.UserID, rows), lastDay, metadata, milestones,
@@ -262,12 +264,13 @@ func Build(in Input) (Document, []Image, error) {
 		}
 		if in.Images && len(info.Keys) > 0 {
 			// The poster of its most recently played key Plex still knows, or failing that its most recently played
-			key, thumb := info.Keys[0], "/library/metadata/"+strconv.Itoa(info.Keys[0].RatingKey)+"/thumb"
+			key := info.Keys[0]
 			if found {
 				key = metaKey[t]
-				if m.Thumb != "" {
-					thumb = m.Thumb
-				}
+			}
+			thumb := "/library/metadata/" + strconv.Itoa(key.RatingKey) + "/thumb"
+			if found && m.Thumb != "" {
+				thumb = m.Thumb
 			}
 			poster := key.Server + "/" + files.PosterFilename(key.RatingKey, "")
 			entry.Poster = &poster
@@ -326,8 +329,11 @@ func Build(in Input) (Document, []Image, error) {
 	}, images, nil
 }
 
-// dated copies events or eggs with their day in the voyage (from the period's first day); those without a valid
-// date are left out.
+// datedFields are the fields of an event or egg passed on to the page
+var datedFields = []string{"date", "kind", "headline", "blurb", "pick", "note"}
+
+// dated copies events or eggs (their known fields) with their day in the voyage (from the period's first day);
+// those without a valid date are left out.
 func dated(items []Dated, first time.Time) []Dated {
 	start := time.Date(first.Year(), first.Month(), first.Day(), 0, 0, 0, 0, time.UTC)
 	out := []Dated{}
@@ -337,8 +343,10 @@ func dated(items []Dated, first time.Time) []Dated {
 			continue
 		}
 		copied := Dated{}
-		for k, v := range item {
-			copied[k] = v
+		for _, k := range datedFields {
+			if v, ok := item[k]; ok {
+				copied[k] = v
+			}
 		}
 		copied["day"] = int(date.Sub(start).Hours() / 24)
 		out = append(out, copied)
@@ -351,9 +359,19 @@ func str(v interface{}) string {
 	return s
 }
 
+// picked reports an event marked to show for its month: "pick" set to anything truthy, as the prototype read it
 func picked(e Dated) bool {
-	p, _ := e["pick"].(bool)
-	return p
+	switch p := e["pick"].(type) {
+	case bool:
+		return p
+	case float64:
+		return p != 0
+	case string:
+		return p != ""
+	case nil:
+		return false
+	}
+	return true
 }
 
 // round is Python's round(x, places), which the prototype used: the decimal nearest the float
@@ -601,7 +619,7 @@ func (o others) charted(user int) []chart {
 // twin is the account elsewhere on the server whose watched titles overlap most with this one's (Jaccard: titles
 // in common over titles either watched, so it is not just whoever watches the most), sailing across the bow on
 // the user's day with most of their shared titles in the week they overlapped most.
-func (o others) twin(user int) *Creature {
+func (o others) twin(user int, inactive map[int]bool) *Creature {
 	me, ok := o.people[user]
 	if !ok {
 		return nil
@@ -617,7 +635,7 @@ func (o others) twin(user int) *Creature {
 				shared[t] = true
 			}
 		}
-		if id == user || len(shared) < TwinMin {
+		if id == user || inactive[id] || len(shared) < TwinMin {
 			continue
 		}
 		union := len(me.minutes) + len(p.minutes) - len(shared)

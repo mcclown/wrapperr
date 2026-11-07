@@ -75,11 +75,13 @@ should try it again. Only the titles with the most hours have `art`.
 | `wreck` | a show left part-way (4+ plays, under 80% of its episodes, none in the last 60 days) | plays | `of`: episodes in Plex |
 | `ghost` | a title nobody else on the server watched (an hour or more) | hours | |
 
-There is one creature per title at most, in this order of priority. The first wreck and the first ghost ship met
-are `cine`; the rest of those are `loud`.
+Of the kraken, serpent, whales, first to chart, wrecks and ghost ships there is one per title at most, in that
+order of priority; the twin's title can also be one of theirs. The first wreck and the first ghost ship met are
+`cine`; the rest of those are `loud`.
 
 **Event**: as in `config/voyage_events.json` (`date`, `kind`, `headline`, `blurb`, `pick`), plus `day`.
-Each month shows the event marked `"pick": true`, or failing that its first.
+Each month shows the event marked `"pick": true`, or failing that its first. Every field is the file's text as it
+stands, so the page must show it as text, never as HTML.
 
 **Egg**: as in the events file (`date`, `kind`, `note`), plus `day`.
 

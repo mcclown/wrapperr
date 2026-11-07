@@ -15,35 +15,76 @@ import (
 	"github.com/aunefyren/wrapperr/modules/voyage"
 )
 
-// voyages keeps each account's built voyage until anything it was built from changes, so repeated requests don't
-// rebuild it. Builds take the lock in turn, so a burst of requests builds once.
+// voyages keeps what voyages are built from (the analysis of everyone's plays, the metadata and the events) and
+// each account's built voyage, until anything they come from changes. The analysis is read once per change and
+// shared; building one account's voyage from it takes milliseconds.
 var voyages = struct {
 	sync.Mutex
-	built map[int]builtVoyage
+	fingerprint string
+	sea         *voyageSources
+	built       map[int]builtVoyage
 }{built: map[int]builtVoyage{}}
 
+type voyageSources struct {
+	analysis analysis.Analysis
+	metadata map[string]models.PlexMetadata
+	events   voyage.Events
+	inactive map[int]bool
+}
+
 type builtVoyage struct {
-	fingerprint string
-	document    voyage.Document
-	images      []voyage.Image
+	document voyage.Document
+	images   []voyage.Image
 }
 
 // VoyageForUser is an account's voyage document, built from the play cache as it stands (callers refresh it first).
 // It returns voyage.ErrNoSessions for an account with nothing played in the period.
 func VoyageForUser(userID int, config models.WrapperrConfig) (voyage.Document, error) {
-	fingerprint, err := voyageFingerprint(config)
+	events := voyageEvents() // seeds the events file, before the fingerprint reads its stamp
+	fingerprint, users, err := voyageFingerprint(config)
 	if err != nil {
 		return voyage.Document{}, err
 	}
 	voyages.Lock()
 	defer voyages.Unlock()
-	built, ok := voyages.built[userID]
-	if !ok || built.fingerprint != fingerprint {
-		built, err = buildVoyage(userID, config)
+	if voyages.sea == nil || voyages.fingerprint != fingerprint {
+		a, err := LoadAnalysis()
 		if err != nil {
 			return voyage.Document{}, err
 		}
-		built.fingerprint = fingerprint
+		metadata, err := files.GetMetadata()
+		if err != nil {
+			log.Println("Failed to read Plex metadata, building voyages without it. Error: " + err.Error())
+			metadata = map[string]models.PlexMetadata{}
+		}
+		inactive := map[int]bool{}
+		for _, user := range users {
+			if !user.Active {
+				inactive[user.UserID] = true
+			}
+		}
+		voyages.sea = &voyageSources{analysis: a, metadata: metadata, events: events, inactive: inactive}
+		voyages.fingerprint, voyages.built = fingerprint, map[int]builtVoyage{}
+	}
+	built, ok := voyages.built[userID]
+	if !ok {
+		sea := voyages.sea
+		document, images, err := voyage.Build(voyage.Input{
+			Analysis: sea.analysis,
+			UserID:   userID,
+			Metadata: func(title analysis.Title) (models.PlexMetadata, analysis.Key, bool) {
+				return TitleMetadata(sea.metadata, title)
+			},
+			Events:    sea.events,
+			Inactive:  sea.inactive,
+			Generated: time.Now(),
+			ImageBase: voyageImageBase(config),
+			Images:    config.WrapperrCustomize.EnablePosters,
+		})
+		if err != nil {
+			return voyage.Document{}, err
+		}
+		built = builtVoyage{document: document, images: images}
 		voyages.built[userID] = built
 	}
 	// Posters and backdrops download in the background; the queue skips those already cached
@@ -57,16 +98,9 @@ func VoyageForUser(userID int, config models.WrapperrConfig) (voyage.Document, e
 	return built.document, nil
 }
 
-func buildVoyage(userID int, config models.WrapperrConfig) (builtVoyage, error) {
-	a, err := LoadAnalysis()
-	if err != nil {
-		return builtVoyage{}, err
-	}
-	metadata, err := files.GetMetadata()
-	if err != nil {
-		log.Println("Failed to read Plex metadata, building the voyage without it. Error: " + err.Error())
-		metadata = map[string]models.PlexMetadata{}
-	}
+// voyageEvents reads config/voyage_events.json (creating it from the built-in events), or the built-in events
+// when it can't be read.
+func voyageEvents() voyage.Events {
 	raw, err := files.GetVoyageEvents(voyage.DefaultEvents)
 	if err != nil {
 		log.Println("Failed to read the voyage events, using the built-in ones. Error: " + err.Error())
@@ -77,21 +111,7 @@ func buildVoyage(userID int, config models.WrapperrConfig) (builtVoyage, error) 
 		log.Println("The voyage events file is not valid JSON, using the built-in events. Error: " + err.Error())
 		events, _ = voyage.ParseEvents(voyage.DefaultEvents)
 	}
-	document, images, err := voyage.Build(voyage.Input{
-		Analysis: a,
-		UserID:   userID,
-		Metadata: func(title analysis.Title) (models.PlexMetadata, analysis.Key, bool) {
-			return TitleMetadata(metadata, title)
-		},
-		Events:    events,
-		Generated: time.Now(),
-		ImageBase: voyageImageBase(config),
-		Images:    config.WrapperrCustomize.EnablePosters,
-	})
-	if err != nil {
-		return builtVoyage{}, err
-	}
-	return builtVoyage{document: document, images: images}, nil
+	return events
 }
 
 // voyageImageBase is the poster route, from the site root
@@ -103,27 +123,31 @@ func voyageImageBase(config models.WrapperrConfig) string {
 	return root + "/api/get/poster/"
 }
 
-// voyageFingerprint changes whenever anything a voyage is built from does: the play cache's contents, the Plex
-// metadata, the events, the settings, each account's time zone and whether it is ignored, and for a dynamic
-// period, the day.
-func voyageFingerprint(config models.WrapperrConfig) (string, error) {
+// voyageFingerprint changes whenever anything voyages are built from does: the play cache's contents, the Plex
+// metadata, the events, the settings, each account's time zone and whether it is ignored or active, and for a
+// dynamic period, the day in Wrapperr's time zone. It also returns the users it read.
+func voyageFingerprint(config models.WrapperrConfig) (string, []models.WrapperrUser, error) {
 	digest, err := files.CacheDigest()
 	if err != nil {
-		return "", errors.New("Failed to read the play cache.")
+		return "", nil, errors.New("Failed to read the play cache.")
 	}
 	users, err := files.GetUsers()
 	if err != nil {
-		return "", errors.New("Failed to get users.")
+		return "", nil, errors.New("Failed to get users.")
 	}
 	var people []string
 	for _, user := range users {
-		people = append(people, strconv.Itoa(user.UserID)+"="+user.Timezone+"/"+strconv.FormatBool(user.Ignore))
+		people = append(people, strconv.Itoa(user.UserID)+"="+user.Timezone+"/"+strconv.FormatBool(user.Ignore)+"/"+strconv.FormatBool(user.Active))
 	}
 	sort.Strings(people)
 	day := ""
 	if config.WrappedDynamic {
-		day = time.Now().Format("2006-01-02")
+		zone, err := time.LoadLocation(config.Timezone)
+		if err != nil {
+			zone = time.UTC
+		}
+		day = time.Now().In(zone).Format("2006-01-02")
 	}
 	return strings.Join([]string{digest, files.VoyageFileStamps(), strings.Join(people, ","), day,
-		voyageImageBase(config), strconv.FormatBool(config.WrapperrCustomize.EnablePosters)}, "|"), nil
+		voyageImageBase(config), strconv.FormatBool(config.WrapperrCustomize.EnablePosters)}, "|"), users, nil
 }
