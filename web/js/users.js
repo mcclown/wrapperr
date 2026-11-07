@@ -85,6 +85,7 @@ function placeUsers(usersArray) {
             <div class="user-header-short">Ignore user</div>
             <div class="user-header-short">History</div>
             <div class="user-header-short">View As User</div>
+            <div class="user-header-short">Voyage</div>
         </div>
     `;
 
@@ -99,6 +100,19 @@ function placeUsers(usersArray) {
         } else {
             historyDiv = `
             <div class="user-logbutton">
+            </div>
+            `;
+        }
+
+        // The user's voyage, previewed with the admin login (whether or not the voyage is on for users yet)
+        var voyageDiv = `
+            <div class="user-logbutton">
+            </div>
+            `;
+        if(user.user_active) {
+            voyageDiv = `
+            <div class="user-logbutton">
+                <button class="form-control btn" name="voyageButton" id="voyageButton_${user.user_id}" onclick="window.open('${root}/voyage/?user=${user.user_id}', '_blank');" style="width: 2em; height: 2em; padding: 0.25em;" title="View Voyage As User"><img src="${root}/assets/external-link.svg" class="btn_solo"></img></button>
             </div>
             `;
         }
@@ -155,6 +169,7 @@ function placeUsers(usersArray) {
                     </div>
                     ${historyDiv}
                     ${wrappedDiv}
+                    ${voyageDiv}
                 </div>
             </div>
         `;

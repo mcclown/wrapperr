@@ -59,6 +59,7 @@ function sign_out() {
     document.getElementById("plex_login_button").style.opacity = '1';
     document.getElementById("search_wrapped_button").disabled = true;
     document.getElementById("search_wrapped_button").style.opacity = '0.5';
+    set_sail_ready(false);
     document.getElementById('sign_out_div').style.display = 'none';
 
     document.getElementById('share_wrapped_title_div').style.display = 'none';
@@ -66,8 +67,35 @@ function sign_out() {
 
 }
 
+// The voyage entry, offered next to the classic page when the voyage is on (it needs Plex Auth). The setting
+// voyage_front_page picks which of the two comes first.
+function voyage_entry(first) {
+    document.getElementById('set_sail_div').style.display = 'block';
+    document.getElementById('search_wrapped_button_text').textContent = 'Read the log';
+    if(first !== 'log') {
+        var log = document.getElementById('search_wrapped_div');
+        log.parentNode.insertBefore(document.getElementById('set_sail_div'), log);
+    } else {
+        document.getElementById('search_wrapped_div').after(document.getElementById('set_sail_div'));
+    }
+}
+
+function set_sail_ready(ready) {
+    var button = document.getElementById("set_sail_button");
+    if(!button) {
+        return;
+    }
+    button.disabled = !ready;
+    button.style.opacity = ready ? '1' : '0.5';
+}
+
+function set_sail() {
+    window.location.href = new URL("voyage/", get_api_base_url()).href;
+}
+
 function search_wrapperr(){
     
+    set_sail_ready(false);
     document.getElementById("search_wrapped_button").disabled = true;
     document.getElementById("search_wrapped_button").style.opacity = '0.5';
     document.getElementById("plex_signout_button").disabled = true;
@@ -242,7 +270,13 @@ function validate_cookie_user(cookie) {
                 document.getElementById("plex_login_button").style.opacity = '0.5';
                 document.getElementById("search_wrapped_button").disabled = false;
                 document.getElementById("search_wrapped_button").style.opacity = '1';
+                set_sail_ready(true);
                 get_user_links(cookie);
+                if(open_log) {
+                    open_log = false;
+                    history.replaceState(null, '', window.location.pathname);
+                    search_wrapperr();
+                }
             }
 
         }
@@ -393,6 +427,10 @@ function get_wrapper_version(link_mode, hash) {
                     wrapperr_search_function(result.wrapperr_front_page_search_title);
                 }
                 
+                if(result.voyage_enabled) {
+                    voyage_entry(result.voyage_front_page);
+                }
+
                 // If configured and using Plex Auth, call function
                 // If not configured throw error
                 if(result.plex_auth && wrapperr_configured) {

@@ -64,6 +64,9 @@ func ApiGetWrapperrVersion(context *gin.Context) {
 		Error:                        false,
 		WrapperrRoot:                 config.WrapperrRoot,
 		BasicAuth:                    config.BasicAuth,
+		// Offered only when it can sail: the voyage needs Plex Auth and the cache
+		VoyageEnabled:   config.VoyageEnabled && config.PlexAuth && config.UseCache,
+		VoyageFrontPage: voyageFrontPage(config.VoyageFrontPage),
 	}
 
 	ipString := utilities.GetOriginIPString(context)
@@ -71,6 +74,14 @@ func ApiGetWrapperrVersion(context *gin.Context) {
 
 	context.JSON(http.StatusOK, versionReply)
 	return
+}
+
+// voyageFrontPage is the front page's first button, the voyage unless the log is chosen.
+func voyageFrontPage(setting string) string {
+	if setting == "log" {
+		return "log"
+	}
+	return "voyage"
 }
 
 // API route which returns if whether or not a Wrapperr admin is configured.

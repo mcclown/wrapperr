@@ -11,6 +11,7 @@ function get_functions() {
             if(result.error) {
                 document.getElementById("search_wrapped_button").disabled = false;
                 document.getElementById("search_wrapped_button").style.opacity = '1';
+                set_sail_ready(true);
                 document.getElementById("plex_signout_button").disabled = false;
                 document.getElementById("plex_signout_button").style.opacity = '1';
                 document.getElementById('results_error').innerHTML = result.error;

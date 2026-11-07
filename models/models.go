@@ -162,6 +162,8 @@ type WrapperrVersion struct {
 	WrapperrConfigured           bool   `json:"wrapperr_configured"`
 	WinterTheme                  bool   `json:"winter_theme"`
 	BasicAuth                    bool   `json:"basic_auth"`
+	VoyageEnabled                bool   `json:"voyage_enabled"`
+	VoyageFrontPage              string `json:"voyage_front_page"`
 	Message                      string `json:"message"`
 	Error                        bool   `json:"error"`
 }
