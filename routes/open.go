@@ -603,9 +603,10 @@ func ApiDownloadPoster(context *gin.Context) {
 		return
 	}
 
-	// When Plex-Auth is enabled, require a valid session before triggering a
-	// server-side download to Tautulli (mirrors the statistics endpoint).
-	if config.PlexAuth {
+	// When Plex-Auth is enabled, a session sent along must be valid. A request
+	// with none is still let through: share-link visitors have no session and
+	// still need posters (the route is rate limited and takes only thumb paths).
+	if config.PlexAuth && context.GetHeader("Authorization") != "" {
 		adminConfig, err := files.GetAdminConfig()
 		if err != nil {
 			log.Println("Failed to load admin configuration. Error: " + err.Error())
