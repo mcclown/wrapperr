@@ -238,6 +238,8 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 			admin.POST("/get/users/:userId", routes.ApiGetUser)
 			admin.POST("/get/users/:userId/statistics", routes.ApiGetUserStatistics)
 			admin.POST("/get/users/:userId/ignore", routes.ApiIgnoreUser)
+			admin.POST("/set/users/:userId/timezone", routes.ApiSetUserTimezone)
+			admin.POST("/lookup/users/timezones", routes.ApiLookupUserTimezones)
 			admin.POST("/sync/users", routes.ApiSyncTautulliUsers)
 			admin.POST("/clean/poster-cache", routes.ApiCleanPosterCache)
 		}
