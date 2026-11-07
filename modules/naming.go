@@ -28,8 +28,8 @@ func newOtherUserNamer(mode string) *otherUserNamer {
 // expose alongside it (0 when the user is obfuscated).
 func (namer *otherUserNamer) name(userID int, plexUsername string, friendlyName string) (string, int) {
 	switch namer.mode {
-	case "plex_username":
-		return plexUsername, userID
+	case "friendly_name":
+		return friendlyName, userID
 	case "obfuscate":
 		if userID == 0 {
 			return "Managed user", 0
@@ -44,7 +44,8 @@ func (namer *otherUserNamer) name(userID int, plexUsername string, friendlyName 
 		namer.catalog[userID] = name
 		return name, 0
 	default:
-		// "friendly_name", and the default for backwards compatibility
-		return friendlyName, userID
+		// "plex_username", and any value the setting doesn't know: the admin's dropdown shows an unknown value as
+		// "Plex username" (its first option), and before this helper the top users list kept the Plex username too
+		return plexUsername, userID
 	}
 }
