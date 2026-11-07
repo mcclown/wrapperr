@@ -150,6 +150,10 @@ func AuthGetPayloadFromAuthorization(authorizationHeader string, config models.W
 		}
 
 		payload = payloadTwo
+	} else {
+		// No session at all. Callers that only check the error must not take this as an empty, valid session:
+		// with Plex Auth on, that read as Tautulli's "Local" user (ID 0) once Plex refused the empty token
+		return payload, http.StatusUnauthorized, errors.New("Request does not contain an access token.")
 	}
 	return
 }
