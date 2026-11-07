@@ -61,6 +61,7 @@ func GetWrapperStatistics(user_name string, user_friendlyname string, user_id in
 			log.Println("Failed to save new cache file for " + user_name + " (" + strconv.Itoa(user_id) + "). Error: " + err.Error())
 			return wrapperrReply, cachingComplete, errors.New("Failed to save new cache file for " + user_name + " (" + strconv.Itoa(user_id) + ").")
 		}
+		RefreshMetadataInBackground(wrapperr_data, config.TautulliConfig)
 	}
 
 	// If caching mode is in use, stop the process here and return the result to the user
