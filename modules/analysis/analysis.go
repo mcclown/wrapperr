@@ -24,9 +24,15 @@ type Title struct {
 	Name string `json:"name"`
 	Year int    `json:"year"`
 	Type string `json:"type"` // "movie" or "show"
-	// RatingKeys are the Plex rating keys seen for it (a movie's, or a show's grandparent key), newest first
-	RatingKeys []int `json:"keys"`
-	named      int
+	// Keys are the Plex rating keys seen for it (a movie's, or a show's grandparent key), newest first
+	Keys  []Key `json:"keys"`
+	named int
+}
+
+// Key is a Plex rating key on one Tautulli server (its hash).
+type Key struct {
+	Server    string `json:"server"`
+	RatingKey int    `json:"rating_key"`
 }
 
 // Session is one play (as Wrapperr's cache groups them) by one account.
@@ -159,12 +165,12 @@ func Analyse(days []models.WrapperrDay, opt Options) Analysis {
 			if title.Name == "" || play.Date >= title.named {
 				title.Name, title.Year, title.Type, title.named = play.Title, play.Year, "movie", play.Date
 			}
-			title.RatingKeys = addKey(title.RatingKeys, play.RatingKey)
+			title.Keys = addKey(title.Keys, Key{play.TautulliServerHash, play.RatingKey})
 		} else {
 			if title.Name == "" || play.Date >= title.named {
 				title.Name, title.Year, title.Type, title.named = play.GrandparentTitle, 0, "show", play.Date
 			}
-			title.RatingKeys = addKey(title.RatingKeys, play.GrandparentRatingKey)
+			title.Keys = addKey(title.Keys, Key{play.TautulliServerHash, play.GrandparentRatingKey})
 		}
 
 		zone := server
@@ -212,14 +218,14 @@ func SessionMinutes(durationSeconds int) float64 {
 }
 
 // addKey adds a rating key, keeping the list newest (highest) first without repeats.
-func addKey(keys []int, key int) []int {
+func addKey(keys []Key, key Key) []Key {
 	for _, k := range keys {
 		if k == key {
 			return keys
 		}
 	}
 	keys = append(keys, key)
-	sort.Sort(sort.Reverse(sort.IntSlice(keys)))
+	sort.SliceStable(keys, func(i, j int) bool { return keys[i].RatingKey > keys[j].RatingKey })
 	return keys
 }
 

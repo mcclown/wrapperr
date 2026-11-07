@@ -48,7 +48,7 @@ func TestTitlesGroupedByGUIDAndKey(t *testing.T) {
 		t.Fatalf("%d titles, want 4: %+v", len(a.Titles), a.Titles)
 	}
 	film := a.Titles[a.Sessions[0].Title]
-	if film.Name != "Film A" || len(film.RatingKeys) != 2 || film.RatingKeys[0] != 11 {
+	if film.Name != "Film A" || len(film.Keys) != 2 || film.Keys[0] != (Key{"s1", 11}) {
 		t.Fatalf("movie grouped as %+v, want Film A with keys [11 10]", film)
 	}
 	if a.Sessions[1].Title != a.Sessions[0].Title || a.Sessions[2].Title != a.Sessions[0].Title {
