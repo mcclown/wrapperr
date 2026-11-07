@@ -18,7 +18,8 @@ import (
 const (
 	// metadataShowRecheck: a show played since it was last fetched is fetched again after this, for new episodes
 	metadataShowRecheck = 24 * time.Hour
-	// metadataMissingRetry: a key Plex didn't know is tried again after this
+	// metadataMissingRetry: a key Plex has never known is tried again after this; one it knew before (and may only
+	// have been out of reach for) after metadataShowRecheck
 	metadataMissingRetry = 30 * 24 * time.Hour
 	// metadataMaxAge: anything else is fetched again after this, for changed artwork and ratings, or a deleted title
 	metadataMaxAge = 90 * 24 * time.Hour
@@ -66,6 +67,8 @@ func metadataStale(entry models.PlexMetadata, cached bool, lastPlay int64, now t
 	switch {
 	case !cached:
 		return true
+	case entry.Missing && entry.MediaType != "":
+		return now.Sub(checked) >= metadataShowRecheck
 	case entry.Missing:
 		return now.Sub(checked) >= metadataMissingRetry
 	case now.Sub(checked) >= metadataMaxAge:

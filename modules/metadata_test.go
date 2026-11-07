@@ -117,6 +117,8 @@ func TestMetadataStale(t *testing.T) {
 		{"show checked today", models.PlexMetadata{MediaType: "show", Checked: now.Unix() - 60}, true, now.Unix(), false},
 		{"missing, recent", models.PlexMetadata{Missing: true, Checked: now.Unix() - 29*day}, true, now.Unix(), false},
 		{"missing, a month on", models.PlexMetadata{Missing: true, Checked: now.Unix() - 30*day}, true, now.Unix(), true},
+		{"known before, missing today", models.PlexMetadata{MediaType: "show", Missing: true, Checked: now.Unix() - 60}, true, now.Unix(), false},
+		{"known before, missing a day on", models.PlexMetadata{MediaType: "movie", Missing: true, Checked: checked}, true, 0, true},
 	}
 	for _, c := range cases {
 		if got := metadataStale(c.entry, c.cached, c.lastPlay, now); got != c.want {
