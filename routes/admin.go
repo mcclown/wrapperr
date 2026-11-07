@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -169,8 +170,14 @@ func ApiSetConfig(context *gin.Context) {
 		}
 		if music := config_payload.WrapperrData.VoyageMusic; music != nil {
 			if *music != "" {
-				if _, ok := files.VoyageMusicPath(*music); !ok {
+				path, ok := files.VoyageMusicPath(*music)
+				if !ok {
 					context.JSON(http.StatusBadRequest, gin.H{"error": "The voyage music must be the name of an audio file (.m4a, .mp3, .ogg, .opus, .wav or .aac) in config/voyage/."})
+					context.Abort()
+					return
+				}
+				if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+					context.JSON(http.StatusBadRequest, gin.H{"error": "There is no file called " + *music + " in config/voyage/ (names are case-sensitive)."})
 					context.Abort()
 					return
 				}

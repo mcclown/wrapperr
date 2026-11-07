@@ -179,7 +179,7 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 	router.Use(middlewares.SecurityHeaders())
 	router.Use(middlewares.BodyLimit(1 << 20))
 
-	router.LoadHTMLGlob("web/*/*.html")
+	router.LoadHTMLGlob("web/html/*.html")
 
 	// API endpoint
 	api := router.Group(root + "/api")

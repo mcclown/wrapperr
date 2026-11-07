@@ -151,6 +151,11 @@ func ApiGetVoyage(context *gin.Context) {
 // and blob: for the textures three.js unpacks from its models.
 func VoyagePagePolicy(page string) string {
 	script := "'unsafe-inline'"
+	defer func() {
+		if script == "'unsafe-inline'" {
+			log.Println("Warning: the voyage page's import map wasn't found in " + page + ", so its Content Security Policy allows any inline script.")
+		}
+	}()
 	if raw, err := os.ReadFile(page); err == nil {
 		// The hash is of the script's text as served, which is one line
 		if m := importMap.FindSubmatch(raw); m != nil {
@@ -163,14 +168,15 @@ func VoyagePagePolicy(page string) string {
 		"frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 }
 
-var importMap = regexp.MustCompile(`<script type="importmap">([^<]*)</script>`)
+// importMap is the page's one inline script; its hash is taken at startup, so the page is not edited while running
+var importMap = regexp.MustCompile(`<script type="importmap">([^<]+)</script>`)
 
 // ApiVoyageMusic serves the voyage's background music: the file named by the voyage_music setting in
-// config/voyage/, while the voyage is enabled. None ships with Wrapperr, so without one this is a 404 and the
-// voyage sails with its sound effects only.
+// config/voyage/ (whether or not the voyage is enabled yet, so an admin's preview plays it). None ships with
+// Wrapperr, so without one this is a 404 and the voyage sails with its sound effects only.
 func ApiVoyageMusic(context *gin.Context) {
 	config, err := files.GetConfig()
-	if err != nil || !config.VoyageEnabled || config.VoyageMusic == "" {
+	if err != nil || config.VoyageMusic == "" {
 		context.Status(http.StatusNotFound)
 		return
 	}

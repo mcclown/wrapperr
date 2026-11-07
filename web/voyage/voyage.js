@@ -8,6 +8,11 @@ const $ = id => document.getElementById(id);
 
 // The voyage document (voyage.v1, see CONTRACT.md): set on the page by a static export, or else fetched from
 // Wrapperr for the signed-in Plex user (?user=<id> with an admin login: that user's voyage)
+// Music is optional and none ships with Wrapperr: it plays if the server has one (the voyage_music setting, a file
+// in config/voyage/), and otherwise the voyage sails with its sound effects only. An export can set VOYAGE_MUSIC.
+// Asked for now, alongside the voyage.
+const MUSIC_URL = window.VOYAGE_MUSIC ?? "audio/music";
+const musicThere = MUSIC_URL ? fetch(MUSIC_URL, { method: "HEAD" }).then(r => r.ok, () => false) : Promise.resolve(false);
 const D = window.VOYAGE || await loadVoyage();
 window.VOYAGE = D;  // for the mock scenes
 async function loadVoyage() {
@@ -26,13 +31,17 @@ async function loadVoyage() {
   } catch (e) { /* offline */ }
   // No voyage: the intro card says why, and leads back to the front page instead of setting sail
   $("intro_name").textContent = "…";
-  $("intro_text").textContent = reply && reply.status === 401 ? "Sign in on the front page to set sail." : why;
-  const back = Object.assign(document.createElement("a"), { className: "go", href: new URL("../", location.href).href, textContent: "Back to the front page" });
+  const signIn = reply && reply.status === 401;
+  $("intro_text").textContent = !signIn ? why : admin ? "Sign in on the admin page to preview a voyage." : "Sign in on the front page to set sail.";
+  const back = Object.assign(document.createElement("a"), { className: "go", href: new URL(admin ? "../admin" : "../", location.href).href,
+    textContent: admin ? "To the admin page" : "Back to the front page" });
   $("set_sail").replaceWith(back);
   throw new Error("No voyage: " + why);
 }
 // News lighthouses: the models in models/lighthouses (the page rotates through them)
-const LIGHTHOUSES = ["durvesh121-sand-island.glb", "kristenlee-slate-rocks.glb", "maverickfx-rock.glb", "murriarty-rock-island.glb"];
+const LIGHTHOUSES = D.lighthouses || ["durvesh121-sand-island.glb", "kristenlee-slate-rocks.glb", "maverickfx-rock.glb", "murriarty-rock-island.glb"];
+// A card's poster still downloading (the poster cache fetches them in the background) is hidden, not an empty frame
+$("cap_img").addEventListener("error", e => { e.target.style.visibility = "hidden"; });
 // Mock mode (?mock=<id> or #mock-<id>): a made-up sighting from mock/scenes-*.js sailed through the real pipeline, for
 // trying out new scenes before their data exists (see mock/README.md). Without it nothing below changes.
 const MOCK = (() => {
@@ -672,10 +681,11 @@ function imageTexture(file, fallbackText) {
   return t;
 }
 // A poster or backdrop not downloaded yet (the poster cache fetches them in the background) is tried again
+// (every few seconds, backing off to 15 s, for about four minutes: a first visit can queue hundreds of images)
 function retryImage(t, file, attempt) {
-  if (attempt > 6) return;
+  if (attempt > 20) return;
   setTimeout(() => loader.load(`${D.imageBase}${file}?r=${attempt}`, img => { t.image = img.image; t.needsUpdate = true; }, undefined,
-    () => retryImage(t, file, attempt + 1)), 1500 * attempt);
+    () => retryImage(t, file, attempt + 1)), Math.min(15000, 2000 * attempt));
 }
 function placeholder(text) {
   return canvasTexture(256, 384, (g, w, h) => {
@@ -2583,10 +2593,7 @@ function setPlaying(on) {
   $("play").setAttribute("aria-pressed", on);
 }
 // Music: the theme starts with "Set sail" (browsers only allow sound after a tap) and loops
-// Music is optional and none ships with Wrapperr: it plays if the server has one (the voyage_music setting, a file
-// in config/voyage/), and otherwise the voyage sails with its sound effects only. An export can set VOYAGE_MUSIC.
-const MUSIC_URL = window.VOYAGE_MUSIC ?? "audio/music";
-const music = MUSIC_URL && (await fetch(MUSIC_URL, { method: "HEAD" }).then(r => r.ok, () => false)) ? new Audio(MUSIC_URL) : null;
+const music = (await musicThere) ? new Audio(MUSIC_URL) : null;
 if (music) { music.loop = true; music.preload = "auto"; music.volume = 0.8; }
 let musicOn = true;
 function playMusic() {
