@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,26 +25,22 @@ var voyageExportParts = []string{"index.html", "voyage.js", "vendor", "fonts", "
 
 // ExportVoyage writes an account's voyage as a static site in out, which must be empty or not exist yet: the page
 // with the voyage.v1 document in it, and the posters and backdrops it shows under img/. The voyage is built from the
-// play cache as it stands, or with refresh, after bringing it up to date from Tautulli as a statistics request does.
-// Music is never included unless music names an audio file to copy in.
-func ExportVoyage(username string, out string, music string, refresh bool, config models.WrapperrConfig) (int, error) {
+// play cache as the server last brought it up to date; the export only reads Wrapperr's files (apart from adding
+// images to the poster cache), so it is safe while the server runs. Music is never included unless music names an
+// audio file to copy in. If it fails part-way, out is left empty again.
+func ExportVoyage(username string, out string, music string, config models.WrapperrConfig) (images int, err error) {
 	if !config.UseCache {
 		return 0, errors.New("the voyage needs the cache turned on")
 	}
-	if refresh {
-		if err := TautulliTestEveryServer(); err != nil {
-			return 0, err
-		}
-		if err := TautulliSyncUsersToWrapperr(); err != nil {
-			return 0, err
-		}
+	if _, err := os.Stat(filepath.Join(voyagePage, "index.html")); err != nil {
+		return 0, errors.New("the voyage page (web/voyage) isn't here: run the export from Wrapperr's folder")
 	}
 	user, err := exportUser(username)
 	if err != nil {
 		return 0, err
 	}
 	if music != "" {
-		if _, ok := files.VoyageMusicPath(filepath.Base(music)); !ok {
+		if files.VoyageMusicType(music) == "" {
 			return 0, errors.New("the music must be an audio file (.m4a, .mp3, .ogg, .opus, .wav or .aac)")
 		}
 		if info, err := os.Stat(music); err != nil || !info.Mode().IsRegular() {
@@ -53,15 +50,11 @@ func ExportVoyage(username string, out string, music string, refresh bool, confi
 	if err := emptyFolder(out); err != nil {
 		return 0, err
 	}
-	if refresh {
-		adminConfig, err := files.GetAdminConfig()
+	defer func() {
 		if err != nil {
-			return 0, err
+			clearFolder(out)
 		}
-		if _, _, err := GetWrapperStatistics(user.User, user.FriendlyName, user.UserID, user.Email, config, adminConfig, true, 0); err != nil {
-			return 0, err
-		}
-	}
+	}()
 
 	built, err := buildVoyage(user.UserID, config)
 	if errors.Is(err, voyage.ErrNoSessions) {
@@ -77,24 +70,29 @@ func ExportVoyage(username string, out string, music string, refresh bool, confi
 		if err := files.InitializePosterDirectories(config); err != nil {
 			return 0, err
 		}
+		failed := map[string]int{}
 		for _, image := range built.images {
-			name := image.Server + "/" + files.PosterFilename(image.RatingKey, image.Kind)
-			if have[name] {
+			if have[image.File] || failed[image.Server] >= 3 {
 				continue
 			}
-			from, ok := cachedImage(image, config)
-			if !ok {
+			from, err := cachedImage(image, config)
+			if err != nil {
+				// A server that fails three in a row is given up on, rather than waiting on each image in turn
+				failed[image.Server]++
+				log.Println("Failed to get an image for the export (" + image.File + "). Error: " + err.Error())
 				continue
 			}
-			if err := copyFile(from, filepath.Join(out, "img", filepath.FromSlash(name))); err != nil {
+			failed[image.Server] = 0
+			if err := copyFile(from, filepath.Join(out, "img", filepath.FromSlash(image.File))); err != nil {
 				return 0, err
 			}
-			have[name] = true
+			have[image.File] = true
 		}
 	}
 	document := built.document
 	document.ImageBase = "img/"
-	document.Titles = append([]voyage.Title(nil), built.document.Titles...)
+	document.Titles = make([]voyage.Title, len(built.document.Titles))
+	copy(document.Titles, built.document.Titles)
 	for i := range document.Titles {
 		if t := &document.Titles[i]; t.Poster != nil && !have[*t.Poster] {
 			t.Poster = nil
@@ -105,7 +103,17 @@ func ExportVoyage(username string, out string, music string, refresh bool, confi
 	}
 
 	for _, part := range voyageExportParts {
-		if err := copyTree(filepath.Join(voyagePage, filepath.FromSlash(part)), filepath.Join(out, filepath.FromSlash(part))); err != nil {
+		from, to := filepath.Join(voyagePage, filepath.FromSlash(part)), filepath.Join(out, filepath.FromSlash(part))
+		info, err := os.Stat(from)
+		if err != nil {
+			return 0, err
+		}
+		if info.IsDir() {
+			err = os.CopyFS(to, os.DirFS(from))
+		} else {
+			err = copyFile(from, to)
+		}
+		if err != nil {
 			return 0, err
 		}
 	}
@@ -151,20 +159,27 @@ func emptyFolder(out string) error {
 	return nil
 }
 
+// clearFolder empties out again after a failed export (it was new or empty before), so the export can simply be
+// run again
+func clearFolder(out string) {
+	entries, _ := os.ReadDir(out)
+	for _, entry := range entries {
+		os.RemoveAll(filepath.Join(out, entry.Name()))
+	}
+}
+
 // cachedImage is the poster cache's file for an image, downloading it first if it isn't there
-func cachedImage(image voyage.Image, config models.WrapperrConfig) (string, bool) {
-	ref := files.PosterReference{ServerHash: image.Server, RatingKey: image.RatingKey, ThumbPath: image.Path, Kind: image.Kind}
+func cachedImage(image voyage.Image, config models.WrapperrConfig) (string, error) {
 	for _, server := range config.TautulliConfig {
 		if files.GetTautulliServerHash(server) != image.Server {
 			continue
 		}
-		if ok, path := files.PosterExists(server, ref, 0); ok {
-			return path, true
+		if ok, path := files.PosterExists(server, image.Ref(), 0); ok {
+			return path, nil
 		}
-		path, err := files.DownloadPoster(server, ref)
-		return path, err == nil
+		return files.DownloadPoster(server, image.Ref())
 	}
-	return "", false
+	return "", errors.New("no Tautulli server for it")
 }
 
 // writeExportPage writes the page with the document set on it, ahead of the page's script
@@ -185,22 +200,6 @@ func writeExportPage(page string, document voyage.Document, musicURL string) err
 	}
 	set := "<script>window.VOYAGE = " + string(data) + ";\nwindow.VOYAGE_MUSIC = " + string(musicJSON) + ";</script>\n"
 	return os.WriteFile(page, []byte(strings.Replace(string(raw), script, set+script, 1)), 0644)
-}
-
-func copyTree(from string, to string) error {
-	return filepath.WalkDir(from, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, err := filepath.Rel(from, path)
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() {
-			return os.MkdirAll(filepath.Join(to, rel), 0755)
-		}
-		return copyFile(path, filepath.Join(to, rel))
-	})
 }
 
 func copyFile(from string, to string) error {

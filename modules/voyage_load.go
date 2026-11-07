@@ -48,7 +48,7 @@ func VoyageForUser(userID int, config models.WrapperrConfig) (voyage.Document, e
 	if config.WrapperrCustomize.EnablePosters {
 		refs := make([]files.PosterReference, 0, len(built.images))
 		for _, image := range built.images {
-			refs = append(refs, files.PosterReference{ServerHash: image.Server, RatingKey: image.RatingKey, ThumbPath: image.Path, Kind: image.Kind})
+			refs = append(refs, image.Ref())
 		}
 		files.EnqueuePosters(refs, config.TautulliConfig, config.WrapperrCustomize.PosterCacheMaxAgeDays)
 	}
