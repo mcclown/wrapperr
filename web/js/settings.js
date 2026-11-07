@@ -176,6 +176,14 @@ function loadAdminPage() {
     html += '<input type="text" class="form-control" id="voyage_music" placeholder="e.g. theme.m4a" value="' + escapeAttribute(voyage_music || '') + '" /></label>';
     html += '</div>';
 
+    html += '<div class="form-group">';
+    html += '<label for="voyage_front_page" title="With the voyage on, the front page offers both after a Plex login: Set sail (the voyage) and Read the log (the classic page). This one comes first.">Front page leads with:<br>';
+    html += '<select class="form-control" id="voyage_front_page">';
+    html += '<option value="voyage"' + (voyage_front_page !== 'log' ? ' selected' : '') + '>Set sail (the voyage)</option>';
+    html += '<option value="log"' + (voyage_front_page === 'log' ? ' selected' : '') + '>Read the log (the classic page)</option>';
+    html += '</select></label>';
+    html += '</div>';
+
     html += '<div class="form-group newline">';
     html += '<hr>';
     html += '</div>';
@@ -253,6 +261,7 @@ function set_wrapperr_settings_call() {
     winter_theme = document.getElementById('winter_theme').checked;
     voyage_enabled = document.getElementById('voyage_enabled').checked;
     voyage_music = document.getElementById('voyage_music').value.trim();
+    voyage_front_page = document.getElementById('voyage_front_page').value;
     wrapped_dynamic = document.getElementById('wrapped_dynamic').checked;
     wrapped_dynamic_days = document.getElementById('wrapped_dynamic_days').value;
     trusted_proxies = splitList(document.getElementById('trusted_proxies').value);
@@ -335,7 +344,8 @@ function set_wrapperr_settings_call() {
             "client_ip_header" : client_ip_header,
             "admin_networks" : admin_networks,
             "voyage_enabled" : voyage_enabled,
-            "voyage_music" : voyage_music
+            "voyage_music" : voyage_music,
+            "voyage_front_page" : voyage_front_page
         }
     };
 

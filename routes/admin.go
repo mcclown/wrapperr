@@ -195,6 +195,17 @@ func ApiSetConfig(context *gin.Context) {
 			}
 			config.VoyageMusic = *music
 		}
+		if first := config_payload.WrapperrData.VoyageFrontPage; first != nil {
+			if *first == "" {
+				*first = "voyage"
+			}
+			if *first != "voyage" && *first != "log" {
+				context.JSON(http.StatusBadRequest, gin.H{"error": "The front page's first button must be the voyage or the log."})
+				context.Abort()
+				return
+			}
+			config.VoyageFrontPage = *first
+		}
 
 		err = files.SaveConfig(config)
 		if err != nil {

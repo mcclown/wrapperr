@@ -27,7 +27,8 @@ type WrapperrConfig struct {
 	ClientIPHeader     string            `json:"client_ip_header"`
 	AdminNetworks      []string          `json:"admin_networks"`
 	VoyageEnabled      bool              `json:"voyage_enabled"`
-	VoyageMusic        string            `json:"voyage_music"` // an audio file in config/voyage/, or "" for none
+	VoyageMusic        string            `json:"voyage_music"`      // an audio file in config/voyage/, or "" for none
+	VoyageFrontPage    string            `json:"voyage_front_page"` // the front page's first button: "voyage" (also when "") or "log"
 }
 
 type SetWrapperrConfig struct {
@@ -57,5 +58,6 @@ type SetWrapperrConfig struct {
 		AdminNetworks      *[]string `json:"admin_networks"`
 		VoyageEnabled      *bool     `json:"voyage_enabled"`
 		VoyageMusic        *string   `json:"voyage_music"`
+		VoyageFrontPage    *string   `json:"voyage_front_page"`
 	} `json:"wrapperr_data"`
 }
