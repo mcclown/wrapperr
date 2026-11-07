@@ -26,6 +26,7 @@ type WrapperrConfig struct {
 	TrustedProxies     []string          `json:"trusted_proxies"`
 	ClientIPHeader     string            `json:"client_ip_header"`
 	AdminNetworks      []string          `json:"admin_networks"`
+	VoyageEnabled      bool              `json:"voyage_enabled"`
 }
 
 type SetWrapperrConfig struct {
@@ -53,5 +54,6 @@ type SetWrapperrConfig struct {
 		TrustedProxies     *[]string `json:"trusted_proxies"`
 		ClientIPHeader     *string   `json:"client_ip_header"`
 		AdminNetworks      *[]string `json:"admin_networks"`
+		VoyageEnabled      *bool     `json:"voyage_enabled"`
 	} `json:"wrapperr_data"`
 }

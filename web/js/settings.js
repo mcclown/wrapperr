@@ -162,6 +162,15 @@ function loadAdminPage() {
     html += '/><br>';
     html += '</div>';
 
+    html += '<div class="form-group">';
+    html += '<label for="voyage_enabled" title="Offer each user their year as a sea voyage, from their own login (Plex Auth must be on).">YarrFlix Voyage:<br>';
+    html += '<input type="checkbox" class="form-control" id="voyage_enabled" ';
+    if(voyage_enabled) {
+        html += 'checked="' + voyage_enabled + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
     html += '<div class="form-group newline">';
     html += '<hr>';
     html += '</div>';
@@ -237,6 +246,7 @@ function set_wrapperr_settings_call() {
     clear_cache = document.getElementById('clear_cache').checked;
     clear_poster_cache = document.getElementById('clear_poster_cache').checked;
     winter_theme = document.getElementById('winter_theme').checked;
+    voyage_enabled = document.getElementById('voyage_enabled').checked;
     wrapped_dynamic = document.getElementById('wrapped_dynamic').checked;
     wrapped_dynamic_days = document.getElementById('wrapped_dynamic_days').value;
     trusted_proxies = splitList(document.getElementById('trusted_proxies').value);
@@ -317,7 +327,8 @@ function set_wrapperr_settings_call() {
             "winter_theme" : winter_theme,
             "trusted_proxies" : trusted_proxies,
             "client_ip_header" : client_ip_header,
-            "admin_networks" : admin_networks
+            "admin_networks" : admin_networks,
+            "voyage_enabled" : voyage_enabled
         }
     };
 

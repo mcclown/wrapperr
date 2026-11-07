@@ -209,6 +209,7 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 		{
 			both.POST("/create/share-link", middlewares.RateLimit(10, time.Minute), routes.ApiCreateShareLink)
 			both.POST("/get/statistics", middlewares.RateLimit(20, time.Minute), routes.ApiWrapperGetStatistics)
+			both.POST("/get/voyage", middlewares.RateLimit(20, time.Minute), routes.ApiGetVoyage)
 		}
 
 		// Must include an auth token (With Plex auth)
@@ -238,6 +239,7 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 			admin.POST("/get/users", routes.ApiGetUsers)
 			admin.POST("/get/users/:userId", routes.ApiGetUser)
 			admin.POST("/get/users/:userId/statistics", routes.ApiGetUserStatistics)
+			admin.POST("/get/users/:userId/voyage", routes.ApiGetUserVoyage)
 			admin.POST("/get/users/:userId/ignore", routes.ApiIgnoreUser)
 			admin.POST("/set/users/:userId/timezone", routes.ApiSetUserTimezone)
 			admin.POST("/lookup/users/timezones", routes.ApiLookupUserTimezones)

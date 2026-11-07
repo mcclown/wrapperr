@@ -173,6 +173,10 @@ func ApiSetConfig(context *gin.Context) {
 		config.TrustedProxies = trustedProxies
 		config.ClientIPHeader = clientIPHeader
 		config.AdminNetworks = adminNetworks
+		// Kept as it is when the save leaves it out
+		if config_payload.WrapperrData.VoyageEnabled != nil {
+			config.VoyageEnabled = *config_payload.WrapperrData.VoyageEnabled
+		}
 
 		err = files.SaveConfig(config)
 		if err != nil {
