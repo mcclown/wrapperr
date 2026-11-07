@@ -8,6 +8,14 @@ import (
 	"github.com/aunefyren/wrapperr/models"
 )
 
+func TestNoSessionIsAnError(t *testing.T) {
+	for _, header := range []string{"", "Token abc", "Digest x"} {
+		if _, status, err := AuthGetPayloadFromAuthorization(header, models.WrapperrConfig{PlexAuth: true}, models.AdminConfig{}); err == nil || status != http.StatusUnauthorized {
+			t.Errorf("Authorization %q: status %d, err %v; want 401", header, status, err)
+		}
+	}
+}
+
 func TestBasicAuthOnlyWhenEnabled(t *testing.T) {
 	basic := "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:password"))
 	// With basic_auth off the credentials are refused without being checked
