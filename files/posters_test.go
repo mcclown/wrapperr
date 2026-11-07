@@ -13,8 +13,11 @@ func TestBackdropFiles(t *testing.T) {
 	}
 	for path, want := range map[string]bool{"/library/metadata/42/art/1790957743": true, "/library/metadata/42/art": true,
 		"/library/metadata/42/thumb/1": false, "/library/metadata/42/art/1?url=http://x": false, "http://x/library/metadata/42/art": false} {
-		if validArtPath.MatchString(path) != want {
-			t.Errorf("validArtPath(%q) = %v, want %v", path, !want, want)
+		if ValidImagePath(path, BackdropKind) != want {
+			t.Errorf("ValidImagePath(%q, art) = %v, want %v", path, !want, want)
 		}
+	}
+	if !ValidImagePath("/library/metadata/42/thumb/1", "") || ValidImagePath("/library/metadata/42/art/1", "") || ValidImagePath("/library/metadata/42/thumb/1", "logo") {
+		t.Fatal("a poster takes a thumb path, and an unknown kind takes none")
 	}
 }

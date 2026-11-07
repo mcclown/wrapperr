@@ -24,7 +24,8 @@ type Title struct {
 	Name string `json:"name"`
 	Year int    `json:"year"`
 	Type string `json:"type"` // "movie" or "show"
-	// Keys are the Plex rating keys seen for it (a movie's, or a show's grandparent key), newest first
+	// Keys are the Plex rating keys seen for it (a movie's, or a show's grandparent key), the most recently played
+	// first (rating keys are numbered per server, so they can't be compared across servers)
 	Keys  []Key `json:"keys"`
 	named int
 }
@@ -217,16 +218,17 @@ func SessionMinutes(durationSeconds int) float64 {
 	return minutes
 }
 
-// addKey adds a rating key, keeping the list newest (highest) first without repeats.
+// addKey puts a just-played rating key first, without repeats. Plays come in time order, so the keys end up the
+// most recently played first.
 func addKey(keys []Key, key Key) []Key {
-	for _, k := range keys {
+	for i, k := range keys {
 		if k == key {
+			copy(keys[1:i+1], keys[:i])
+			keys[0] = key
 			return keys
 		}
 	}
-	keys = append(keys, key)
-	sort.SliceStable(keys, func(i, j int) bool { return keys[i].RatingKey > keys[j].RatingKey })
-	return keys
+	return append([]Key{key}, keys...)
 }
 
 // Watched is the set of titles each account watched (a session reaching WatchedPct), by user ID.

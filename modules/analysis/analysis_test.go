@@ -146,4 +146,10 @@ func TestEmptyAndServers(t *testing.T) {
 	if got.Sessions[2].Title == got.Sessions[3].Title {
 		t.Fatal("rating keys should not match across servers")
 	}
+	// Keys are in the order last played, whatever their numbers: s2's 99 was played before s1's 1 here
+	b.Date, a.Date = 10, 20
+	keys := Analyse(days(a, b), Options{Start: 0, End: 100}).Titles[0].Keys
+	if len(keys) != 2 || keys[0] != (Key{"s1", 1}) {
+		t.Fatalf("keys %+v, want the most recently played first", keys)
+	}
 }

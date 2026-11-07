@@ -310,11 +310,22 @@ type PosterReference struct {
 }
 
 // BackdropKind marks a PosterReference for a title's backdrop (its Plex art, 960x540), cached as <key>-art.jpg
-// next to its poster. Backdrops are only queued by Wrapperr itself, from cached Plex metadata.
+// next to its poster. Backdrops are queued only by Wrapperr itself, from the art paths in cached Plex metadata (the
+// voyage queues them for the titles it shows); the poster download route never takes a kind.
 const BackdropKind = "art"
 
-// validArtPath is the form of a backdrop's Plex path, checked before one is queued
-var validArtPath = regexp.MustCompile(`^/library/metadata/\d+/art(/\d+)?$`)
+// validImagePath is the form of a poster's (thumb) or backdrop's (art) Plex path. Checking it keeps the poster
+// download from being used to make Tautulli fetch anything else with Wrapperr's API key.
+var validImagePath = map[string]*regexp.Regexp{
+	"":           regexp.MustCompile(`^/library/metadata/\d+/thumb(/\d+)?$`),
+	BackdropKind: regexp.MustCompile(`^/library/metadata/\d+/art(/\d+)?$`),
+}
+
+// ValidImagePath reports whether path is a Plex image path of the given kind.
+func ValidImagePath(path string, kind string) bool {
+	pattern, ok := validImagePath[kind]
+	return ok && pattern.MatchString(path)
+}
 
 // PosterFilename is the cached file name of a title's poster or backdrop.
 func PosterFilename(ratingKey int, kind string) string {
@@ -470,8 +481,8 @@ func EnqueuePoster(config models.TautulliConfig, ref PosterReference, maxAgeDays
 	if ref.ServerHash == "" || ref.RatingKey == 0 || ref.ThumbPath == "" {
 		return
 	}
-	if ref.Kind == BackdropKind && !validArtPath.MatchString(ref.ThumbPath) {
-		log.Printf("[Posters] Skipped backdrop with an unexpected path for rating_key %d", ref.RatingKey)
+	if !ValidImagePath(ref.ThumbPath, ref.Kind) {
+		log.Printf("[Posters] Skipped %s with an unexpected path for rating_key %d", ref.kindName(), ref.RatingKey)
 		return
 	}
 

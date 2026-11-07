@@ -20,8 +20,12 @@ const (
 	metadataShowRecheck = 24 * time.Hour
 	// metadataMissingRetry: a key Plex didn't know is tried again after this
 	metadataMissingRetry = 30 * 24 * time.Hour
-	// metadataSaveEvery: fetched entries are saved in batches, so a long first run isn't lost if it stops
-	metadataSaveEvery = 50
+	// metadataMaxAge: anything else is fetched again after this, for changed artwork and ratings, or a deleted title
+	metadataMaxAge = 90 * 24 * time.Hour
+	// metadataSaveEvery: fetched entries are saved this often, so a long first run isn't lost if it stops
+	metadataSaveEvery = 30 * time.Second
+	// metadataMaxFailures: a server is left until the next refresh after this many failed calls in a row
+	metadataMaxFailures = 3
 )
 
 // metadataPause is the wait between get_metadata calls, so a first run doesn't hammer Tautulli
@@ -64,6 +68,8 @@ func metadataStale(entry models.PlexMetadata, cached bool, lastPlay int64, now t
 		return true
 	case entry.Missing:
 		return now.Sub(checked) >= metadataMissingRetry
+	case now.Sub(checked) >= metadataMaxAge:
+		return true
 	case entry.MediaType == "show":
 		return lastPlay > entry.Checked && now.Sub(checked) >= metadataShowRecheck
 	}
@@ -94,7 +100,6 @@ func tautulliMetadata(server models.TautulliConfig, ratingKey int, now time.Time
 		Response struct {
 			Result string `json:"result"`
 			Data   struct {
-				RatingKey      string     `json:"rating_key"`
 				MediaType      string     `json:"media_type"`
 				Year           flexNumber `json:"year"`
 				AddedAt        flexNumber `json:"added_at"`
@@ -141,8 +146,8 @@ func tautulliMetadata(server models.TautulliConfig, ratingKey int, now time.Time
 }
 
 // refreshMetadata fetches metadata for the wanted titles that have none in cached, or whose metadata is stale, and
-// saves it in batches (to metadata.json, through files.UpdateMetadata). A server that fails is left until the next
-// refresh.
+// saves it as it goes (to metadata.json, through files.UpdateMetadata). A server whose calls keep failing is left
+// until the next refresh.
 func refreshMetadata(wants map[metadataWant]int64, servers []models.TautulliConfig, cached map[string]models.PlexMetadata,
 	save func(map[string]models.PlexMetadata) error, now time.Time) (fetched int, err error) {
 	byHash := map[string]models.TautulliConfig{}
@@ -151,10 +156,11 @@ func refreshMetadata(wants map[metadataWant]int64, servers []models.TautulliConf
 	}
 
 	batch := map[string]models.PlexMetadata{}
-	failed := map[string]bool{}
+	failures := map[string]int{}
+	lastSave := time.Now()
 	for want, lastPlay := range wants {
 		server, ok := byHash[want.server]
-		if !ok || failed[want.server] {
+		if !ok || failures[want.server] >= metadataMaxFailures {
 			continue
 		}
 		key := files.MetadataKey(want.server, want.ratingKey)
@@ -164,17 +170,21 @@ func refreshMetadata(wants map[metadataWant]int64, servers []models.TautulliConf
 		}
 		fresh, _, err := tautulliMetadata(server, want.ratingKey, now)
 		if err != nil {
-			log.Println("Failed to get Plex metadata from Tautulli server " + server.TautulliName + ", skipping it until the next refresh. Error: " + err.Error())
-			failed[want.server] = true
+			// One title can fail (a timeout, an outsized reply); a server that keeps failing is left alone
+			if failures[want.server]++; failures[want.server] >= metadataMaxFailures {
+				log.Println("Failed to get Plex metadata from Tautulli server " + server.TautulliName + ", skipping it until the next refresh. Error: " + err.Error())
+			}
+			time.Sleep(metadataPause)
 			continue
 		}
+		failures[want.server] = 0
 		batch[key] = fresh
 		fetched++
-		if len(batch) >= metadataSaveEvery {
+		if time.Since(lastSave) >= metadataSaveEvery {
 			if err := save(batch); err != nil {
 				return fetched, err
 			}
-			batch = map[string]models.PlexMetadata{}
+			batch, lastSave = map[string]models.PlexMetadata{}, time.Now()
 		}
 		time.Sleep(metadataPause)
 	}

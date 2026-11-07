@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -38,7 +39,9 @@ func getMetadata() (map[string]models.PlexMetadata, error) {
 		return metadata, err
 	}
 	if err := json.Unmarshal(file, &metadata); err != nil {
-		return map[string]models.PlexMetadata{}, err
+		// It is only a cache: start it again rather than stop every refresh
+		log.Println("metadata.json is unreadable, starting it again. Error: " + err.Error())
+		return map[string]models.PlexMetadata{}, nil
 	}
 	return metadata, nil
 }

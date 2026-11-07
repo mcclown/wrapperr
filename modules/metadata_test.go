@@ -157,14 +157,34 @@ func TestRefreshMetadata(t *testing.T) {
 		t.Fatalf("second refresh fetched %d, want 0", fetched)
 	}
 
-	// A server that doesn't answer is skipped after its first failure
-	down := server
-	down.TautulliPort = 1
-	downHash := files.GetTautulliServerHash(down)
-	calls = 0
-	fetched, err = refreshMetadata(map[metadataWant]int64{{downHash, 1}: 1, {downHash, 2}: 1}, []models.TautulliConfig{down}, cached, save, now)
-	if err != nil || fetched != 0 {
-		t.Fatalf("a failing server: fetched %d, err %v", fetched, err)
+	// Nearly three months on, everything is fetched again
+	fetched, _ = refreshMetadata(wants, []models.TautulliConfig{server}, cached, save, now.Add(metadataMaxAge))
+	if fetched != 3 {
+		t.Fatalf("after metadataMaxAge fetched %d, want the movie, the show and the missing key again", fetched)
+	}
+
+	// One title failing doesn't stop the rest; a server whose calls keep failing is left after a few
+	var flakyCalls int32
+	replies := map[string]string{"1": "error", "2": movieMetadata, "3": movieMetadata, "4": movieMetadata}
+	for i := 10; i < 15; i++ {
+		replies[strconv.Itoa(i)] = "error"
+	}
+	flaky := fakeMetadata(t, replies, &flakyCalls)
+	flakyHash := files.GetTautulliServerHash(flaky)
+	some := map[metadataWant]int64{{flakyHash, 1}: 1, {flakyHash, 2}: 1, {flakyHash, 3}: 1, {flakyHash, 4}: 1}
+	if fetched, err := refreshMetadata(some, []models.TautulliConfig{flaky}, map[string]models.PlexMetadata{}, save, now); err != nil || fetched != 3 {
+		t.Fatalf("one failing title: fetched %d, err %v; want the other 3", fetched, err)
+	}
+	all := map[metadataWant]int64{}
+	for i := 10; i < 15; i++ {
+		all[metadataWant{flakyHash, i}] = 1
+	}
+	flakyCalls = 0
+	if fetched, _ := refreshMetadata(all, []models.TautulliConfig{flaky}, map[string]models.PlexMetadata{}, save, now); fetched != 0 || flakyCalls != metadataMaxFailures {
+		t.Fatalf("a failing server: fetched %d with %d calls, want 0 with %d", fetched, flakyCalls, metadataMaxFailures)
+	}
+	if cached[files.MetadataKey(flakyHash, 1)].Missing {
+		t.Fatal("a Tautulli error should not mark a title missing")
 	}
 }
 
