@@ -17,7 +17,7 @@ import (
 
 // voyages keeps what voyages are built from (the analysis of everyone's plays, the metadata and the events) and
 // each account's built voyage, until anything they come from changes. The analysis is read once per change and
-// shared; building one account's voyage from it takes milliseconds.
+// shared (other requests wait while it is read); building one account's voyage from it takes milliseconds.
 var voyages = struct {
 	sync.Mutex
 	fingerprint string
@@ -40,14 +40,18 @@ type builtVoyage struct {
 // VoyageForUser is an account's voyage document, built from the play cache as it stands (callers refresh it first).
 // It returns voyage.ErrNoSessions for an account with nothing played in the period.
 func VoyageForUser(userID int, config models.WrapperrConfig) (voyage.Document, error) {
-	events := voyageEvents() // seeds the events file, before the fingerprint reads its stamp
+	// The events file is created first, so its stamp is in the fingerprint from the start
+	files.GetVoyageEvents(voyage.DefaultEvents)
+	voyages.Lock()
+	defer voyages.Unlock()
+	// Under the lock, so requests can't overwrite each other's newer state with an older fingerprint
 	fingerprint, users, err := voyageFingerprint(config)
 	if err != nil {
 		return voyage.Document{}, err
 	}
-	voyages.Lock()
-	defer voyages.Unlock()
 	if voyages.sea == nil || voyages.fingerprint != fingerprint {
+		// Read after the fingerprint: a file changed in between is read as it is now, and seen as changed next time
+		events := voyageEvents()
 		a, err := LoadAnalysis()
 		if err != nil {
 			return voyage.Document{}, err
