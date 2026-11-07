@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YarrFlix Voyage</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+/* One deliberate look: a sea voyage with parchment and brass, so no light/dark switch */
+:root {
+  color-scheme: dark;
+  --ink: #2b1d0e; --ink-soft: #5a4327; --parchment: #f1e2c0; --parchment-edge: #c9a96b;
+  --brass: #c8963e; --brass-hi: #f2c76b; --night: #0c1620; --hud: rgba(12, 22, 32, 0.62); --hud-text: #f6ead0;
+  --politics: #d9a441; --world: #c8553d; --science: #6fb7c9; --sport: #7fb069; --culture: #c38dd1;
+  --serif: "IM Fell English", "Iowan Old Style", Georgia, serif; --display: "Pirata One", "IM Fell English", Georgia, serif;
+}
+html, body { height: 100%; overscroll-behavior: none; }
+button, select, input { touch-action: manipulation; }
+body { margin: 0; background: var(--night); color: var(--hud-text); font: 15px/1.4 var(--serif); overflow: hidden; }
+canvas#sea { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+canvas#sea:active { cursor: grabbing; }
+.hud { position: fixed; left: 0; right: 0; pointer-events: none; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
+.top { top: 0; padding-top: calc(env(safe-area-inset-top, 0px) + 12px); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.plaque { background: var(--hud); border: 1px solid rgba(242, 199, 107, 0.35); border-radius: 10px; padding: 8px 14px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.brand { font-family: var(--display); font-size: 1.15rem; color: var(--brass-hi); letter-spacing: 0.04em; }
+.date { font-family: var(--display); font-size: 2rem; line-height: 1; margin-top: 2px; }
+.sea-state { font-size: 0.9rem; color: #e5d6b4; font-variant-numeric: tabular-nums; }
+.sea-state b { color: var(--brass-hi); font-weight: normal; }
+.egg-note { font-size: 0.8rem; font-style: italic; color: var(--brass-hi); max-height: 0; opacity: 0; overflow: hidden; transition: opacity 0.6s, max-height 0.6s; }
+.egg-note.show { opacity: 0.9; max-height: 2.4em; }
+
+/* Parchment cards */
+.scroll { background: linear-gradient(180deg, #f6e9c9, var(--parchment) 40%, #e8d3a4); color: var(--ink); border: 1px solid var(--parchment-edge);
+  border-radius: 6px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 0 40px rgba(150, 110, 50, 0.25); }
+/* What you watched: the parchment card at the top */
+.highlight { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 122px); left: 50%; width: min(470px, calc(100% - 32px)); transform: translate(-50%, -12px) scaleY(0.6);
+  opacity: 0; transition: opacity 0.5s, transform 0.5s; padding: 10px 16px 10px 10px; pointer-events: none; display: flex; gap: 14px; align-items: center; }
+.highlight.show { opacity: 1; transform: translate(-50%, 0) scaleY(1); }
+.highlight img, .highlight .text { transition: opacity 0.16s; }
+.highlight.swap img, .highlight.swap .text { opacity: 0; }
+.highlight img { width: 64px; height: 96px; object-fit: cover; border-radius: 3px; border: 2px solid var(--brass); box-shadow: 0 3px 10px rgba(60, 40, 10, 0.35); flex: none; background: #3a2c1a; }
+.highlight .text { min-width: 0; }
+.highlight .kicker { font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
+.highlight .name { font-family: var(--display); font-weight: normal; font-size: 1.65rem; margin: 2px 0 3px; line-height: 1.08; text-wrap: balance; }
+.highlight .facts { margin: 0; font-size: 0.98rem; text-wrap: pretty; font-variant-numeric: tabular-nums; }
+.highlight .emblem { width: 64px; height: 96px; flex: none; box-sizing: border-box; border: 2px solid var(--brass); border-radius: 3px; background: #2b1d0e;
+  color: #f2c76b; font-family: var(--display); display: grid; place-content: center; text-align: center; line-height: 1; font-size: 1.5rem; }
+.highlight .emblem small { display: block; font-size: 0.8rem; margin-top: 4px; color: #e8d3a4; }
+.highlight .coin { display: none; position: absolute; top: -16px; right: -12px; width: 46px; height: 46px; transform: rotate(-12deg);
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5)); }
+.highlight.loud .coin, .highlight.feat .coin { display: block; }
+/* Wrecks and ghost ships: a brass rim that beckons a few times */
+.highlight.loud { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 3px var(--brass), 0 0 18px 4px rgba(242, 199, 107, 0.45); animation: beckon 1.4s ease-in-out 3; }
+/* The cinematic ones: gilded and glowing */
+.highlight.feat { background: linear-gradient(180deg, #fff3cf, #f1d996 45%, #e2bd6a); border-color: #b8862b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 3px #f2c76b, 0 0 36px 10px rgba(255, 214, 120, 0.7); animation: beckon 1.8s ease-in-out infinite; }
+@keyframes beckon { 50% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 3px #ffd98a, 0 0 46px 14px rgba(255, 214, 120, 0.85); } }
+@media (prefers-reduced-motion: reduce) { .highlight.loud, .highlight.feat { animation: none; } }
+
+/* The world's news: a caption above the controls */
+.news { position: fixed; left: 50%; bottom: calc(var(--controls-h, 112px) + 14px); width: min(400px, calc(100% - 32px)); box-sizing: border-box;
+  padding: 6px 14px 8px; text-align: center; background: var(--hud); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+  opacity: 0; transform: translate(-50%, 14px); transition: opacity 0.45s, transform 0.45s; pointer-events: none; }
+.news.show { opacity: 0.92; transform: translate(-50%, 0); }  /* quieter than the creature cards: it's background to the voyage */
+.cine .news { left: max(16px, env(safe-area-inset-left, 0px)); width: min(400px, calc(100% - 32px)); text-align: left; transform: translateY(10px); padding: 6px 12px 8px; }
+.cine .news.show { transform: none; }
+.cine .news .head { font-size: 1.05rem; }
+.cine .news .blurb { font-size: 0.78rem; }
+.news .kicker { font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brass); }
+.news .kind { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; vertical-align: 0; }
+.news .head { font-family: var(--display); font-size: 1.2rem; line-height: 1.08; margin: 3px 0 2px; color: #efe4c9; text-wrap: balance; }
+.news .blurb { font-size: 0.82rem; color: #d9ccae; text-wrap: pretty; }
+
+/* Controls */
+.controls { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 12px) max(16px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(0deg, rgba(8, 14, 20, 0.85), rgba(8, 14, 20, 0)); display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 0.95rem; color: var(--hud-text); background: var(--hud); border: 1px solid rgba(242, 199, 107, 0.45); border-radius: 8px; padding: 5px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--brass-hi); }
+.letterbox::before, .letterbox::after { content: ""; position: fixed; left: 0; right: 0; height: 0; background: #05080b; transition: height 0.5s ease; pointer-events: none; }
+.letterbox::before { top: 0; } .letterbox::after { bottom: 0; }
+.letterbox.on::before, .letterbox.on::after { height: 8vh; }
+.btn[aria-pressed="true"] { background: var(--brass); color: var(--ink); border-color: var(--brass-hi); }
+#play { min-width: 5.5em; }
+#fs { display: none; }
+.can-fs #fs { display: inline-block; }
+.speeds { display: inline-flex; gap: 4px; }
+.track { position: relative; height: 46px; }
+.track input { position: absolute; left: 0; right: 0; top: 20px; width: 100%; height: 18px; margin: 0; accent-color: var(--brass); cursor: pointer; }
+.ticks { position: absolute; left: 8px; right: 8px; top: 0; height: 12px; pointer-events: none; }
+.ticks span { position: absolute; transform: translateX(-50%); font-size: 0.68rem; color: #cdbd99; letter-spacing: 0.06em; white-space: nowrap; }
+.spark { position: absolute; left: 8px; right: 8px; top: 12px; height: 17px; width: calc(100% - 16px); pointer-events: none; overflow: visible; }
+.spark path { fill: rgba(201, 162, 39, 0.3); stroke: rgba(242, 199, 107, 0.55); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pips { position: absolute; left: 8px; right: 8px; top: 38px; height: 6px; pointer-events: none; }
+.pips i { position: absolute; width: 5px; height: 5px; border-radius: 50%; transform: translateX(-50%); }
+.legend { font-size: 0.75rem; color: #cdbd99; display: flex; gap: 10px; flex-wrap: wrap; margin-left: auto; order: 3; }
+.legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+
+/* Overlays */
+.overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: radial-gradient(ellipse at center, rgba(8, 14, 20, 0.35), rgba(8, 14, 20, 0.8)); }
+[hidden] { display: none !important; }
+.card { width: min(520px, 100%); padding: 26px 28px 22px; text-align: center; max-height: calc(100% - 32px); overflow: auto; box-sizing: border-box; }
+.card .kicker { font-size: 0.8rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); }
+.card h1 { font-family: var(--display); font-weight: normal; font-size: clamp(2.2rem, 7vw, 3.4rem); margin: 4px 0 2px; line-height: 1; text-wrap: balance; }
+.card .sub { font-style: italic; color: var(--ink-soft); margin-bottom: 14px; }
+.card .go { font: inherit; font-family: var(--display); font-size: 1.4rem; background: var(--ink); color: var(--parchment); border: 0; border-radius: 6px; padding: 8px 26px; cursor: pointer; margin-top: 10px; }
+.card .go:hover { background: #4a3218; }
+.card a.go { display: inline-block; text-decoration: none; }
+.card .note { font-size: 0.82rem; color: var(--ink-soft); margin-top: 12px; text-wrap: pretty; }
+.log { text-align: left; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; margin: 10px 0 4px; font-size: 1rem; }
+.log dt { color: var(--ink-soft); font-style: italic; }
+.log dd { margin: 0; font-variant-numeric: tabular-nums; }
+.sound { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px); right: max(16px, env(safe-area-inset-right, 0px)); font-size: 0.85rem; }
+@media (max-height: 500px) { .sound { top: auto; bottom: calc(var(--controls-h, 112px) + 10px); } }
+.loading { position: fixed; right: 16px; bottom: calc(var(--controls-h, 112px) + 10px); font-size: 0.8rem; color: #cdbd99; pointer-events: none; }
+.error { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; }
+
+@media (max-width: 640px) {
+  .brand { font-size: 0.95rem; }
+  .date { font-size: 1.45rem; }
+  .sea-state { font-size: 0.8rem; }
+  .legend { display: none; }
+  .btn { padding: 7px 12px; }
+  .highlight { top: calc(env(safe-area-inset-top, 0px) + 100px); gap: 10px; }
+  .highlight img, .highlight .emblem { width: 48px; height: 72px; }
+  .highlight .coin { top: -10px; right: 4px; width: 38px; height: 38px; }  /* the card is nearly full width here */
+  .highlight.loud .kicker, .highlight.feat .kicker { padding-right: 34px; letter-spacing: 0.08em; }  /* kept clear of the coin */
+  .highlight .name { font-size: 1.3rem; }
+  .highlight .facts { font-size: 0.9rem; }
+  .news { padding: 5px 12px 7px; }
+  .news .head { font-size: 1.05rem; }
+  .news .blurb { font-size: 0.78rem; }
+}
+/* Phones on their side: keep the sea visible, with everything in thin strips */
+@media (max-height: 500px) {
+  .top { padding-top: calc(env(safe-area-inset-top, 0px) + 6px); }
+  .plaque { padding: 4px 10px; }
+  .brand { display: none; }
+  .date { font-size: 1.2rem; }
+  .sea-state { font-size: 0.75rem; }
+  .highlight { top: calc(env(safe-area-inset-top, 0px) + 6px); left: auto; right: max(16px, env(safe-area-inset-right, 0px)); width: min(360px, 48%);
+    transform: translateY(-8px); padding: 5px 10px 5px 5px; gap: 8px; }
+  .highlight.show { transform: none; }
+  .highlight img { width: 36px; height: 54px; }
+  .highlight .kicker { font-size: 0.62rem; }
+  .highlight .name { font-size: 1.1rem; margin: 0 0 1px; }
+  .highlight .facts { font-size: 0.78rem; line-height: 1.25; }
+  .controls { padding-top: 4px; gap: 0; }
+  .row { flex-wrap: nowrap; gap: 6px; }
+  .btn { padding: 3px 9px; font-size: 0.85rem; }
+  #play { min-width: 4.8em; }
+  .legend { display: none; }
+  .track { height: 32px; }
+  .track input { top: 12px; }
+  .pips { top: 30px; }
+  .spark { display: none; }  /* no room for the viewing graph */
+  .news { width: min(440px, 52%); left: max(16px, env(safe-area-inset-left, 0px)); transform: translateY(10px); padding: 5px 12px 7px; text-align: left; }
+  .news.show { transform: none; }
+  .news .head { font-size: 1.1rem; }
+  .news .blurb { font-size: 0.78rem; }
+  .card { padding: 14px 20px; }
+  .card h1 { font-size: 2rem; }
+  .card .sub { margin-bottom: 6px; }
+  .card .note { margin-top: 6px; }
+}
+</style>
+<script type="importmap">{"imports": {"three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="sea" aria-label="An animated voyage across a sea shaped by a year of viewing"></canvas>
+<div class="letterbox" id="letterbox"></div>
+
+<div class="hud top">
+  <div class="plaque">
+    <div class="brand">YarrFlix · The Voyage of <span id="who_name"></span></div>
+    <div class="date" id="date">1 January</div>
+    <div class="sea-state" id="sea_state"></div>
+    <div class="egg-note" id="egg_note" aria-live="polite"></div>
+  </div>
+</div>
+
+<div class="highlight scroll" id="caption"><svg class="coin" viewBox="0 0 48 48" aria-hidden="true">
+  <defs><radialGradient id="coin_gold" cx="0.36" cy="0.3" r="0.75"><stop offset="0" stop-color="#fff2b8"/><stop offset="0.45" stop-color="#f2c34e"/><stop offset="1" stop-color="#a8721c"/></radialGradient></defs>
+  <circle cx="24" cy="24" r="23" fill="#8a5a14"/><circle cx="24" cy="24" r="21" fill="url(#coin_gold)"/>
+  <circle cx="24" cy="24" r="17.5" fill="none" stroke="#9a6618" stroke-width="1" stroke-dasharray="1.4 2.2"/>
+  <circle cx="24" cy="24" r="14.5" fill="none" stroke="#b9822a" stroke-width="1.2"/>
+  <path d="M21.5 13h5v8.5H35v5h-8.5V35h-5v-8.5H13v-5h8.5z" fill="#c48d2c" stroke="#7d5112" stroke-width="0.8"/>
+  <path d="M16 15l3 3M32 15l-3 3M16 33l3-3M32 33l-3-3" stroke="#8a5a14" stroke-width="1.2" stroke-linecap="round"/>
+  <ellipse cx="17" cy="14" rx="5" ry="2.5" fill="#fff8dc" opacity="0.45" transform="rotate(-35 17 14)"/>
+</svg><img id="cap_img" alt=""><div class="emblem" id="cap_emblem" hidden></div><div class="text"><div class="kicker" id="cap_kicker"></div><h2 class="name" id="cap_name"></h2><p class="facts" id="cap_facts"></p></div></div>
+<div class="news" id="event"><div class="kicker" id="event_kicker"></div><div class="head" id="event_head"></div><div class="blurb" id="event_blurb"></div></div>
+<div class="loading" id="loading"></div>
+<button class="btn sound" id="sound" aria-pressed="true" hidden>♪ Sound on</button>
+
+<div class="controls" id="controls">
+  <div class="row">
+    <button class="btn" id="play" aria-pressed="false">▶ Sail</button>
+    <span class="speeds" id="speeds">
+      <button class="btn" data-speed="0.5" aria-pressed="false">½×</button>
+      <button class="btn" data-speed="1" aria-pressed="true">1×</button>
+      <button class="btn" data-speed="2" aria-pressed="false">2×</button>
+    </span>
+    <button class="btn" id="fs" aria-label="Full screen">⛶</button>
+    <span class="legend" id="legend"></span>
+  </div>
+  <div class="track">
+    <div class="ticks" id="ticks"></div>
+    <svg class="spark" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path id="spark"></path></svg>
+    <input type="range" id="scrub" min="0" step="0.05" value="0" aria-label="Day of the year">
+    <div class="pips" id="pips"></div>
+  </div>
+</div>
+
+<div class="overlay" id="intro">
+  <div class="card scroll">
+    <div class="kicker">YarrFlix · 2026</div>
+    <h1>The Voyage of <span id="intro_name"></span></h1>
+    <div class="sub" id="intro_sub"></div>
+    <div id="intro_text"></div>
+    <button class="go" id="set_sail" disabled>Set sail</button>
+    <div class="note">The sea follows your viewing: calm in quiet weeks, a gale in your busiest. Your shows and films stand along the route on the day you watched them most; lighthouses mark the year's news. Here be monsters, too: each one stands for something in your year. <span id="how">Drag to look around; space pauses.</span></div>
+  </div>
+</div>
+<div class="overlay" id="end" hidden>
+  <div class="card scroll">
+    <div class="kicker">Captain's log</div>
+    <h1 id="end_title"></h1>
+    <dl class="log" id="log"></dl>
+    <button class="go" id="again">Sail again</button>
+  </div>
+</div>
+<div class="error" id="error" hidden></div>
+
+<script type="module" src="voyage.js"></script>
+</body>
+</html>

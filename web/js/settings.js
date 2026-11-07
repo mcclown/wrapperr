@@ -171,6 +171,11 @@ function loadAdminPage() {
     html += '/><br>';
     html += '</div>';
 
+    html += '<div class="form-group">';
+    html += '<label for="voyage_music" title="Background music for the voyage: the name of an audio file you put in config/voyage/ (none ships with Wrapperr). Leave empty for no music.">Voyage music:<br>';
+    html += '<input type="text" class="form-control" id="voyage_music" placeholder="e.g. theme.m4a" value="' + escapeAttribute(voyage_music || '') + '" /></label>';
+    html += '</div>';
+
     html += '<div class="form-group newline">';
     html += '<hr>';
     html += '</div>';
@@ -247,6 +252,7 @@ function set_wrapperr_settings_call() {
     clear_poster_cache = document.getElementById('clear_poster_cache').checked;
     winter_theme = document.getElementById('winter_theme').checked;
     voyage_enabled = document.getElementById('voyage_enabled').checked;
+    voyage_music = document.getElementById('voyage_music').value.trim();
     wrapped_dynamic = document.getElementById('wrapped_dynamic').checked;
     wrapped_dynamic_days = document.getElementById('wrapped_dynamic_days').value;
     trusted_proxies = splitList(document.getElementById('trusted_proxies').value);
@@ -328,7 +334,8 @@ function set_wrapperr_settings_call() {
             "trusted_proxies" : trusted_proxies,
             "client_ip_header" : client_ip_header,
             "admin_networks" : admin_networks,
-            "voyage_enabled" : voyage_enabled
+            "voyage_enabled" : voyage_enabled,
+            "voyage_music" : voyage_music
         }
     };
 
