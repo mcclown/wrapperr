@@ -164,6 +164,7 @@ function get_config(cookie) {
                 application_name_str = result.data.application_name;
                 application_url_str = result.data.application_url;
                 winter_theme = result.data.winter_theme;
+                voyage_enabled = result.data.voyage_enabled;
 
                 wrapped_start = new Date(0);
                 wrapped_start.setUTCSeconds(result.data.wrapped_start);
