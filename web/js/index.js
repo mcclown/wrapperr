@@ -37,6 +37,16 @@ function wrapped_link_actions(hash) {
             if(result.error) {
                 document.getElementById('stats').innerHTML = '<p>' + result.error + '</p><img id="bored_image" src="assets/img/bored.svg" style="width: 10em; height: 10em; display:block; margin: 1em auto;">';
             } else {
+                // A link made with the voyage on carries it too, and opens on whichever the front page leads with
+                link_voyage = !!result.has_voyage;
+                if(link_voyage && voyage_leads && !open_log) {
+                    set_sail_link(true);
+                    return;
+                }
+                if(open_log) {
+                    open_log = false;
+                    history.replaceState(null, '', window.location.pathname + '?hash=' + encodeURIComponent(hash));
+                }
                 results = result.content.data;
                 functions = result.content.functions;
                 load_page();
@@ -91,6 +101,16 @@ function set_sail_ready(ready) {
 
 function set_sail() {
     window.location.href = new URL("voyage/", get_api_base_url()).href;
+}
+
+// A shared link's voyage (replace: the link opened straight onto it, so Back skips the front page)
+function set_sail_link(replace) {
+    var voyage_url = new URL("voyage/?hash=" + encodeURIComponent(link_hash), get_api_base_url()).href;
+    if(replace) {
+        window.location.replace(voyage_url);
+    } else {
+        window.location.href = voyage_url;
+    }
 }
 
 function search_wrapperr(){
@@ -447,6 +467,7 @@ function get_wrapper_version(link_mode, hash) {
             } else {
                 // Link mode
                 console.log("Getting link page...");
+                voyage_leads = result.voyage_front_page !== 'log';
                 wrapped_link_actions(hash);
             }
         }

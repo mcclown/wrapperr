@@ -40,7 +40,7 @@ func ApiCreateShareLink(context *gin.Context) {
 	}
 
 	if !config.CreateShareLinks {
-		log.Panicln("Shareable links are not enabled in the Wrapperr configuration.")
+		log.Println("Shareable links are not enabled in the Wrapperr configuration.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Shareable links are not enabled in the Wrapperr configuration."})
 		context.Abort()
 		return
@@ -111,6 +111,9 @@ func ApiCreateShareLink(context *gin.Context) {
 		Date:            currentTime.Format("2006-01-02"),
 		WrapperrVersion: config.WrapperrVersion,
 		Expired:         false,
+	}
+	if voyageOn(config) {
+		link_object.Voyage, link_object.VoyageImages = shareVoyage(user_id, config)
 	}
 
 	err = files.SaveLink(&link_object, config.PlexAuth)
