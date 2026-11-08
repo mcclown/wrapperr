@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aunefyren/wrapperr/files"
@@ -88,17 +87,17 @@ func voyageOn(config models.WrapperrConfig) bool {
 // shareVoyage is the voyage a new share link carries, built from the play cache rather than taken from the
 // request, so a link can't be made to show a voyage its owner didn't have. It is nil when the owner can't have a
 // voyage (an account the admin has made inactive), has no plays yet, or it can't be built: the link then shares
-// the classic page alone.
-func shareVoyage(userID int, config models.WrapperrConfig) json.RawMessage {
+// the classic page alone. Its images' sources go with it, for fetching again while the link lasts.
+func shareVoyage(userID int, config models.WrapperrConfig) (json.RawMessage, []models.WrapperrShareLinkImage) {
 	if !activeAccount(userID) {
-		return nil
+		return nil, nil
 	}
-	document, err := modules.VoyageForUser(userID, config)
+	document, refs, err := modules.VoyageToShare(userID, config)
 	if errors.Is(err, voyage.ErrNoSessions) {
-		return nil
+		return nil, nil
 	} else if err != nil {
 		log.Println("Failed to build a voyage for a share link. Error: " + err.Error())
-		return nil
+		return nil, nil
 	}
 	// The twin is another account, and a link is for anyone: it is named as the shared log names other users
 	if config.WrapperrCustomize.ObfuscateOtherUsers == "obfuscate" {
@@ -107,9 +106,13 @@ func shareVoyage(userID int, config models.WrapperrConfig) json.RawMessage {
 	raw, err := json.Marshal(document)
 	if err != nil {
 		log.Println("Failed to encode a voyage for a share link. Error: " + err.Error())
-		return nil
+		return nil, nil
 	}
-	return raw
+	images := make([]models.WrapperrShareLinkImage, 0, len(refs))
+	for _, ref := range refs {
+		images = append(images, models.WrapperrShareLinkImage{ServerHash: ref.ServerHash, RatingKey: ref.RatingKey, Path: ref.ThumbPath, Kind: ref.Kind})
+	}
+	return raw, images
 }
 
 // activeAccount is whether a Plex account is one of Wrapperr's users and active (not user 0, Tautulli's "Local").
@@ -141,26 +144,18 @@ func hideTwin(document voyage.Document, generated string) voyage.Document {
 	return document
 }
 
-// refetching holds the accounts whose shared voyage's posters are being queued again.
-var refetching sync.Map
-
-// refetchVoyagePosters queues the owner's voyage posters again when their shared voyage is opened, in case they've
-// left the poster cache since the link was made (the queue skips those still cached). The voyage is kept until the
-// play cache changes, so opening a link doesn't rebuild it each time. In the background: the reply doesn't wait,
-// and one at a time for each account however often its link is opened.
-func refetchVoyagePosters(userID int, config models.WrapperrConfig) {
+// refetchVoyagePosters queues a shared voyage's posters and backdrops again when it is opened, in case they've
+// left the poster cache since the link was made (the queue skips those still cached and downloads in the
+// background). They are the link's own, so the voyage isn't rebuilt.
+func refetchVoyagePosters(images []models.WrapperrShareLinkImage, config models.WrapperrConfig) {
 	if !config.WrapperrCustomize.EnablePosters {
 		return
 	}
-	if _, busy := refetching.LoadOrStore(userID, true); busy {
-		return
+	refs := make([]files.PosterReference, 0, len(images))
+	for _, image := range images {
+		refs = append(refs, files.PosterReference{ServerHash: image.ServerHash, RatingKey: image.RatingKey, ThumbPath: image.Path, Kind: image.Kind})
 	}
-	go func() {
-		defer refetching.Delete(userID)
-		if _, err := modules.VoyageForUser(userID, config); err != nil && !errors.Is(err, voyage.ErrNoSessions) {
-			log.Println("Failed to queue a shared voyage's posters. Error: " + err.Error())
-		}
-	}()
+	files.EnqueuePosters(refs, config.TautulliConfig, config.WrapperrCustomize.PosterCacheMaxAgeDays)
 }
 
 // syncWithTautulli checks every Tautulli server and syncs its users, as a statistics request does.

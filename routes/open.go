@@ -454,8 +454,9 @@ func ApiGetShareLink(context *gin.Context) {
 			share_link_object.HasVoyage = len(share_link_object.Voyage) > 0
 			share_link_object.Voyage = nil
 		} else if len(share_link_object.Voyage) > 0 {
-			refetchVoyagePosters(share_link_object.UserID, config)
+			refetchVoyagePosters(share_link_object.VoyageImages, config)
 		}
+		share_link_object.VoyageImages = nil
 
 		ipString := utilities.GetOriginIPString(context)
 		log.Println("Retrieved Wrapperr share link made by User ID/with hash: " + fileName + "." + ipString)
