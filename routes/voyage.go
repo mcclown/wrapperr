@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aunefyren/wrapperr/files"
@@ -89,7 +90,7 @@ func voyageOn(config models.WrapperrConfig) bool {
 // voyage (an account the admin has made inactive), has no plays yet, or it can't be built: the link then shares
 // the classic page alone.
 func shareVoyage(userID int, config models.WrapperrConfig) json.RawMessage {
-	if user, err := modules.UsersGetUser(userID); err != nil || userID == 0 || !user.Active {
+	if !activeAccount(userID) {
 		return nil
 	}
 	document, err := modules.VoyageForUser(userID, config)
@@ -109,6 +110,12 @@ func shareVoyage(userID int, config models.WrapperrConfig) json.RawMessage {
 		return nil
 	}
 	return raw
+}
+
+// activeAccount is whether a Plex account is one of Wrapperr's users and active (not user 0, Tautulli's "Local").
+func activeAccount(userID int) bool {
+	user, err := modules.UsersGetUser(userID)
+	return err == nil && userID != 0 && user.Active
 }
 
 // hideTwin is the document with its viewing twin under a made-up name (generated as "word-word"), as the classic
@@ -134,14 +141,22 @@ func hideTwin(document voyage.Document, generated string) voyage.Document {
 	return document
 }
 
+// refetching holds the accounts whose shared voyage's posters are being queued again.
+var refetching sync.Map
+
 // refetchVoyagePosters queues the owner's voyage posters again when their shared voyage is opened, in case they've
 // left the poster cache since the link was made (the queue skips those still cached). The voyage is kept until the
-// play cache changes, so opening a link doesn't rebuild it each time. In the background: the reply doesn't wait.
+// play cache changes, so opening a link doesn't rebuild it each time. In the background: the reply doesn't wait,
+// and one at a time for each account however often its link is opened.
 func refetchVoyagePosters(userID int, config models.WrapperrConfig) {
 	if !config.WrapperrCustomize.EnablePosters {
 		return
 	}
+	if _, busy := refetching.LoadOrStore(userID, true); busy {
+		return
+	}
 	go func() {
+		defer refetching.Delete(userID)
 		if _, err := modules.VoyageForUser(userID, config); err != nil && !errors.Is(err, voyage.ErrNoSessions) {
 			log.Println("Failed to queue a shared voyage's posters. Error: " + err.Error())
 		}
