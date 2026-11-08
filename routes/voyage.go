@@ -146,14 +146,21 @@ func hideTwin(document voyage.Document, generated string) voyage.Document {
 
 // refetchVoyagePosters queues a shared voyage's posters and backdrops again when it is opened, in case they've
 // left the poster cache since the link was made (the queue skips those still cached and downloads in the
-// background). They are the link's own, so the voyage isn't rebuilt.
+// background). They are the link's own, so the voyage isn't rebuilt. Those from a Tautulli server no longer
+// configured are left out quietly: the queue would log each one, every time the link is opened.
 func refetchVoyagePosters(images []models.WrapperrShareLinkImage, config models.WrapperrConfig) {
 	if !config.WrapperrCustomize.EnablePosters {
 		return
 	}
+	servers := map[string]bool{}
+	for _, server := range config.TautulliConfig {
+		servers[files.GetTautulliServerHash(server)] = true
+	}
 	refs := make([]files.PosterReference, 0, len(images))
 	for _, image := range images {
-		refs = append(refs, files.PosterReference{ServerHash: image.ServerHash, RatingKey: image.RatingKey, ThumbPath: image.Path, Kind: image.Kind})
+		if servers[image.ServerHash] {
+			refs = append(refs, files.PosterReference{ServerHash: image.ServerHash, RatingKey: image.RatingKey, ThumbPath: image.Path, Kind: image.Kind})
+		}
 	}
 	files.EnqueuePosters(refs, config.TautulliConfig, config.WrapperrCustomize.PosterCacheMaxAgeDays)
 }
