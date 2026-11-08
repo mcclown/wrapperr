@@ -112,6 +112,9 @@ func ApiCreateShareLink(context *gin.Context) {
 		WrapperrVersion: config.WrapperrVersion,
 		Expired:         false,
 	}
+	if voyageOn(config) {
+		link_object.Voyage = shareVoyage(user_id, config)
+	}
 
 	err = files.SaveLink(&link_object, config.PlexAuth)
 	if err != nil {

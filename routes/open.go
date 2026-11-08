@@ -65,7 +65,7 @@ func ApiGetWrapperrVersion(context *gin.Context) {
 		WrapperrRoot:                 config.WrapperrRoot,
 		BasicAuth:                    config.BasicAuth,
 		// Offered only when it can sail: the voyage needs Plex Auth and the cache
-		VoyageEnabled:   config.VoyageEnabled && config.PlexAuth && config.UseCache,
+		VoyageEnabled:   voyageOn(config),
 		VoyageFrontPage: voyageFrontPage(config.VoyageFrontPage),
 	}
 
@@ -446,6 +446,10 @@ func ApiGetShareLink(context *gin.Context) {
 	if !linkTime.Before(currentTime) && share_link_object.Hash == hash && !share_link_object.Expired {
 		share_link_object.Message = "Shared link retrieved."
 		share_link_object.Error = false
+		// A link keeps its voyage, but only shows it while the voyage is on
+		if !voyageOn(config) {
+			share_link_object.Voyage = nil
+		}
 
 		ipString := utilities.GetOriginIPString(context)
 		log.Println("Retrieved Wrapperr share link made by User ID/with hash: " + fileName + "." + ipString)

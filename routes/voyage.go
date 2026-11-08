@@ -3,6 +3,7 @@ package routes
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -72,6 +73,31 @@ func refreshAndSail(context *gin.Context, user models.WrapperrUser, config model
 		return
 	}
 	context.JSON(http.StatusOK, document)
+}
+
+// voyageOn is whether users are offered the voyage: it is switched on, and it has the Plex logins and the play
+// cache it is built from.
+func voyageOn(config models.WrapperrConfig) bool {
+	return config.VoyageEnabled && config.PlexAuth && config.UseCache
+}
+
+// shareVoyage is the voyage a new share link carries, built from the play cache rather than taken from the
+// request, so a link can't be made to show a voyage its owner didn't have. It is nil when the owner has no plays
+// yet or the voyage can't be built: the link then shares the classic page alone.
+func shareVoyage(userID int, config models.WrapperrConfig) json.RawMessage {
+	document, err := modules.VoyageForUser(userID, config)
+	if errors.Is(err, voyage.ErrNoSessions) {
+		return nil
+	} else if err != nil {
+		log.Println("Failed to build a voyage for a share link. Error: " + err.Error())
+		return nil
+	}
+	raw, err := json.Marshal(document)
+	if err != nil {
+		log.Println("Failed to encode a voyage for a share link. Error: " + err.Error())
+		return nil
+	}
+	return raw
 }
 
 // syncWithTautulli checks every Tautulli server and syncs its users, as a statistics request does.

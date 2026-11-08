@@ -7,13 +7,15 @@ import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
 const $ = id => document.getElementById(id);
 
 // The voyage document (voyage.v1, see CONTRACT.md): set on the page by a static export, or else fetched from
-// Wrapperr for the signed-in Plex user (?user=<id> with an admin login: that user's voyage)
+// Wrapperr for the signed-in Plex user (?user=<id> with an admin login: that user's voyage; ?hash=<link>: the voyage a
+// share link carries, for anyone with the link)
 // Music is optional and none ships with Wrapperr: it plays if the server has one (the voyage_music setting, a file
 // in config/voyage/), and otherwise the voyage sails with its sound effects only. An export can set VOYAGE_MUSIC.
 // Asked for now, alongside the voyage.
 const MUSIC_URL = window.VOYAGE_MUSIC ?? "audio/music";
 const musicThere = MUSIC_URL ? fetch(MUSIC_URL, { method: "HEAD" }).then(r => r.ok, () => false) : Promise.resolve(false);
 const exported = !!window.VOYAGE;
+const shared = exported ? null : new URLSearchParams(location.search).get("hash");
 const D = window.VOYAGE || await loadVoyage();
 window.VOYAGE = D;  // for the mock scenes
 function cookie(name) {
@@ -26,6 +28,7 @@ function previewUser() {
   return user !== null && /^\d+$/.test(user) ? user : null;
 }
 async function loadVoyage() {
+  if (shared !== null) return loadShared();
   const user = previewUser(), admin = user !== null;
   const url = new URL(admin ? `../api/get/users/${user}/voyage` : "../api/get/voyage", location.href);
   let reply, why = "Couldn't reach the server.";
@@ -34,14 +37,33 @@ async function loadVoyage() {
     if (reply.ok) return await reply.json();
     why = (await reply.json().catch(() => ({}))).error || `The server answered ${reply.status}.`;
   } catch (e) { /* offline */ }
-  // No voyage: the intro card says why, and leads back to the front page instead of setting sail
-  $("intro_name").textContent = "…";
   const signIn = reply && reply.status === 401;
-  $("intro_text").textContent = !signIn ? why : admin ? "Sign in on the admin page to preview a voyage." : "Sign in on the front page to set sail.";
-  const back = Object.assign(document.createElement("a"), { className: "go", href: new URL(admin ? "../admin" : "../", location.href).href,
-    textContent: admin ? "To the admin page" : "Back to the front page" });
-  $("set_sail").replaceWith(back);
+  noVoyage(!signIn ? why : admin ? "Sign in on the admin page to preview a voyage." : "Sign in on the front page to set sail.",
+    admin ? "../admin" : "../", admin ? "To the admin page" : "Back to the front page");
   throw new Error("No voyage: " + why);
+}
+// A share link's voyage. A link made while the voyage was off has none, but still opens the log.
+async function loadShared() {
+  let why = "Couldn't reach the server.", logOnly = false;
+  try {
+    const reply = await fetch(new URL("../api/get/share-link", location.href),
+      { method: "POST", headers: { "Content-Type": "application/json;charset=UTF-8" }, body: JSON.stringify({ hash: shared }) });
+    const result = await reply.json().catch(() => ({}));
+    if (reply.ok && result.voyage) return result.voyage;
+    logOnly = reply.ok;
+    why = logOnly ? "This shared link has no voyage, only the captain's log."
+      : typeof result.error === "string" ? result.error : "This shared link has expired, or there's no such link.";
+  } catch (e) { /* offline */ }
+  noVoyage(why, logOnly ? sharedLog() : "../", logOnly ? "Read the log" : "Back to the front page");
+  throw new Error("No voyage: " + why);
+}
+// The classic page of the same share link
+function sharedLog() { return `../?hash=${encodeURIComponent(shared)}&view=log`; }
+// No voyage: the intro card says why, and leads elsewhere instead of setting sail
+function noVoyage(why, href, label) {
+  $("intro_name").textContent = "…";
+  $("intro_text").textContent = why;
+  $("set_sail").replaceWith(Object.assign(document.createElement("a"), { className: "go", href: new URL(href, location.href).href, textContent: label }));
 }
 // News lighthouses: the models in models/lighthouses (the page rotates through them)
 const LIGHTHOUSES = D.lighthouses || ["durvesh121-sand-island.glb", "kristenlee-slate-rocks.glb", "maverickfx-rock.glb", "murriarty-rock-island.glb"];
@@ -2858,14 +2880,17 @@ addEventListener("keydown", ev => {
 });
 $("set_sail").addEventListener("click", () => { start(); if (music) { music.currentTime = 0; playMusic(); } });
 $("again").addEventListener("click", () => { day = 0; finished = false; start(); if (music) { music.currentTime = 0; playMusic(); } });
-// The end screen leads on to the classic page for the same person (not in a static export: no Wrapperr behind it)
+// The end screen leads on to the classic page for the same person (not in a static export: no Wrapperr behind it),
+// and lets a signed-in user share both in one link
 if (!exported) {
   const toLog = Object.assign(document.createElement("button"), { className: "go", id: "to_log", textContent: "Read the log" });
   $("again").after(" ", toLog);
   toLog.addEventListener("click", () => readTheLog(toLog));
+  if (shared === null && previewUser() === null) offerShare(toLog);
 }
 async function readTheLog(button) {
   const user = previewUser();
+  if (shared !== null) { location.href = new URL(sharedLog(), location.href).href; return; }
   if (user === null) { location.href = new URL("../?view=log", location.href).href; return; }
   // An admin's preview: that user's classic page, handed over the way the admin's Users page does it
   button.disabled = true;
@@ -2882,6 +2907,42 @@ async function readTheLog(button) {
     button.textContent = "Couldn't open the log";
     button.disabled = false;
   }
+}
+
+// Wrapperr's API as the signed-in Plex user: the reply, or an error with the server's reason
+async function api(path, body = {}) {
+  const reply = await fetch(new URL(`../api/${path}`, location.href), { method: "POST", body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json;charset=UTF-8", Authorization: cookie("wrapperr-user") } });
+  const result = await reply.json().catch(() => ({}));
+  if (!reply.ok || result.error) throw new Error(typeof result.error === "string" ? result.error : `The server answered ${reply.status}.`);
+  return result;
+}
+// Share: the same link as the log's own Share button (one per user, valid for 7 days), made the same way from the
+// user's statistics; the server adds the voyage to it. Offered only when the admin allows share links.
+async function offerShare(after) {
+  const reply = await api("get/functions").catch(() => null);
+  if (!reply || !reply.data.create_share_links) return;
+  const f = reply.data, button = Object.assign(document.createElement("button"), { className: "go", id: "share", textContent: "Share" });
+  after.after(" ", button);
+  button.onclick = async () => {
+    button.disabled = true; button.textContent = "Making a link…";
+    try {
+      const data = await api("get/statistics", { caching: false, cache_limit: 0, plex_identity: "" });
+      const functions = { ...f.wrapperr_customize, plex_auth: f.plex_auth, create_share_links: f.create_share_links, wrapperr_version: f.wrapperr_version };
+      const made = await api("create/share-link", { data, functions });
+      const link = new URL(`../?hash=${encodeURIComponent(made.data)}`, location.href).href;
+      const box = Object.assign(document.createElement("input"), { className: "share-url", id: "share_url", readOnly: true, value: link });
+      box.setAttribute("aria-label", "Shareable link");
+      box.addEventListener("focus", () => box.select());
+      const note = Object.assign(document.createElement("div"), { className: "note", textContent: "Valid for 7 days. It opens your voyage and your log." });
+      $("log").after(box, note);
+      button.textContent = "Copy link"; button.disabled = false;
+      button.onclick = () => navigator.clipboard.writeText(link).then(() => { button.textContent = "Copied"; }, () => { box.focus(); });
+    } catch (e) {
+      console.warn("Share", e);
+      button.textContent = "Couldn't make a link"; button.title = e.message; button.disabled = false;
+    }
+  };
 }
 
 // Look around by dragging; it eases back when let go

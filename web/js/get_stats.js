@@ -1387,6 +1387,16 @@ function load_outro() {
 
             }
                 
+                // A shared link that carries the voyage leads on to it
+                if(link_mode && link_voyage) {
+                    text += "<div class='form-group' id='link_voyage_div' style=''>";
+                        text += "<button class='form-control btn' name='link_voyage_button' id='link_voyage_button' onclick='set_sail_link(false)'>";
+                            text += "<img src='assets/external-link.svg' class='btn_logo'>";
+                            text += "<p2 id='link_voyage_text'>Set sail</p2>";
+                        text += "</button>";
+                    text += "</div>";
+                }
+
                 var url_home = window.location.href.split('?')[0];
 
                 text += "<div class='form-group' id='return_home_div' style=''>";
