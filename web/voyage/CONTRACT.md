@@ -17,6 +17,14 @@ never a friendly name.
 Both refresh the play cache first, as a statistics request does, and need the cache on. The document is kept until
 the play cache, the Plex metadata, the events, the settings or the users' time zones change.
 
+A share link carries the document too. With the voyage on, `POST /api/create/share-link` (from the log's Share
+button or the voyage's) stores the owner's document alongside the classic page, built by the server rather than
+taken from the request, with other users hidden in it as the admin hides them on the classic page. `POST
+/api/get/share-link` returns it as `voyage` when asked (`"voyage": true`, as the page does for `voyage/?hash=<link>`),
+and otherwise says only whether there is one (`has_voyage`). Either way only while the voyage is on and the owner's
+account is active. The link is opened as `?hash=<link>` and leads with whichever the front-page setting picks. Like
+the rest of the link, the document is a snapshot that expires after 7 days.
+
 ## The document
 
 | Field | | |

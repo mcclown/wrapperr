@@ -235,6 +235,10 @@
     var client_key = "";
     var wrapperr_configured = false;
     var open_log = false;
+    // A shared link (?hash=): its hash, whether it carries the voyage too, and whether that opens first
+    var link_hash = null;
+    var link_voyage = false;
+    var voyage_leads = true;
     var api_url = window.location.origin + "/api/";
     var application_name = "Wrapperr";
     var application_name = "Error";
@@ -296,6 +300,7 @@
                 if(hash !== null) {
                     document.getElementById('loading').style.display = "none";
                     link_mode = true;
+                    link_hash = hash;
                     document.getElementById('intro_text').innerHTML = '';
                     document.getElementById('stats').innerHTML = '<img id="loading_icon" src="./assets/loading.gif" style="border-radius: 25px; background-color: white; padding: 1em;width: 4em; height: 4em; display:block; margin: auto;">';
                 }

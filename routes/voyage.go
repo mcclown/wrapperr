@@ -3,12 +3,15 @@ package routes
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/aunefyren/wrapperr/files"
 	"github.com/aunefyren/wrapperr/middlewares"
@@ -17,6 +20,7 @@ import (
 	"github.com/aunefyren/wrapperr/modules/voyage"
 	"github.com/aunefyren/wrapperr/utilities"
 	"github.com/gin-gonic/gin"
+	"github.com/goombaio/namegenerator"
 )
 
 // loadVoyageConfig reads the settings a voyage request needs, answering the request itself when it can't go on.
@@ -74,6 +78,93 @@ func refreshAndSail(context *gin.Context, user models.WrapperrUser, config model
 	context.JSON(http.StatusOK, document)
 }
 
+// voyageOn is whether users are offered the voyage: it is switched on, and it has the Plex logins and the play
+// cache it is built from.
+func voyageOn(config models.WrapperrConfig) bool {
+	return config.VoyageEnabled && config.PlexAuth && config.UseCache
+}
+
+// shareVoyage is the voyage a new share link carries, built from the play cache rather than taken from the
+// request, so a link can't be made to show a voyage its owner didn't have. It is nil when the owner can't have a
+// voyage (an account the admin has made inactive), has no plays yet, or it can't be built: the link then shares
+// the classic page alone. Its images' sources go with it, for fetching again while the link lasts.
+func shareVoyage(userID int, config models.WrapperrConfig) (json.RawMessage, []models.WrapperrShareLinkImage) {
+	if !activeAccount(userID) {
+		return nil, nil
+	}
+	document, refs, err := modules.VoyageToShare(userID, config)
+	if errors.Is(err, voyage.ErrNoSessions) {
+		return nil, nil
+	} else if err != nil {
+		log.Println("Failed to build a voyage for a share link. Error: " + err.Error())
+		return nil, nil
+	}
+	// The twin is another account, and a link is for anyone: it is named as the shared log names other users
+	if config.WrapperrCustomize.ObfuscateOtherUsers == "obfuscate" {
+		document = hideTwin(document, namegenerator.NewNameGenerator(time.Now().UnixNano()).Generate())
+	}
+	raw, err := json.Marshal(document)
+	if err != nil {
+		log.Println("Failed to encode a voyage for a share link. Error: " + err.Error())
+		return nil, nil
+	}
+	images := make([]models.WrapperrShareLinkImage, 0, len(refs))
+	for _, ref := range refs {
+		images = append(images, models.WrapperrShareLinkImage{ServerHash: ref.ServerHash, RatingKey: ref.RatingKey, Path: ref.ThumbPath, Kind: ref.Kind})
+	}
+	return raw, images
+}
+
+// activeAccount is whether a Plex account is one of Wrapperr's users and active (not user 0, Tautulli's "Local").
+func activeAccount(userID int) bool {
+	user, err := modules.UsersGetUser(userID)
+	return err == nil && userID != 0 && user.Active
+}
+
+// hideTwin is the document with its viewing twin under a made-up name (generated as "word-word"), as the classic
+// page hides other users. The document's slices are shared with the voyage cache, so they are copied, not changed.
+func hideTwin(document voyage.Document, generated string) voyage.Document {
+	name := generated
+	if first, second, ok := strings.Cut(generated, "-"); ok {
+		name = strings.Title(first) + " " + strings.Title(second)
+	}
+	voyages := make([]voyage.Voyage, len(document.Voyages))
+	for i, v := range document.Voyages {
+		creatures := make([]voyage.Creature, len(v.Creatures))
+		copy(creatures, v.Creatures)
+		for j := range creatures {
+			if creatures[j].Kind == "twin" {
+				creatures[j].User = name
+			}
+		}
+		v.Creatures = creatures
+		voyages[i] = v
+	}
+	document.Voyages = voyages
+	return document
+}
+
+// refetchVoyagePosters queues a shared voyage's posters and backdrops again when it is opened, in case they've
+// left the poster cache since the link was made (the queue skips those still cached and downloads in the
+// background). They are the link's own, so the voyage isn't rebuilt. Those from a Tautulli server no longer
+// configured are left out quietly: the queue would log each one, every time the link is opened.
+func refetchVoyagePosters(images []models.WrapperrShareLinkImage, config models.WrapperrConfig) {
+	if !config.WrapperrCustomize.EnablePosters {
+		return
+	}
+	servers := map[string]bool{}
+	for _, server := range config.TautulliConfig {
+		servers[files.GetTautulliServerHash(server)] = true
+	}
+	refs := make([]files.PosterReference, 0, len(images))
+	for _, image := range images {
+		if servers[image.ServerHash] {
+			refs = append(refs, files.PosterReference{ServerHash: image.ServerHash, RatingKey: image.RatingKey, ThumbPath: image.Path, Kind: image.Kind})
+		}
+	}
+	files.EnqueuePosters(refs, config.TautulliConfig, config.WrapperrCustomize.PosterCacheMaxAgeDays)
+}
+
 // syncWithTautulli checks every Tautulli server and syncs its users, as a statistics request does.
 func syncWithTautulli(context *gin.Context) bool {
 	if err := modules.TautulliTestEveryServer(); err != nil {
@@ -96,15 +187,14 @@ func ApiGetVoyage(context *gin.Context) {
 	if !ok {
 		return
 	}
-	if !config.VoyageEnabled {
-		context.JSON(http.StatusNotFound, gin.H{"error": "The voyage is not enabled."})
-		return
-	}
-	if !config.PlexAuth {
-		context.JSON(http.StatusForbidden, gin.H{"error": "The voyage needs Plex Auth."})
-		return
-	}
-	if !cacheOn(context, config) {
+	if !voyageOn(config) {
+		if !config.VoyageEnabled {
+			context.JSON(http.StatusNotFound, gin.H{"error": "The voyage is not enabled."})
+		} else if !config.PlexAuth {
+			context.JSON(http.StatusForbidden, gin.H{"error": "The voyage needs Plex Auth."})
+		} else {
+			cacheOn(context, config)
+		}
 		return
 	}
 
