@@ -446,9 +446,15 @@ func ApiGetShareLink(context *gin.Context) {
 	if !linkTime.Before(currentTime) && share_link_object.Hash == hash && !share_link_object.Expired {
 		share_link_object.Message = "Shared link retrieved."
 		share_link_object.Error = false
-		// A link keeps its voyage, but only shows it while the voyage is on
+		// A link keeps its voyage, but only shows it while the voyage is on, and only to the voyage page (the log
+		// is told whether there is one)
 		if !voyageOn(config) {
 			share_link_object.Voyage = nil
+		} else if !link_payload.Voyage {
+			share_link_object.HasVoyage = len(share_link_object.Voyage) > 0
+			share_link_object.Voyage = nil
+		} else if len(share_link_object.Voyage) > 0 {
+			refetchVoyagePosters(share_link_object.UserID, config)
 		}
 
 		ipString := utilities.GetOriginIPString(context)
@@ -471,7 +477,7 @@ func ApiGetShareLink(context *gin.Context) {
 
 		log.Println("Failed to retrieve Wrapperr share link with hash: " + link_payload.Hash + ".")
 
-		context.JSON(http.StatusBadRequest, returnError)
+		context.JSON(http.StatusBadRequest, gin.H{"error": returnError.Error()})
 		return
 	}
 }

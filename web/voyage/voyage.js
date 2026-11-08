@@ -47,7 +47,7 @@ async function loadShared() {
   let why = "Couldn't reach the server.", logOnly = false;
   try {
     const reply = await fetch(new URL("../api/get/share-link", location.href),
-      { method: "POST", headers: { "Content-Type": "application/json;charset=UTF-8" }, body: JSON.stringify({ hash: shared }) });
+      { method: "POST", headers: { "Content-Type": "application/json;charset=UTF-8" }, body: JSON.stringify({ hash: shared, voyage: true }) });
     const result = await reply.json().catch(() => ({}));
     if (reply.ok && result.voyage) return result.voyage;
     logOnly = reply.ok;
@@ -2917,8 +2917,9 @@ async function api(path, body = {}) {
   if (!reply.ok || result.error) throw new Error(typeof result.error === "string" ? result.error : `The server answered ${reply.status}.`);
   return result;
 }
-// Share: the same link as the log's own Share button (one per user, valid for 7 days), made the same way from the
-// user's statistics; the server adds the voyage to it. Offered only when the admin allows share links.
+// Share: the same link as the log's own Share button (one per user, valid for 7 days). A link the user already has
+// that carries the voyage is offered again, as a new one would replace it; otherwise one is made the way the log
+// makes it, from the user's statistics, and the server adds the voyage. Offered only when the admin allows links.
 async function offerShare(after) {
   const reply = await api("get/functions").catch(() => null);
   if (!reply || !reply.data.create_share_links) return;
@@ -2927,10 +2928,13 @@ async function offerShare(after) {
   button.onclick = async () => {
     button.disabled = true; button.textContent = "Making a link…";
     try {
-      const data = await api("get/statistics", { caching: false, cache_limit: 0, plex_identity: "" });
-      const functions = { ...f.wrapperr_customize, plex_auth: f.plex_auth, create_share_links: f.create_share_links, wrapperr_version: f.wrapperr_version };
-      const made = await api("create/share-link", { data, functions });
-      const link = new URL(`../?hash=${encodeURIComponent(made.data)}`, location.href).href;
+      let hash = await currentLink();
+      if (hash === null) {
+        const data = await api("get/statistics", { caching: false, cache_limit: 0, plex_identity: "" });
+        const functions = { ...f.wrapperr_customize, plex_auth: f.plex_auth, create_share_links: f.create_share_links, wrapperr_version: f.wrapperr_version };
+        hash = (await api("create/share-link", { data, functions })).data;
+      }
+      const link = new URL(`../?hash=${encodeURIComponent(hash)}`, location.href).href;
       const box = Object.assign(document.createElement("input"), { className: "share-url", id: "share_url", readOnly: true, value: link });
       box.setAttribute("aria-label", "Shareable link");
       box.addEventListener("focus", () => box.select());
@@ -2943,6 +2947,13 @@ async function offerShare(after) {
       button.textContent = "Couldn't make a link"; button.title = e.message; button.disabled = false;
     }
   };
+}
+// The user's live share link, if it carries the voyage: its "<id>-<hash>", or null
+async function currentLink() {
+  const mine = await api("get/user-share-link").catch(() => null);
+  if (!mine || !mine.data) return null;
+  const link = await api("get/share-link", { hash: mine.data }).catch(() => null);
+  return link && link.has_voyage ? mine.data : null;
 }
 
 // Look around by dragging; it eases back when let go

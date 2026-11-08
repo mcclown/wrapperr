@@ -38,7 +38,7 @@ function wrapped_link_actions(hash) {
                 document.getElementById('stats').innerHTML = '<p>' + result.error + '</p><img id="bored_image" src="assets/img/bored.svg" style="width: 10em; height: 10em; display:block; margin: 1em auto;">';
             } else {
                 // A link made with the voyage on carries it too, and opens on whichever the front page leads with
-                link_voyage = !!result.voyage;
+                link_voyage = !!result.has_voyage;
                 if(link_voyage && voyage_leads && !open_log) {
                     set_sail_link(true);
                     return;

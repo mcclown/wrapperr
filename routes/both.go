@@ -40,7 +40,7 @@ func ApiCreateShareLink(context *gin.Context) {
 	}
 
 	if !config.CreateShareLinks {
-		log.Panicln("Shareable links are not enabled in the Wrapperr configuration.")
+		log.Println("Shareable links are not enabled in the Wrapperr configuration.")
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Shareable links are not enabled in the Wrapperr configuration."})
 		context.Abort()
 		return

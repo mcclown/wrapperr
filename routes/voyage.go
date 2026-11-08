@@ -10,6 +10,8 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/aunefyren/wrapperr/files"
 	"github.com/aunefyren/wrapperr/middlewares"
@@ -18,6 +20,7 @@ import (
 	"github.com/aunefyren/wrapperr/modules/voyage"
 	"github.com/aunefyren/wrapperr/utilities"
 	"github.com/gin-gonic/gin"
+	"github.com/goombaio/namegenerator"
 )
 
 // loadVoyageConfig reads the settings a voyage request needs, answering the request itself when it can't go on.
@@ -82,9 +85,13 @@ func voyageOn(config models.WrapperrConfig) bool {
 }
 
 // shareVoyage is the voyage a new share link carries, built from the play cache rather than taken from the
-// request, so a link can't be made to show a voyage its owner didn't have. It is nil when the owner has no plays
-// yet or the voyage can't be built: the link then shares the classic page alone.
+// request, so a link can't be made to show a voyage its owner didn't have. It is nil when the owner can't have a
+// voyage (an account the admin has made inactive), has no plays yet, or it can't be built: the link then shares
+// the classic page alone.
 func shareVoyage(userID int, config models.WrapperrConfig) json.RawMessage {
+	if user, err := modules.UsersGetUser(userID); err != nil || userID == 0 || !user.Active {
+		return nil
+	}
 	document, err := modules.VoyageForUser(userID, config)
 	if errors.Is(err, voyage.ErrNoSessions) {
 		return nil
@@ -92,12 +99,53 @@ func shareVoyage(userID int, config models.WrapperrConfig) json.RawMessage {
 		log.Println("Failed to build a voyage for a share link. Error: " + err.Error())
 		return nil
 	}
+	// The twin is another account, and a link is for anyone: it is named as the shared log names other users
+	if config.WrapperrCustomize.ObfuscateOtherUsers == "obfuscate" {
+		document = hideTwin(document, namegenerator.NewNameGenerator(time.Now().UnixNano()).Generate())
+	}
 	raw, err := json.Marshal(document)
 	if err != nil {
 		log.Println("Failed to encode a voyage for a share link. Error: " + err.Error())
 		return nil
 	}
 	return raw
+}
+
+// hideTwin is the document with its viewing twin under a made-up name (generated as "word-word"), as the classic
+// page hides other users. The document's slices are shared with the voyage cache, so they are copied, not changed.
+func hideTwin(document voyage.Document, generated string) voyage.Document {
+	name := generated
+	if first, second, ok := strings.Cut(generated, "-"); ok {
+		name = strings.Title(first) + " " + strings.Title(second)
+	}
+	voyages := make([]voyage.Voyage, len(document.Voyages))
+	for i, v := range document.Voyages {
+		creatures := make([]voyage.Creature, len(v.Creatures))
+		copy(creatures, v.Creatures)
+		for j := range creatures {
+			if creatures[j].Kind == "twin" {
+				creatures[j].User = name
+			}
+		}
+		v.Creatures = creatures
+		voyages[i] = v
+	}
+	document.Voyages = voyages
+	return document
+}
+
+// refetchVoyagePosters queues the owner's voyage posters again when their shared voyage is opened, in case they've
+// left the poster cache since the link was made (the queue skips those still cached). The voyage is kept until the
+// play cache changes, so opening a link doesn't rebuild it each time. In the background: the reply doesn't wait.
+func refetchVoyagePosters(userID int, config models.WrapperrConfig) {
+	if !config.WrapperrCustomize.EnablePosters {
+		return
+	}
+	go func() {
+		if _, err := modules.VoyageForUser(userID, config); err != nil && !errors.Is(err, voyage.ErrNoSessions) {
+			log.Println("Failed to queue a shared voyage's posters. Error: " + err.Error())
+		}
+	}()
 }
 
 // syncWithTautulli checks every Tautulli server and syncs its users, as a statistics request does.
@@ -122,15 +170,14 @@ func ApiGetVoyage(context *gin.Context) {
 	if !ok {
 		return
 	}
-	if !config.VoyageEnabled {
-		context.JSON(http.StatusNotFound, gin.H{"error": "The voyage is not enabled."})
-		return
-	}
-	if !config.PlexAuth {
-		context.JSON(http.StatusForbidden, gin.H{"error": "The voyage needs Plex Auth."})
-		return
-	}
-	if !cacheOn(context, config) {
+	if !voyageOn(config) {
+		if !config.VoyageEnabled {
+			context.JSON(http.StatusNotFound, gin.H{"error": "The voyage is not enabled."})
+		} else if !config.PlexAuth {
+			context.JSON(http.StatusForbidden, gin.H{"error": "The voyage needs Plex Auth."})
+		} else {
+			cacheOn(context, config)
+		}
 		return
 	}
 
