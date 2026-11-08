@@ -35,6 +35,7 @@ Rules:
 | F | Voyage page | `fork/voyage-page` | #7 | E | in develop, PR open | maybe | 2026-11-07: code-review high (10: 9 fixed, 1 partly), security-review (0 at bar; 1 lower fixed), medium (1 fixed) |
 | G | Voyage entry and handoff to the classic page | `fork/voyage-entry` | #8 | F | in develop, PR open | maybe | 2026-11-07: code-review high (9: 4 fixed, 5 answered), security-review (0 at bar), medium (0) |
 | H | Static voyage export | `fork/voyage-export` | #9 | G | in develop, PR open | maybe | 2026-11-07: code-review high (10: 9 fixed, 1 moot), medium (3 fixed); no security-review (CLI, no new route) |
+| I | Voyage share links (one link carries the voyage too) | `fork/voyage-share` | #10 | G | in develop, PR open | maybe | 2026-11-08: code-review high (10: 8 fixed, 2 answered), security-review (0 at bar; 1 suggestion, moot), medium x3 (1, 1, 2 low: all fixed) |
 
 Household splitting (split by device) was dropped on 2026-11-06 as too inaccurate, and theme B
 (fuller play records for it) went with it: every calculation is per Plex account.
@@ -48,6 +49,7 @@ parents are in.
 - seerr-trendsetter
 - fork/hardening
 - fork/voyage-export
+- fork/voyage-share
 <!-- /merge-order -->
 
 ## Develop-only files
