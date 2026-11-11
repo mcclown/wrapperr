@@ -1578,7 +1578,7 @@ function load_users() {
                 text += "<div class='boks2'>";
 
                     if(functions.stats_order_by_plays !== false && functions.stats_order_by_duration !== false) {
-                        text += '<button class="form-control btn" style="margin: 0.5em auto; width: fit-content;" name="year_stats_year_movies_button" id="year_stats_year_movies_button" onclick="top_list_sort_by(results.year_stats.year_movies.data.movies_plays, \'Top movies\', false, false, true, \'year_stats_year_movies\', \'year_stats_year_movies_button\', functions);"><img src="assets/tweak.svg" class="btn_logo"><p2 id="year_stats_year_movies_button_text">' + functions.wrapperr_sort_plays + '</p2></button>';
+                        text += '<button class="form-control btn" style="margin: 0.5em auto; width: fit-content;" name="year_stats_year_movies_button" id="year_stats_year_movies_button" onclick="top_list_sort_by(results.year_stats.year_movies.data.movies_plays, functions.get_year_stats_movies_title, false, false, true, \'year_stats_year_movies\', \'year_stats_year_movies_button\', functions);"><img src="assets/tweak.svg" class="btn_logo"><p2 id="year_stats_year_movies_button_text">' + functions.wrapperr_sort_plays + '</p2></button>';
                     }
 
                     if(functions.stats_order_by_duration !== false) {
@@ -1600,7 +1600,7 @@ function load_users() {
                 text += "<div class='boks2'>";
 
                     if(functions.stats_order_by_plays !== false && functions.stats_order_by_duration !== false) {
-                        text += '<button class="form-control btn" style="margin: 0.5em auto; width: fit-content;" name="year_stats_year_shows_button" id="year_stats_year_shows_button" onclick="top_list_sort_by(results.year_stats.year_shows.data.shows_plays, \'Top shows\', false, true, false, \'year_stats_year_shows\', \'year_stats_year_shows_button\', functions);"><img src="assets/tweak.svg" class="btn_logo"><p2 id="year_stats_year_shows_button_text">' + functions.wrapperr_sort_plays + '</p2></button>';
+                        text += '<button class="form-control btn" style="margin: 0.5em auto; width: fit-content;" name="year_stats_year_shows_button" id="year_stats_year_shows_button" onclick="top_list_sort_by(results.year_stats.year_shows.data.shows_plays, functions.get_year_stats_shows_title, false, true, false, \'year_stats_year_shows\', \'year_stats_year_shows_button\', functions);"><img src="assets/tweak.svg" class="btn_logo"><p2 id="year_stats_year_shows_button_text">' + functions.wrapperr_sort_plays + '</p2></button>';
                     }
                     
                     if(functions.stats_order_by_duration !== false) {
