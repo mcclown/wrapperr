@@ -282,3 +282,48 @@ func TestSeerrRequestReachHidesLeaderboardNumbers(t *testing.T) {
 		t.Errorf("expected following numbers to be kept, got %+v", reach.FollowingTitles)
 	}
 }
+
+func TestSeerrRequestReachCreditsSeasons(t *testing.T) {
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 12, 31, 23, 59, 59, 0, time.UTC)
+
+	show := func(seerrID int, plexID int, user string, created string, seasons ...int) models.SeerrRequest {
+		key := "20"
+		request := seerrTestRequest(seerrID, plexID, user, "tv", created)
+		request.Media.ID = 20
+		request.Media.RatingKey = &key
+		for _, season := range seasons {
+			request.Seasons = append(request.Seasons, models.SeerrRequestSeason{SeasonNumber: season})
+		}
+		return request
+	}
+	requests := []models.SeerrRequest{
+		show(1, 100, "alice", "2026-02-01T00:00:00Z", 1),
+		show(2, 200, "bob", "2026-02-02T00:00:00Z", 2, 3),
+	}
+
+	episode := func(season int, duration int) models.TautulliEntry {
+		entry := seerrTestPlay(300, "carol", "episode", 20, "Show B", "2026-03-01T20:00:00Z", duration)
+		if season >= 0 {
+			entry.ParentMediaIndex = &season
+		}
+		return entry
+	}
+	day := models.WrapperrDay{Data: []models.TautulliEntry{
+		episode(1, 1000), // Alice's season
+		episode(2, 200),  // Bob's
+		episode(4, 30),   // asked for by nobody: Bob's season 3 came before it
+		episode(0, 4),    // specials, before every requested season: nobody's
+		episode(-1, 5),   // no season number: everyone who asked for the show
+	}}
+
+	reach := SeerrRequestReach(requests, nil, []models.WrapperrDay{day}, 300, start, end, 10, true, newOtherUserNamer("plex_username"))
+
+	got := map[string]int{}
+	for _, entry := range reach.FollowingTitles {
+		got[entry.User] = entry.Duration
+	}
+	if want := map[string]int{"alice": 1005, "bob": 235}; !reflect.DeepEqual(got, want) {
+		t.Errorf("expected time credited as %v, got %v", want, got)
+	}
+}

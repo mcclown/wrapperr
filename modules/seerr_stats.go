@@ -235,11 +235,7 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 	requestedTitles := map[int]map[string]bool{}
 
 	// Requested rating keys, each with its title and the requesters and when they first asked
-	type requestedKey struct {
-		title      string
-		requesters map[int]time.Time
-	}
-	requestedKeys := map[int]*requestedKey{}
+	requestedKeys := map[int]*seerrRequestedKey{}
 	requesters := map[int]models.WrapperrRequestUser{}
 
 	for _, request := range requests {
@@ -269,11 +265,24 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 			}
 			requested, found := requestedKeys[key]
 			if !found {
-				requested = &requestedKey{title: title, requesters: map[int]time.Time{}}
+				requested = &seerrRequestedKey{title: title, requesters: map[int]time.Time{}, seasons: map[int]map[int]time.Time{}}
 				requestedKeys[key] = requested
 			}
-			if requestedAt, found := requested.requesters[requester.UserID]; !found || request.CreatedAt.Before(requestedAt) {
-				requested.requesters[requester.UserID] = request.CreatedAt
+			firstAsked(requested.requesters, requester.UserID, request.CreatedAt)
+			if request.Media.MediaType == "tv" {
+				seasons := []int{wholeShow}
+				if len(request.Seasons) > 0 {
+					seasons = []int{}
+					for _, season := range request.Seasons {
+						seasons = append(seasons, season.SeasonNumber)
+					}
+				}
+				for _, season := range seasons {
+					if requested.seasons[season] == nil {
+						requested.seasons[season] = map[int]time.Time{}
+					}
+					firstAsked(requested.seasons[season], requester.UserID, request.CreatedAt)
+				}
 			}
 		}
 	}
@@ -306,7 +315,7 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 				titles[requested.title] = models.WrapperrRequestTitle{Title: name, Year: year, RatingKey: key, Thumb: thumb, TautulliServerHash: entry.TautulliServerHash}
 			}
 
-			for requesterID, requestedAt := range requested.requesters {
+			for requesterID, requestedAt := range requested.creditedFor(entry) {
 				if entry.UserID == requesterID || int64(entry.Date) < requestedAt.Unix() {
 					continue
 				}
@@ -391,6 +400,56 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 	reach.FollowingPercent = topRequestUsers(sortRequestUsers(idols, true), topListLimit, user_id, namer, false)
 
 	return reach
+}
+
+// A requested title, with who asked for it and when each first did
+type seerrRequestedKey struct {
+	title      string
+	requesters map[int]time.Time
+	// For a show, season number -> requester -> when they first asked for it; a request naming no seasons is
+	// kept under wholeShow
+	seasons map[int]map[int]time.Time
+}
+
+const wholeShow = -1
+
+// Records when a requester first asked
+func firstAsked(asked map[int]time.Time, userID int, at time.Time) {
+	if previous, found := asked[userID]; !found || at.Before(previous) {
+		asked[userID] = at
+	}
+}
+
+// Who a play of the title is credited to, with when each asked. An episode goes to whoever asked for its season,
+// or for the whole show. A season nobody asked for goes to whoever asked for the nearest season before it, as
+// that request brought the show along; one before every requested season (or specials) goes to nobody. Movies,
+// and episodes with no season number (cached before it was kept), go to everyone who asked for the title.
+func (requested *seerrRequestedKey) creditedFor(entry models.TautulliEntry) map[int]time.Time {
+	if entry.MediaType != "episode" || entry.ParentMediaIndex == nil || len(requested.seasons) == 0 {
+		return requested.requesters
+	}
+	season := *entry.ParentMediaIndex
+
+	credited := map[int]time.Time{}
+	for userID, at := range requested.seasons[wholeShow] {
+		firstAsked(credited, userID, at)
+	}
+	if _, found := requested.seasons[season]; !found {
+		nearest, foundNearest := 0, false
+		for asked := range requested.seasons {
+			if asked != wholeShow && asked < season && (!foundNearest || asked > nearest) {
+				nearest, foundNearest = asked, true
+			}
+		}
+		if !foundNearest {
+			return credited
+		}
+		season = nearest
+	}
+	for userID, at := range requested.seasons[season] {
+		firstAsked(credited, userID, at)
+	}
+	return credited
 }
 
 // Identifies the title a request is for, so a title requested in both 4K and

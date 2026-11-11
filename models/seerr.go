@@ -27,6 +27,12 @@ type SeerrRequest struct {
 	Is4k        bool       `json:"is4k"`
 	Media       SeerrMedia `json:"media"`
 	RequestedBy SeerrUser  `json:"requestedBy"`
+	// For a show, the seasons asked for
+	Seasons []SeerrRequestSeason `json:"seasons"`
+}
+
+type SeerrRequestSeason struct {
+	SeasonNumber int `json:"seasonNumber"`
 }
 
 type SeerrMedia struct {
