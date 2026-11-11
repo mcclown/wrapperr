@@ -1504,7 +1504,8 @@ function load_users() {
 
         text += "<div class='boks3'>";
 
-            if(functions.get_year_stats_leaderboard) {
+            // The leaderboard and the totals come from the movie, show and music statistics
+            if(functions.get_year_stats_leaderboard && (functions.get_year_stats_movies || functions.get_year_stats_shows || functions.get_year_stats_music)) {
 
                 text += "<div class='boks2'>";
 
