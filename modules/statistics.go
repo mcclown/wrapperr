@@ -291,6 +291,14 @@ func WrapperrDownloadDays(ID int, wrapperr_data []models.WrapperrDay, loop_inter
 							GUID:                  tautulli_data[j].GUID,
 						}
 
+						// An episode's season number
+						if tautulli_data[j].MediaType == "episode" {
+							season, err := strconv.Atoi(fmt.Sprintf("%v", tautulli_data[j].ParentMediaIndex))
+							if err == nil {
+								tautulli_entry.ParentMediaIndex = &season
+							}
+						}
+
 						// Capture Thumb field if available
 						if tautulli_data[j].Thumb != nil {
 							tautulli_entry.Thumb = *tautulli_data[j].Thumb
