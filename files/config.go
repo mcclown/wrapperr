@@ -412,6 +412,7 @@ func CreateConfigFile() error {
 	config.WrapperrCustomize.GetYearStatsShows = true
 	config.WrapperrCustomize.GetYearStatsMusic = true
 	config.WrapperrCustomize.GetYearStatsLeaderboard = true
+	config.WrapperrCustomize.GetYearStatsPopular = true
 	config.WrapperrCustomize.GetYearStatsLeaderboardNumbers = false
 
 	// Write straight to disk without touching the cache or lock: this is only
@@ -1046,6 +1047,22 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 
 	if config.WrapperrCustomize.WrapperrSortDuration == "" {
 		config.WrapperrCustomize.WrapperrSortDuration = config_default.WrapperrCustomize.WrapperrSortDuration
+	}
+
+	if config.WrapperrCustomize.GetYearStatsMoviesPopularTitle == "" {
+		config.WrapperrCustomize.GetYearStatsMoviesPopularTitle = config_default.WrapperrCustomize.GetYearStatsMoviesPopularTitle
+	}
+
+	if config.WrapperrCustomize.GetYearStatsShowsPopularTitle == "" {
+		config.WrapperrCustomize.GetYearStatsShowsPopularTitle = config_default.WrapperrCustomize.GetYearStatsShowsPopularTitle
+	}
+
+	if config.WrapperrCustomize.GetYearStatsPopularViewer == "" {
+		config.WrapperrCustomize.GetYearStatsPopularViewer = config_default.WrapperrCustomize.GetYearStatsPopularViewer
+	}
+
+	if config.WrapperrCustomize.GetYearStatsPopularViewerPlural == "" {
+		config.WrapperrCustomize.GetYearStatsPopularViewerPlural = config_default.WrapperrCustomize.GetYearStatsPopularViewerPlural
 	}
 
 	return config, nil

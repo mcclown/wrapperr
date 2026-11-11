@@ -732,6 +732,15 @@ function loadAdminPage() {
     html += '/><br>';
     html += '</div>';
 
+    html += '<div class="form-group">';
+    html += '<label for="get_year_stats_popular" title="Adds server-wide lists of the movies and shows the most users watched, next to the top movies and shows.">Get server-wide most popular lists:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_year_stats_popular" ';
+    if(get_year_stats_popular) {
+        html += 'checked="' + get_year_stats_popular + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
     html += '<div class="form-group newline">';
     html += '</div>';
 
@@ -766,6 +775,26 @@ function loadAdminPage() {
             html += '<div class="form-group">';
             html += '<label for="get_year_stats_shows_title" title="Custom title of the list of top shows.">Title of top shows list:<br>';
             html += '<input type="text" class="form-control" id="get_year_stats_shows_title" value="' + get_year_stats_shows_title + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_stats_movies_popular_title" title="Custom title of the list of the movies the most users watched.">Title of most popular movies list:<br>';
+            html += '<input type="text" class="form-control" id="get_year_stats_movies_popular_title" value="' + get_year_stats_movies_popular_title + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_stats_shows_popular_title" title="Custom title of the list of the shows the most users watched.">Title of most popular shows list:<br>';
+            html += '<input type="text" class="form-control" id="get_year_stats_shows_popular_title" value="' + get_year_stats_shows_popular_title + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_stats_popular_viewer" title="The word for one user who watched a title, in the most popular lists.">Most popular lists, one viewer:<br>';
+            html += '<input type="text" class="form-control" id="get_year_stats_popular_viewer" value="' + get_year_stats_popular_viewer + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_stats_popular_viewer_plural" title="The word for several users who watched a title, in the most popular lists.">Most popular lists, several viewers:<br>';
+            html += '<input type="text" class="form-control" id="get_year_stats_popular_viewer_plural" value="' + get_year_stats_popular_viewer_plural + '" autocomplete="off" placeholder="" required /><br>';
             html += '</div>';
 
             html += '<div class="form-group">';
@@ -1160,6 +1189,11 @@ function set_wrapperr_customization_call() {
     get_year_stats_leaderboard = document.getElementById('get_year_stats_leaderboard').checked;
     get_year_stats_leaderboard_numbers = document.getElementById('get_year_stats_leaderboard_numbers').checked;
     get_year_stats_leaderboard_title = document.getElementById('get_year_stats_leaderboard_title').value;
+    get_year_stats_popular = document.getElementById('get_year_stats_popular').checked;
+    get_year_stats_movies_popular_title = document.getElementById('get_year_stats_movies_popular_title').value;
+    get_year_stats_shows_popular_title = document.getElementById('get_year_stats_shows_popular_title').value;
+    get_year_stats_popular_viewer = document.getElementById('get_year_stats_popular_viewer').value;
+    get_year_stats_popular_viewer_plural = document.getElementById('get_year_stats_popular_viewer_plural').value;
     get_year_stats_duration_sum_title = document.getElementById('get_year_stats_duration_sum_title').value;
     clear_cache = document.getElementById('clear_cache').checked;
     clear_poster_cache = document.getElementById('clear_poster_cache').checked;
@@ -1294,6 +1328,11 @@ function set_wrapperr_customization_call() {
             "get_year_stats_leaderboard" : get_year_stats_leaderboard,
             "get_year_stats_leaderboard_numbers" : get_year_stats_leaderboard_numbers,
             "get_year_stats_leaderboard_title" : get_year_stats_leaderboard_title,
+            "get_year_stats_popular" : get_year_stats_popular,
+            "get_year_stats_movies_popular_title" : get_year_stats_movies_popular_title,
+            "get_year_stats_shows_popular_title" : get_year_stats_shows_popular_title,
+            "get_year_stats_popular_viewer" : get_year_stats_popular_viewer,
+            "get_year_stats_popular_viewer_plural" : get_year_stats_popular_viewer_plural,
             "get_year_stats_duration_sum_title" : get_year_stats_duration_sum_title,
             "wrapperr_and" : wrapperr_and,
             "wrapperr_play" : wrapperr_play,

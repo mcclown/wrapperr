@@ -1082,7 +1082,8 @@ function you_spent(time, category, functions_data) {
     return html;
 }
 
-function top_list(array, title, music, show, year, div_id) {
+// With viewers, each title also says how many people watched it
+function top_list(array, title, music, show, year, div_id, viewers) {
     var html = "";
 
     html += "<div class='status' id='" + div_id + "'>";
@@ -1133,6 +1134,9 @@ function top_list(array, title, music, show, year, div_id) {
                                     html += " (" + array[i].year + ")";
                                 }
 
+                            if(viewers) {
+                                html += "<br>" + number_with_spaces(array[i].viewers) + " " + (array[i].viewers == 1 ? functions.get_year_stats_popular_viewer : functions.get_year_stats_popular_viewer_plural);
+                            }
                             html += "<br>" + movie_hour + "<br>" + play_plays(array[i].plays);
                         html += "</div>";
                     html += "</div>";
@@ -1282,6 +1286,12 @@ function load_users() {
         text += "</div>";
         text += "<div class='boks3'>";
 
+            if(functions.get_year_stats_movies && functions.get_year_stats_popular && results.year_stats.year_movies.data.movies_viewers && results.year_stats.year_movies.data.movies_viewers.length > 0) {
+                text += "<div class='boks2'>";
+                    text += top_list(results.year_stats.year_movies.data.movies_viewers, functions.get_year_stats_movies_popular_title, false, false, true, 'year_stats_popular_movies', true);
+                text += "</div>";
+            }
+
             if(functions.get_year_stats_movies && results.year_stats.year_movies.data.movie_plays > 0) {
                 text += "<div class='boks2'>";
 
@@ -1295,6 +1305,12 @@ function load_users() {
                         text += top_list(results.year_stats.year_movies.data.movies_plays, functions.get_year_stats_movies_title, false, false, true, 'year_stats_year_movies');
                     }
 
+                text += "</div>";
+            }
+
+            if(functions.get_year_stats_shows && functions.get_year_stats_popular && results.year_stats.year_shows.data.shows_viewers && results.year_stats.year_shows.data.shows_viewers.length > 0) {
+                text += "<div class='boks2'>";
+                    text += top_list(results.year_stats.year_shows.data.shows_viewers, functions.get_year_stats_shows_popular_title, false, true, false, 'year_stats_popular_shows', true);
                 text += "</div>";
             }
 
