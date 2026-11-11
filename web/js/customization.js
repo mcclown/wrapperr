@@ -1120,6 +1120,36 @@ function loadAdminPage() {
             html += '<label for="wrapperr_viewer_plural" title="Word alternative for when \'viewers\' appears.">Alternative for \'viewers\':<br>';
             html += '<input type="text" class="form-control" id="wrapperr_viewer_plural" value="' + wrapperr_viewer_plural + '" autocomplete="off" placeholder="" required /><br>';
             html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_top_hit" title="Trendsetters: the label above the most watched request of each requester.">Trendsetters, biggest hit label:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_top_hit" value="' + wrapperr_request_top_hit + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_top_watched" title="Whose requests you watch: the label above the request you spent the most time on.">Whose requests you watch, top request label:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_top_watched" value="' + wrapperr_request_top_watched + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_trend_line" title="Trendsetters: how many of the requests of a requester others watched. Use {titles_watched} and {requested_titles}.">Trendsetters, requests watched line:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_trend_line" value="' + wrapperr_request_trend_line + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_reach_line" title="Trendsetters: how many people watched the requests of a requester. Use {viewers}.">Trendsetters, viewers line:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_reach_line" value="' + wrapperr_request_reach_line + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_following_line" title="Whose requests you watch: how many of the requests of a requester you watched. Use {titles_watched} and {requested_titles}.">Whose requests you watch, line:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_following_line" value="' + wrapperr_request_following_line + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_followers_line" title="Your followers: how many of your requests a follower watched. Use {titles_watched} and {requested_titles}.">Your followers, line:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_followers_line" value="' + wrapperr_request_followers_line + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
         
         html += '</div>';
 
@@ -1421,6 +1451,12 @@ function set_wrapperr_customization_call() {
     wrapperr_sort_percent = document.getElementById("wrapperr_sort_percent").value;
     wrapperr_viewer = document.getElementById("wrapperr_viewer").value;
     wrapperr_viewer_plural = document.getElementById("wrapperr_viewer_plural").value;
+    wrapperr_request_top_hit = document.getElementById("wrapperr_request_top_hit").value;
+    wrapperr_request_top_watched = document.getElementById("wrapperr_request_top_watched").value;
+    wrapperr_request_trend_line = document.getElementById("wrapperr_request_trend_line").value;
+    wrapperr_request_reach_line = document.getElementById("wrapperr_request_reach_line").value;
+    wrapperr_request_following_line = document.getElementById("wrapperr_request_following_line").value;
+    wrapperr_request_followers_line = document.getElementById("wrapperr_request_followers_line").value;
     
     wrapperr_customization_form = {
         "clear_cache" : clear_cache,
@@ -1580,7 +1616,13 @@ function set_wrapperr_customization_call() {
             "wrapperr_sort_titles" : wrapperr_sort_titles,
             "wrapperr_sort_percent" : wrapperr_sort_percent,
             "wrapperr_viewer" : wrapperr_viewer,
-            "wrapperr_viewer_plural" : wrapperr_viewer_plural
+            "wrapperr_viewer_plural" : wrapperr_viewer_plural,
+            "wrapperr_request_top_hit" : wrapperr_request_top_hit,
+            "wrapperr_request_top_watched" : wrapperr_request_top_watched,
+            "wrapperr_request_trend_line" : wrapperr_request_trend_line,
+            "wrapperr_request_reach_line" : wrapperr_request_reach_line,
+            "wrapperr_request_following_line" : wrapperr_request_following_line,
+            "wrapperr_request_followers_line" : wrapperr_request_followers_line
         }
     };
 

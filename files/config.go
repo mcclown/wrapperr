@@ -1216,6 +1216,30 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 		config.WrapperrCustomize.GetYearStatsPopularViewerPlural = config_default.WrapperrCustomize.GetYearStatsPopularViewerPlural
 	}
 
+	if config.WrapperrCustomize.WrapperrRequestTopHit == "" {
+		config.WrapperrCustomize.WrapperrRequestTopHit = config_default.WrapperrCustomize.WrapperrRequestTopHit
+	}
+
+	if config.WrapperrCustomize.WrapperrRequestTopWatched == "" {
+		config.WrapperrCustomize.WrapperrRequestTopWatched = config_default.WrapperrCustomize.WrapperrRequestTopWatched
+	}
+
+	if config.WrapperrCustomize.WrapperrRequestTrendLine == "" {
+		config.WrapperrCustomize.WrapperrRequestTrendLine = config_default.WrapperrCustomize.WrapperrRequestTrendLine
+	}
+
+	if config.WrapperrCustomize.WrapperrRequestReachLine == "" {
+		config.WrapperrCustomize.WrapperrRequestReachLine = config_default.WrapperrCustomize.WrapperrRequestReachLine
+	}
+
+	if config.WrapperrCustomize.WrapperrRequestFollowingLine == "" {
+		config.WrapperrCustomize.WrapperrRequestFollowingLine = config_default.WrapperrCustomize.WrapperrRequestFollowingLine
+	}
+
+	if config.WrapperrCustomize.WrapperrRequestFollowersLine == "" {
+		config.WrapperrCustomize.WrapperrRequestFollowersLine = config_default.WrapperrCustomize.WrapperrRequestFollowersLine
+	}
+
 	return config, nil
 
 }

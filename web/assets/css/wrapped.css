@@ -684,3 +684,58 @@ hr {
 .stats-list .item .name {
     flex: 1;
 }
+
+/* Request lists with more to say: double width where there is room, and rows that grow to fit */
+.boks2-wide {
+    width: 60em;
+}
+
+.stats-list .item.request-item {
+    max-height: none;
+    align-items: flex-start;
+}
+
+.request-details {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    line-height: 1.35;
+}
+
+.request-user {
+    font-size: 1.15em;
+    font-weight: bold;
+}
+
+.request-label {
+    margin-top: 0.3em;
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.75;
+}
+
+.request-share {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-top: 0.4em;
+}
+
+.request-bar {
+    flex: 1;
+    max-width: 12em;
+    height: 0.5em;
+    border-radius: 0.25em;
+    background: rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+.request-bar div {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.request-line {
+    font-size: 0.9em;
+}

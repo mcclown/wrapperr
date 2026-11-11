@@ -1295,13 +1295,13 @@ function load_requests() {
 
                 if(show_followers) {
                     text += "<div class='boks2'>";
-                        text += top_list_requesters(user_requests.data.followers, functions.get_user_request_stats_followers_title, 'user_requests_followers', 'reach');
+                        text += top_list_requesters(user_requests.data.followers, functions.get_user_request_stats_followers_title, 'user_requests_followers', 'followers');
                     text += "</div>";
                 }
 
                 if(show_following) {
-                    text += "<div class='boks2'>";
-                        text += top_list_requesters_sortable(user_requests.data.following_titles, user_requests.data.following_percent, functions.get_user_request_stats_following_title, 'user_requests_following');
+                    text += "<div class='boks2 boks2-wide'>";
+                        text += top_list_requesters_sortable(user_requests.data.following_titles, user_requests.data.following_percent, functions.get_user_request_stats_following_title, 'user_requests_following', 'following');
                     text += "</div>";
                 }
 
@@ -1344,8 +1344,8 @@ function year_requests_html() {
         text += "</div>";
 
         if(functions.get_year_stats_requests_trendsetters && year_requests.data.trendsetters_titles && year_requests.data.trendsetters_titles.length > 0) {
-            text += "<div class='boks2'>";
-                text += top_list_requesters_sortable(year_requests.data.trendsetters_titles, year_requests.data.trendsetters_percent, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters');
+            text += "<div class='boks2 boks2-wide'>";
+                text += top_list_requesters_sortable(year_requests.data.trendsetters_titles, year_requests.data.trendsetters_percent, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters', 'trendsetters');
             text += "</div>";
         }
     text += "</div>";
@@ -1370,17 +1370,17 @@ function has_request_poster(title) {
 var request_lists = {};
 
 // A requester list with a button to switch between ordering by titles watched and by percentage watched
-function top_list_requesters_sortable(array_titles, array_percent, title, div_id) {
+function top_list_requesters_sortable(array_titles, array_percent, title, div_id, kind) {
     var by_titles = functions.stats_order_requests_by_titles !== false;
     var by_percent = functions.stats_order_requests_by_percent !== false && array_percent;
-    var list = {titles: array_titles, percent: array_percent, title: title, order: (by_titles || !by_percent) ? 'titles' : 'percent'};
+    var list = {titles: array_titles, percent: array_percent, title: title, kind: kind, order: (by_titles || !by_percent) ? 'titles' : 'percent'};
     request_lists[div_id] = list;
 
     var html = "";
     if(by_titles && by_percent) {
         html += '<button class="form-control btn" style="margin: 0.5em auto; width: fit-content;" name="' + div_id + '_button" id="' + div_id + '_button" onclick="top_list_requesters_sort_by(\'' + div_id + '\');"><img src="assets/tweak.svg" class="btn_logo"><p2 id="' + div_id + '_button_text">' + functions.wrapperr_sort_percent + '</p2></button>';
     }
-    html += top_list_requesters(list[list.order], title, div_id, 'reach');
+    html += top_list_requesters(list[list.order], title, div_id, kind);
     return html;
 }
 
@@ -1388,13 +1388,13 @@ function top_list_requesters_sortable(array_titles, array_percent, title, div_id
 function top_list_requesters_sort_by(div_id) {
     var list = request_lists[div_id];
     list.order = list.order === 'titles' ? 'percent' : 'titles';
-    document.getElementById(div_id).outerHTML = top_list_requesters(list[list.order], list.title, div_id, 'reach');
+    document.getElementById(div_id).outerHTML = top_list_requesters(list[list.order], list.title, div_id, list.kind);
     document.getElementById(div_id + '_button_text').innerHTML = list.order === 'titles' ? functions.wrapperr_sort_percent : functions.wrapperr_sort_titles;
 }
 
-// Lists users with the given count field, or with titles watched when it is
-// 'reach', and their top request when present
-function top_list_requesters(array, title, div_id, count_field) {
+// Lists requesters or viewers. kind is 'requests' (a request count), or 'trendsetters', 'following' or
+// 'followers', whose rows say what each number is; trendsetters and following also show the top request
+function top_list_requesters(array, title, div_id, kind) {
     var html = "";
 
     html += "<div class='status' id='" + div_id + "'>";
@@ -1402,21 +1402,27 @@ function top_list_requesters(array, title, div_id, count_field) {
             html += "<div class='status-title'>" + ReplaceStandardStrings(title) + "</div>";
             html += "<div class='stats-list'>";
             for(var i = 0; i < array.length; i++) {
-                if(i == 0) {
-                    html += "<div class='item gold'>";
-                } else if(i == 1) {
-                    html += "<div class='item silver'>";
-                } else if(i == 2) {
-                    html += "<div class='item bronze'>";
-                } else {
-                    html += "<div class='item'>";
-                }
-                    html += "<div class='number'>";
-                        html += i+1 + ". ";
+                var medal = ['gold', 'silver', 'bronze'][i] || '';
+
+                if(kind === 'requests') {
+                    html += "<div class='item " + medal + "'>";
+                        html += "<div class='number'>" + (i+1) + ". </div>";
+                        html += "<div class='name'>";
+                            html += array[i].user;
+                            // Counts are zeroed when leaderboard numbers are hidden
+                            if(array[i].requests !== 0) {
+                                html += "<br>" + number_with_spaces(array[i].requests);
+                            }
+                        html += "</div>";
                     html += "</div>";
+                    continue;
+                }
+
+                html += "<div class='item request-item " + medal + "'>";
+                    html += "<div class='number'>" + (i+1) + ". </div>";
 
                     var top_request = array[i].top_request;
-                    if(has_request_poster(top_request)) {
+                    if(kind !== 'followers' && has_request_poster(top_request)) {
                         html += "<div class='poster-thumbnail'>";
                             html += posterImgTag(top_request.tautulli_server_hash, top_request.rating_key, top_request.thumb, {
                                 alt: "Poster", fallback: "hide-parent"
@@ -1424,23 +1430,31 @@ function top_list_requesters(array, title, div_id, count_field) {
                         html += "</div>";
                     }
 
-                    html += "<div class='name'>";
-                        html += array[i].user;
+                    html += "<div class='request-details'>";
+                        html += "<div class='request-user'>" + array[i].user + "</div>";
 
-                        if(array[i].top_request && array[i].top_request.title) {
-                            html += "<br><i>" + request_title(array[i].top_request) + "</i>";
+                        if(kind !== 'followers' && top_request && top_request.title) {
+                            var label = request_text(kind === 'trendsetters' ? 'wrapperr_request_top_hit' : 'wrapperr_request_top_watched');
+                            html += "<div class='request-label'>" + label + "</div>";
+                            html += "<div class='request-title'><i>" + request_title(top_request) + "</i>";
+                                if(kind === 'trendsetters' && top_request.viewers) {
+                                    html += " &middot; " + viewer_count(top_request.viewers);
+                                }
+                            html += "</div>";
                         }
 
                         // Counts are zeroed when leaderboard numbers are hidden
-                        if(count_field === 'reach') {
-                            if(array[i].titles_watched) {
-                                html += "<br>" + number_with_spaces(array[i].titles_watched) + " / " + number_with_spaces(array[i].requested_titles) + " (" + array[i].titles_watched_percent + "%)";
-                            }
-                            if(array[i].viewers) {
-                                html += "<br>" + number_with_spaces(array[i].viewers) + " " + (array[i].viewers == 1 ? functions.wrapperr_viewer : functions.wrapperr_viewer_plural);
-                            }
-                        } else if(array[i][count_field] !== 0) {
-                            html += "<br>" + number_with_spaces(array[i][count_field]);
+                        if(array[i].titles_watched) {
+                            var line = request_text({trendsetters: 'wrapperr_request_trend_line', following: 'wrapperr_request_following_line', followers: 'wrapperr_request_followers_line'}[kind]);
+                            line = line.replaceAll('{titles_watched}', '<b>' + number_with_spaces(array[i].titles_watched) + '</b>').replaceAll('{requested_titles}', number_with_spaces(array[i].requested_titles));
+                            html += "<div class='request-share'>";
+                                html += "<div class='request-bar'><div style='width: " + Math.min(100, array[i].titles_watched_percent) + "%;'></div></div>";
+                                html += "<b>" + array[i].titles_watched_percent + "%</b>";
+                            html += "</div>";
+                            html += "<div class='request-line'>" + line + "</div>";
+                        }
+                        if(kind === 'trendsetters' && array[i].viewers) {
+                            html += "<div class='request-line'>" + request_text('wrapperr_request_reach_line').replaceAll('{viewers}', '<b>' + viewer_count(array[i].viewers) + '</b>') + "</div>";
                         }
                     html += "</div>";
 
@@ -1451,6 +1465,24 @@ function top_list_requesters(array, title, div_id, count_field) {
     html += "</div>";
 
     return html;
+}
+
+// Request list wording, falling back to the defaults for share links made before it existed
+var request_text_defaults = {
+    wrapperr_request_top_hit: "Biggest hit",
+    wrapperr_request_top_watched: "You watched the most of",
+    wrapperr_request_trend_line: "{titles_watched} of their {requested_titles} requests watched by others",
+    wrapperr_request_reach_line: "Their requests reached {viewers}",
+    wrapperr_request_following_line: "You watched {titles_watched} of their {requested_titles} requests",
+    wrapperr_request_followers_line: "Watched {titles_watched} of your {requested_titles} requests"
+};
+function request_text(key) {
+    return functions[key] || request_text_defaults[key];
+}
+
+// A number of viewers, with the word for one or several
+function viewer_count(viewers) {
+    return number_with_spaces(viewers) + " " + (viewers == 1 ? functions.wrapperr_viewer : functions.wrapperr_viewer_plural);
 }
 
 function request_timeline_chart(timeline, chart_title) {
