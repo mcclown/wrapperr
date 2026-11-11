@@ -107,6 +107,11 @@ type WrapperrCustomize struct {
 	GetYearStatsLeaderboard                     bool   `json:"get_year_stats_leaderboard"`
 	GetYearStatsLeaderboardNumbers              bool   `json:"get_year_stats_leaderboard_numbers"`
 	GetYearStatsLeaderboardTitle                string `json:"get_year_stats_leaderboard_title"`
+	GetYearStatsPopular                         bool   `json:"get_year_stats_popular"`
+	GetYearStatsMoviesPopularTitle              string `json:"get_year_stats_movies_popular_title"`
+	GetYearStatsShowsPopularTitle               string `json:"get_year_stats_shows_popular_title"`
+	GetYearStatsPopularViewer                   string `json:"get_year_stats_popular_viewer"`
+	GetYearStatsPopularViewerPlural             string `json:"get_year_stats_popular_viewer_plural"`
 	GetYearStatsMoviesDurationTitle             string `json:"get_year_stats_movies_duration_title"`
 	GetYearStatsShowsDurationTitle              string `json:"get_year_stats_shows_duration_title"`
 	GetYearStatsMusicDurationTitle              string `json:"get_year_stats_music_duration_title"`
@@ -245,6 +250,7 @@ type WrapperrStatisticsReply struct {
 			Data struct {
 				MoviesDuration []TautulliEntry `json:"movies_duration"`
 				MoviesPlays    []TautulliEntry `json:"movies_plays"`
+				MoviesViewers  []TautulliEntry `json:"movies_viewers"`
 				MovieDuration  int             `json:"movie_duration"`
 				MoviePlays     int             `json:"movie_plays"`
 			} `json:"data"`
@@ -255,6 +261,7 @@ type WrapperrStatisticsReply struct {
 			Data struct {
 				ShowsDuration []TautulliEntry `json:"shows_duration"`
 				ShowsPlays    []TautulliEntry `json:"shows_plays"`
+				ShowsViewers  []TautulliEntry `json:"shows_viewers"`
 				ShowDuration  int             `json:"show_duration"`
 				ShowPlays     int             `json:"show_plays"`
 			} `json:"data"`

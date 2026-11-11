@@ -292,6 +292,11 @@ function get_config(cookie) {
                 get_year_stats_leaderboard = result.data.wrapperr_customize.get_year_stats_leaderboard;
                 get_year_stats_leaderboard_numbers = result.data.wrapperr_customize.get_year_stats_leaderboard_numbers;
                 get_year_stats_leaderboard_title = result.data.wrapperr_customize.get_year_stats_leaderboard_title;
+                get_year_stats_popular = result.data.wrapperr_customize.get_year_stats_popular;
+                get_year_stats_movies_popular_title = result.data.wrapperr_customize.get_year_stats_movies_popular_title;
+                get_year_stats_shows_popular_title = result.data.wrapperr_customize.get_year_stats_shows_popular_title;
+                get_year_stats_popular_viewer = result.data.wrapperr_customize.get_year_stats_popular_viewer;
+                get_year_stats_popular_viewer_plural = result.data.wrapperr_customize.get_year_stats_popular_viewer_plural;
                 get_year_stats_duration_sum_title = result.data.wrapperr_customize.get_year_stats_duration_sum_title;
                 get_user_request_stats = result.data.wrapperr_customize.get_user_request_stats;
                 get_year_stats_requests = result.data.wrapperr_customize.get_year_stats_requests;

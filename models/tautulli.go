@@ -84,6 +84,7 @@ type TautulliEntry struct {
 	Thumb                 string `json:"thumb"`
 	TautulliServerHash    string `json:"tautulli_server_hash"`
 	Plays                 int    `json:"plays"`
+	Viewers               int    `json:"viewers,omitempty"` // in server-wide lists, how many people watched it
 	GUID                  string `json:"guid"`
 }
 
