@@ -965,6 +965,15 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 		config.WrapperrCustomize.GetYearStatsSubsubtitle = config_default.WrapperrCustomize.GetYearStatsSubsubtitle
 	}
 
+	// The server-wide top lists were renamed once the most popular lists came, and a title still at the old
+	// default takes the new one
+	if config.WrapperrCustomize.GetYearStatsMoviesTitle == "Top movies" {
+		config.WrapperrCustomize.GetYearStatsMoviesTitle = ""
+	}
+	if config.WrapperrCustomize.GetYearStatsShowsTitle == "Top shows" {
+		config.WrapperrCustomize.GetYearStatsShowsTitle = ""
+	}
+
 	if config.WrapperrCustomize.GetYearStatsMoviesTitle == "" {
 		config.WrapperrCustomize.GetYearStatsMoviesTitle = config_default.WrapperrCustomize.GetYearStatsMoviesTitle
 	}
