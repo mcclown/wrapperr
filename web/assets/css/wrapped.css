@@ -680,6 +680,7 @@ hr {
     flex-shrink: 0;
 }
 
-.stats-list .item .movie_name {
+.stats-list .item .movie_name,
+.stats-list .item .name {
     flex: 1;
 }
