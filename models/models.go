@@ -148,6 +148,12 @@ type WrapperrCustomize struct {
 	WrapperrSortPercent                         string `json:"wrapperr_sort_percent"`
 	WrapperrViewer                              string `json:"wrapperr_viewer"`
 	WrapperrViewerPlural                        string `json:"wrapperr_viewer_plural"`
+	WrapperrRequestTopHit                       string `json:"wrapperr_request_top_hit"`
+	WrapperrRequestTopWatched                   string `json:"wrapperr_request_top_watched"`
+	WrapperrRequestTrendLine                    string `json:"wrapperr_request_trend_line"`
+	WrapperrRequestReachLine                    string `json:"wrapperr_request_reach_line"`
+	WrapperrRequestFollowingLine                string `json:"wrapperr_request_following_line"`
+	WrapperrRequestFollowersLine                string `json:"wrapperr_request_followers_line"`
 }
 
 type MovieBirthDecadeResult struct {

@@ -325,6 +325,12 @@ function get_config(cookie) {
                 wrapperr_sort_percent = result.data.wrapperr_customize.wrapperr_sort_percent;
                 wrapperr_viewer = result.data.wrapperr_customize.wrapperr_viewer;
                 wrapperr_viewer_plural = result.data.wrapperr_customize.wrapperr_viewer_plural;
+                wrapperr_request_top_hit = result.data.wrapperr_customize.wrapperr_request_top_hit;
+                wrapperr_request_top_watched = result.data.wrapperr_customize.wrapperr_request_top_watched;
+                wrapperr_request_trend_line = result.data.wrapperr_customize.wrapperr_request_trend_line;
+                wrapperr_request_reach_line = result.data.wrapperr_customize.wrapperr_request_reach_line;
+                wrapperr_request_following_line = result.data.wrapperr_customize.wrapperr_request_following_line;
+                wrapperr_request_followers_line = result.data.wrapperr_customize.wrapperr_request_followers_line;
 
                 username = result.username;
 

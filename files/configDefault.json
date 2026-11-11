@@ -147,6 +147,12 @@
         "wrapperr_sort_percent":"Sort by percentage watched",
         "wrapperr_viewer":"viewer",
         "wrapperr_viewer_plural":"viewers",
+        "wrapperr_request_top_hit":"Biggest hit",
+        "wrapperr_request_top_watched":"You watched the most of",
+        "wrapperr_request_trend_line":"{titles_watched} of their {requested_titles} requests watched by others",
+        "wrapperr_request_reach_line":"Their requests reached {viewers}",
+        "wrapperr_request_following_line":"You watched {titles_watched} of their {requested_titles} requests",
+        "wrapperr_request_followers_line":"Watched {titles_watched} of your {requested_titles} requests",
         "get_user_show_stats_buddy":true
     },
     "seerr_config": {
