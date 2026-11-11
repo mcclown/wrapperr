@@ -190,7 +190,7 @@ function load_page(data){
 
     load_requests();
 
-    if(!results.year_stats.error && (functions.get_year_stats_movies || functions.get_year_stats_shows || functions.get_year_stats_music)) {
+    if(!results.year_stats.error && (functions.get_year_stats_movies || functions.get_year_stats_shows || functions.get_year_stats_music || show_year_requests())) {
         load_users();
     }
 
@@ -1218,15 +1218,14 @@ function top_list_names_sort_by(array, title, div_id, button_id, functions_data)
 }
 
 //REQUESTS
+// The viewer's own requests; the server's are in the server-wide section
 function load_requests() {
     var user_requests = results.user.user_requests;
-    var year_requests = results.year_stats.year_requests;
 
     // Shared links created before request statistics existed have no request data
     var show_user = functions.get_user_request_stats && user_requests && !user_requests.error;
-    var show_year = functions.get_year_stats_requests && year_requests && !year_requests.error && year_requests.data.request_count > 0;
 
-    if(!show_user && !show_year) {
+    if(!show_user) {
         return;
     }
 
@@ -1238,22 +1237,19 @@ function load_requests() {
             text += "<h1>" + ReplaceStandardStrings(functions.get_user_request_stats_title) + "</h1>";
         text += "</div>";
 
-        if(show_user) {
-            var subtitle = functions.get_user_request_stats_subtitle;
-            if(user_requests.data.request_count == 0) {
-                subtitle = functions.get_user_request_stats_subtitle_none;
-            } else if(user_requests.data.request_count == 1) {
-                subtitle = functions.get_user_request_stats_subtitle_one;
-            }
-
-            text += "<div class='boks3'>";
-                text += "<h2>" + ReplaceStandardStrings(subtitle) + "</h2>";
-            text += "</div>";
+        var subtitle = functions.get_user_request_stats_subtitle;
+        if(user_requests.data.request_count == 0) {
+            subtitle = functions.get_user_request_stats_subtitle_none;
+        } else if(user_requests.data.request_count == 1) {
+            subtitle = functions.get_user_request_stats_subtitle_one;
         }
 
         text += "<div class='boks3'>";
+            text += "<h2>" + ReplaceStandardStrings(subtitle) + "</h2>";
+        text += "</div>";
 
-            if(show_user && user_requests.data.request_count > 0) {
+        if(user_requests.data.request_count > 0) {
+            text += "<div class='boks3'>";
                 text += "<div class='boks2'>";
                     text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
                         text += "<div class='stats'>";
@@ -1261,32 +1257,14 @@ function load_requests() {
                         text += "</div>";
                     text += "</div>";
                 text += "</div>";
-            }
+            text += "</div>";
+        }
 
-            if(show_year) {
-                text += "<div class='boks2'>";
-                    text += top_list_requesters(year_requests.data.requesters, functions.get_year_stats_requests_title, 'year_stats_year_requests', 'requests');
-                text += "</div>";
-
-                text += "<div class='boks2'>";
-                    text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
-                        text += "<div class='stats'>";
-                            text += ReplaceStandardStrings(functions.get_year_stats_requests_total_title.replaceAll('{server_request_count}', '<b>' + number_with_spaces(year_requests.data.request_count) + '</b>'));
-                            text += "<br><br>";
-                            text += request_timeline_chart(year_requests.data.timeline, ReplaceStandardStrings(functions.get_year_stats_requests_timeline_title));
-                        text += "</div>";
-                    text += "</div>";
-                text += "</div>";
-            }
-
-        text += "</div>";
-
-        var show_reach = show_user && functions.get_user_request_stats_followers && user_requests.data.request_count > 0;
+        var show_reach = functions.get_user_request_stats_followers && user_requests.data.request_count > 0;
         var show_followers = show_reach && user_requests.data.followers && user_requests.data.followers.length > 0;
-        var show_following = show_user && functions.get_user_request_stats_following && user_requests.data.following_titles && user_requests.data.following_titles.length > 0;
-        var show_trendsetters = show_year && functions.get_year_stats_requests_trendsetters && year_requests.data.trendsetters_titles && year_requests.data.trendsetters_titles.length > 0;
+        var show_following = functions.get_user_request_stats_following && user_requests.data.following_titles && user_requests.data.following_titles.length > 0;
 
-        if(show_reach || show_following || show_trendsetters) {
+        if(show_reach || show_following) {
             text += "<div class='boks3'>";
 
                 if(show_reach) {
@@ -1327,18 +1305,52 @@ function load_requests() {
                     text += "</div>";
                 }
 
-                if(show_trendsetters) {
-                    text += "<div class='boks2'>";
-                        text += top_list_requesters_sortable(year_requests.data.trendsetters_titles, year_requests.data.trendsetters_percent, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters');
-                    text += "</div>";
-                }
-
             text += "</div>";
         }
 
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;
+}
+
+// Whether the server-wide section has requests to show
+function show_year_requests() {
+    var year_requests = results.year_stats.year_requests;
+    return functions.get_year_stats_requests && year_requests && !year_requests.error && year_requests.data.request_count > 0;
+}
+
+// The server's requests, for the server-wide section: the top requesters, the totals and the trendsetters
+function year_requests_html() {
+    if(!show_year_requests()) {
+        return "";
+    }
+
+    var year_requests = results.year_stats.year_requests;
+    var text = "";
+
+    text += "<div class='boks3'>";
+        text += "<div class='boks2'>";
+            text += top_list_requesters(year_requests.data.requesters, functions.get_year_stats_requests_title, 'year_stats_year_requests', 'requests');
+        text += "</div>";
+
+        text += "<div class='boks2'>";
+            text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
+                text += "<div class='stats'>";
+                    text += ReplaceStandardStrings(functions.get_year_stats_requests_total_title.replaceAll('{server_request_count}', '<b>' + number_with_spaces(year_requests.data.request_count) + '</b>'));
+                    text += "<br><br>";
+                    text += request_timeline_chart(year_requests.data.timeline, ReplaceStandardStrings(functions.get_year_stats_requests_timeline_title));
+                text += "</div>";
+            text += "</div>";
+        text += "</div>";
+
+        if(functions.get_year_stats_requests_trendsetters && year_requests.data.trendsetters_titles && year_requests.data.trendsetters_titles.length > 0) {
+            text += "<div class='boks2'>";
+                text += top_list_requesters_sortable(year_requests.data.trendsetters_titles, year_requests.data.trendsetters_percent, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters');
+            text += "</div>";
+        }
+    text += "</div>";
+
+    return text;
 }
 
 // Formats a requested title, with the year for movies
@@ -1616,6 +1628,8 @@ function load_users() {
             }
 
         text += "</div>";
+
+        text += year_requests_html();
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;
