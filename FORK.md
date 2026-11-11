@@ -27,7 +27,7 @@ Rules:
 | # | Theme | Branch | PR | Stacked on | Status | Upstream-able | Last review |
 |---|---|---|---|---|---|---|---|
 | A1 | Seerr request statistics | `seerr-requests` | #1 | main | open | yes | |
-| A2 | Seerr trendsetters and followers | `seerr-trendsetter` | #2 | `seerr-requests` | open | yes | |
+| A2 | Seerr trendsetters and followers | `seerr-trendsetter` | #2 | `seerr-requests` | in develop, PR open | yes | 2026-11-11: season credit, posters, requests split into personal and server-wide; code and security review (1 medium fixed) |
 | S | Hardening for exposure through a Cloudflare tunnel | `fork/hardening` | #3 | main | in develop, PR open | yes | 2026-11-06: code-review high (10 fixed), medium (2 fixed), security-review (0 at bar; 2 lower fixed), medium (2 of 3 fixed); 2026-11-07: no-session fix (anonymous share links), medium (1 fixed), medium (clean) |
 | C | Viewing analysis (per-account layer, Go) | `fork/viewing-analysis` | #4 | S | in develop, PR open | yes | 2026-11-06: code-review high (3 medium + 6 low; medium and 4 low fixed, rest documented), security-review (0 at bar), medium (1 fixed) |
 | D | Plex metadata (episode counts, added dates, backdrops) | `fork/plex-metadata` | #5 | C | in develop, PR open | yes | 2026-11-07: code-review high (9: 8 fixed, 1 by design), security-review (0 at bar; 2 lower fixed), medium (1 fixed), medium (1 low fixed) |
@@ -36,6 +36,7 @@ Rules:
 | G | Voyage entry and handoff to the classic page | `fork/voyage-entry` | #8 | F | in develop, PR open | maybe | 2026-11-07: code-review high (9: 4 fixed, 5 answered), security-review (0 at bar), medium (0) |
 | H | Static voyage export | `fork/voyage-export` | #9 | G | in develop, PR open | maybe | 2026-11-07: code-review high (10: 9 fixed, 1 moot), medium (3 fixed); no security-review (CLI, no new route) |
 | I | Voyage share links (one link carries the voyage too) | `fork/voyage-share` | #10 | G | in develop, PR open | maybe | 2026-11-08: code-review high (10: 8 fixed, 2 answered), security-review (0 at bar; 1 suggestion, moot), medium x3 (1, 1, 2 low: all fixed) |
+| V1 | Server-wide most popular movies and shows | `fork/view-popular` | #11 | main | in develop, PR open | yes | 2026-11-11: code and security review (1 medium privacy fix to the existing year lists, 1 low: both fixed) |
 
 Household splitting (split by device) was dropped on 2026-11-06 as too inaccurate, and theme B
 (fuller play records for it) went with it: every calculation is per Plex account.
@@ -50,6 +51,7 @@ parents are in.
 - fork/hardening
 - fork/voyage-export
 - fork/voyage-share
+- fork/view-popular
 <!-- /merge-order -->
 
 ## Develop-only files
