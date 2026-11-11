@@ -1159,6 +1159,17 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 		wrapperr_year_show[index].Viewers = len(viewers)
 	}
 
+	// Each server-wide title is a copy of its first play: keep the title, not who played what, when
+	for index := range wrapperr_year_movie {
+		forgetYearPlay(&wrapperr_year_movie[index], false)
+	}
+	for index := range wrapperr_year_show {
+		forgetYearPlay(&wrapperr_year_show[index], true)
+	}
+	for index := range wrapperr_year_artist {
+		forgetYearPlay(&wrapperr_year_artist[index], true)
+	}
+
 	// Format reply for universal movie details
 	if config.WrapperrCustomize.GetYearStatsMovies && len(wrapperr_year_movie) > 0 {
 
@@ -1639,4 +1650,14 @@ func mostPopular(entries []models.TautulliEntry, limit int) []models.TautulliEnt
 		ranked = ranked[:limit]
 	}
 	return ranked
+}
+
+// Clears what a server-wide entry kept of the play it was made from: who played it and when, and for a show or
+// artist, which episode or track
+func forgetYearPlay(entry *models.TautulliEntry, keepParentOnly bool) {
+	entry.User, entry.FriendlyName, entry.UserID = "", "", 0
+	entry.Date, entry.RowID, entry.FullTitle = 0, 0, ""
+	if keepParentOnly {
+		entry.Title, entry.ParentTitle, entry.ParentRatingKey = "", "", 0
+	}
 }
