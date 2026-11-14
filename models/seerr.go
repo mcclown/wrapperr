@@ -75,6 +75,11 @@ type WrapperrRequestUser struct {
 	RequestedTitles      int `json:"requested_titles"`
 	TitlesWatchedPercent int `json:"titles_watched_percent"`
 	Duration             int `json:"duration"`
+	// Place among last year's top requesters, 0 for someone new to them; left out without the comparison with
+	// last year
+	LastRank *int `json:"last_rank,omitempty"`
+	// Place among the top requesters, shared with anyone tied as last year's are, to compare with it; set with it
+	Rank *int `json:"rank,omitempty"`
 }
 
 type WrapperrRequestTitle struct {

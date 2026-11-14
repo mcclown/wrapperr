@@ -15,7 +15,9 @@ import (
 
 // Adds the Seerr request sections to the reply. Seerr failures are reported in
 // the request sections only, so the rest of the wrapped results still load.
-func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, namer *otherUserNamer, wrapperr_reply models.WrapperrStatisticsReply) models.WrapperrStatisticsReply {
+// Also returns the requests and users it loaded, for the comparison with last
+// year, or nil when it loaded none. lastYear is from LastYearPlays.
+func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, lastYear []models.WrapperrDay, namer *otherUserNamer, wrapperr_reply models.WrapperrStatisticsReply) (models.WrapperrStatisticsReply, []models.SeerrRequest, []models.WrapperrUser) {
 	userRequests := models.WrapperrUserRequests{}
 	yearRequests := models.WrapperrYearRequests{}
 
@@ -31,36 +33,47 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr
 	}
 
 	if !config.SeerrConfig.SeerrEnabled {
-		return setError("Seerr is not enabled.")
+		return setError("Seerr is not enabled."), nil, nil
 	} else if !wantUser && !wantYear {
-		return setError("Request statistics are disabled in the settings.")
+		return setError("Request statistics are disabled in the settings."), nil, nil
 	}
 
 	start := time.Unix(int64(config.WrappedStart), 0)
 	end := time.Unix(int64(config.WrappedEnd), 0)
 
-	requests, err := SeerrGetRequests(config.SeerrConfig, start)
+	requests, err := SeerrGetRequests(config.SeerrConfig, seerrRequestsSince(config, start))
 	if err != nil {
 		log.Println("Failed to retrieve Seerr requests. Error: " + err.Error())
-		return setError("Failed to retrieve Seerr requests.")
+		return setError("Failed to retrieve Seerr requests."), nil, nil
 	}
 
 	users, err := files.GetUsers()
 	if err != nil {
 		log.Println("Failed to load users for Seerr statistics. Error: " + err.Error())
-		return setError("Failed to load users.")
+		return setError("Failed to load users."), nil, nil
 	}
 
 	topListLimit := config.WrapperrCustomize.StatsTopListLength
 	showNumbers := config.WrapperrCustomize.GetYearStatsLeaderboardNumbers
 
-	userRequests, yearRequests = SeerrRequestStatistics(requests, users, user_id, start, end, topListLimit, showNumbers, namer)
+	// Requesters' places last year, for the top requesters' movement since, with the comparison on
+	var lastRanks map[int]int
+	if config.WrapperrCustomize.GetYearCompare {
+		lastRanks = lastYearRequesterRanks(requests, users, lastYearConfig(config))
+	}
+
+	userRequests, yearRequests = SeerrRequestStatistics(requests, users, user_id, start, end, topListLimit, showNumbers, namer, lastRanks)
 
 	wantFollowers := wantUser && config.WrapperrCustomize.GetUserRequestStatsFollowers
 	wantFollowing := wantUser && config.WrapperrCustomize.GetUserRequestStatsFollowing
 	wantTrendsetters := wantYear && config.WrapperrCustomize.GetYearStatsRequestsTrendsetters
 	if wantFollowers || wantFollowing || wantTrendsetters {
-		reach := SeerrRequestReach(requests, users, wrapperr_data, user_id, start, end, topListLimit, showNumbers, namer)
+		// Places on last year's lists, for the movement since
+		var lastReach *reachRanks
+		if wantFollowers || wantFollowing || wantTrendsetters {
+			lastReach = lastYearReachRanks(requests, users, lastYear, user_id, lastYearConfig(config))
+		}
+		reach := SeerrRequestReach(requests, users, wrapperr_data, user_id, start, end, topListLimit, showNumbers, namer, lastReach)
 		if wantFollowers {
 			userRequests.Data.Viewers = reach.Viewers
 			userRequests.Data.TopRequest = reach.TopRequest
@@ -86,14 +99,15 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr
 
 	wrapperr_reply.User.UserRequests = userRequests
 	wrapperr_reply.YearStats.YearRequests = yearRequests
-	return wrapperr_reply
+	return wrapperr_reply, requests, users
 }
 
 // Builds per-user and server-wide request statistics from the Seerr requests
 // created within the wrapped period. Requesters are matched to Wrapperr users
 // by Plex ID, then email, then Plex username. Requesters who cannot be matched
-// are still counted under their Seerr name.
-func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.WrapperrUser, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer) (models.WrapperrUserRequests, models.WrapperrYearRequests) {
+// are still counted under their Seerr name. lastRanks, if not nil, are the
+// requesters' places last year, given to the top requesters.
+func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.WrapperrUser, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer, lastRanks map[int]int) (models.WrapperrUserRequests, models.WrapperrYearRequests) {
 	userRequests := models.WrapperrUserRequests{}
 	yearRequests := models.WrapperrYearRequests{}
 
@@ -167,6 +181,11 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 		if topListLimit != 0 && index >= topListLimit {
 			break
 		}
+		if lastRanks != nil {
+			lastRank := lastRanks[entry.UserID]
+			place := sharedPlace(index, func(i int) int { return ranked[i].Requests })
+			entry.LastRank, entry.Rank = &lastRank, &place
+		}
 		nameOtherUser(&entry, user_id, namer)
 		if !showNumbers {
 			entry.Requests, entry.MovieRequests, entry.ShowRequests = 0, 0, 0
@@ -230,8 +249,9 @@ func watcherFor(watchers map[int]*requestWatcher, user models.WrapperrRequestUse
 // Joins the requests created within the wrapped period to the plays within it.
 // A play counts towards a request when it is of the requested title (Plex
 // rating key of the movie, or of the show for episodes), happened after the
-// request, and was by someone other than the requester.
-func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUser, wrapperr_data []models.WrapperrDay, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer) SeerrReach {
+// request, and was by someone other than the requester. lastRanks, if not nil,
+// are places on last year's lists, given to each list.
+func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUser, wrapperr_data []models.WrapperrDay, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer, lastRanks *reachRanks) SeerrReach {
 	reach := SeerrReach{}
 	resolver := newRequesterResolver(users)
 
@@ -259,36 +279,7 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 		}
 		requestedTitles[requester.UserID][title] = true
 
-		for _, ratingKey := range []*string{request.Media.RatingKey, request.Media.RatingKey4k} {
-			if ratingKey == nil {
-				continue
-			}
-			key, err := strconv.Atoi(*ratingKey)
-			if err != nil || key == 0 {
-				continue
-			}
-			requested, found := requestedKeys[key]
-			if !found {
-				requested = &seerrRequestedKey{title: title, requesters: map[int]time.Time{}, seasons: map[int]map[int]time.Time{}}
-				requestedKeys[key] = requested
-			}
-			firstAsked(requested.requesters, requester.UserID, request.CreatedAt)
-			if request.Media.MediaType == "tv" {
-				seasons := []int{wholeShow}
-				if len(request.Seasons) > 0 {
-					seasons = []int{}
-					for _, season := range request.Seasons {
-						seasons = append(seasons, season.SeasonNumber)
-					}
-				}
-				for _, season := range seasons {
-					if requested.seasons[season] == nil {
-						requested.seasons[season] = map[int]time.Time{}
-					}
-					firstAsked(requested.seasons[season], requester.UserID, request.CreatedAt)
-				}
-			}
-		}
+		addRequestedKeys(requestedKeys, request, title, requester.UserID)
 	}
 
 	// Title details, taken from the first play of each requested title
@@ -372,9 +363,9 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 			reach.TopRequest = top
 		}
 	}
-	reach.TrendsettersTitles = topRequestUsers(sortRequestUsers(trendsetters, byTitles), topListLimit, user_id, namer, !showNumbers)
-	reach.TrendsettersPercent = topRequestUsers(sortRequestUsers(trendsetters, byPercent), topListLimit, user_id, namer, !showNumbers)
-	reach.TrendsettersViewers = topRequestUsers(sortRequestUsers(trendsetters, byViewers), topListLimit, user_id, namer, !showNumbers)
+	reach.TrendsettersTitles = topRequestUsers(sortRequestUsers(trendsetters, byTitles), topListLimit, user_id, namer, !showNumbers, lastRanks.list(func(r *reachRanks) map[int]int { return r.trendsettersTitles }))
+	reach.TrendsettersPercent = topRequestUsers(sortRequestUsers(trendsetters, byPercent), topListLimit, user_id, namer, !showNumbers, lastRanks.list(func(r *reachRanks) map[int]int { return r.trendsettersPercent }))
+	reach.TrendsettersViewers = topRequestUsers(sortRequestUsers(trendsetters, byViewers), topListLimit, user_id, namer, !showNumbers, lastRanks.list(func(r *reachRanks) map[int]int { return r.trendsettersViewers }))
 
 	// Followers of the current user
 	fans := []models.WrapperrRequestUser{}
@@ -384,7 +375,7 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 		setTitlesWatched(&entry, len(fan.titles), len(requestedTitles[user_id]))
 		fans = append(fans, entry)
 	}
-	reach.Followers = topRequestUsers(sortRequestUsers(fans, byTitles), topListLimit, user_id, namer, false)
+	reach.Followers = topRequestUsers(sortRequestUsers(fans, byTitles), topListLimit, user_id, namer, false, lastRanks.list(func(r *reachRanks) map[int]int { return r.followers }))
 
 	// Requesters the current user follows, with the request the user spent the most time on
 	idols := []models.WrapperrRequestUser{}
@@ -401,10 +392,45 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 		}
 		idols = append(idols, entry)
 	}
-	reach.FollowingTitles = topRequestUsers(sortRequestUsers(idols, byTitles), topListLimit, user_id, namer, false)
-	reach.FollowingPercent = topRequestUsers(sortRequestUsers(idols, byPercent), topListLimit, user_id, namer, false)
+	reach.FollowingTitles = topRequestUsers(sortRequestUsers(idols, byTitles), topListLimit, user_id, namer, false, lastRanks.list(func(r *reachRanks) map[int]int { return r.followingTitles }))
+	reach.FollowingPercent = topRequestUsers(sortRequestUsers(idols, byPercent), topListLimit, user_id, namer, false, lastRanks.list(func(r *reachRanks) map[int]int { return r.followingPercent }))
 
 	return reach
+}
+
+// Records a request against the Plex rating keys of its title, with who asked and when, and for a show which
+// seasons
+func addRequestedKeys(requestedKeys map[int]*seerrRequestedKey, request models.SeerrRequest, title string, requesterID int) {
+	for _, ratingKey := range []*string{request.Media.RatingKey, request.Media.RatingKey4k} {
+		if ratingKey == nil {
+			continue
+		}
+		key, err := strconv.Atoi(*ratingKey)
+		if err != nil || key == 0 {
+			continue
+		}
+		requested, found := requestedKeys[key]
+		if !found {
+			requested = &seerrRequestedKey{title: title, requesters: map[int]time.Time{}, seasons: map[int]map[int]time.Time{}}
+			requestedKeys[key] = requested
+		}
+		firstAsked(requested.requesters, requesterID, request.CreatedAt)
+		if request.Media.MediaType == "tv" {
+			seasons := []int{wholeShow}
+			if len(request.Seasons) > 0 {
+				seasons = []int{}
+				for _, season := range request.Seasons {
+					seasons = append(seasons, season.SeasonNumber)
+				}
+			}
+			for _, season := range seasons {
+				if requested.seasons[season] == nil {
+					requested.seasons[season] = map[int]time.Time{}
+				}
+				firstAsked(requested.seasons[season], requesterID, request.CreatedAt)
+			}
+		}
+	}
 }
 
 // A requested title, with who asked for it and when each first did
@@ -512,12 +538,17 @@ func sortRequestUsers(list []models.WrapperrRequestUser, order requestOrder) []m
 }
 
 // Cuts a ranked list to the top list length and names other users. Counts are
-// zeroed when leaderboard numbers are hidden.
-func topRequestUsers(ranked []models.WrapperrRequestUser, topListLimit int, user_id int, namer *otherUserNamer, hideNumbers bool) []models.WrapperrRequestUser {
+// zeroed when leaderboard numbers are hidden. lastRanks, if not nil, are places
+// on last year's list, given before naming while the user IDs are still there.
+func topRequestUsers(ranked []models.WrapperrRequestUser, topListLimit int, user_id int, namer *otherUserNamer, hideNumbers bool, lastRanks map[int]int) []models.WrapperrRequestUser {
 	top := []models.WrapperrRequestUser{}
 	for index, entry := range ranked {
 		if topListLimit != 0 && index >= topListLimit {
 			break
+		}
+		if lastRanks != nil {
+			lastRank := lastRanks[entry.UserID]
+			entry.LastRank = &lastRank
 		}
 		nameOtherUser(&entry, user_id, namer)
 		if hideNumbers {

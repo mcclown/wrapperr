@@ -106,6 +106,17 @@ type WrapperrCustomize struct {
 	GetYearStatsMusicTitle                      string `json:"get_year_stats_music_title"`
 	GetYearStatsLeaderboard                     bool   `json:"get_year_stats_leaderboard"`
 	GetYearStatsLeaderboardNumbers              bool   `json:"get_year_stats_leaderboard_numbers"`
+	GetYearCompare                              bool   `json:"get_year_compare"`
+	GetYearCompareTitle                         string `json:"get_year_compare_title"`
+	GetYearCompareSubtitle                      string `json:"get_year_compare_subtitle"`
+	GetYearCompareYou                           string `json:"get_year_compare_you"`
+	GetYearCompareEveryone                      string `json:"get_year_compare_everyone"`
+	GetYearCompareSplitTitle                    string `json:"get_year_compare_split_title"`
+	GetYearCompareMovies                        string `json:"get_year_compare_movies"`
+	GetYearCompareShows                         string `json:"get_year_compare_shows"`
+	GetYearCompareNone                          string `json:"get_year_compare_none"`
+	GetYearCompareRequestsTitle                 string `json:"get_year_compare_requests_title"`
+	GetYearCompareRequestsLine                  string `json:"get_year_compare_requests_line"`
 	GetYearStatsLeaderboardTitle                string `json:"get_year_stats_leaderboard_title"`
 	GetYearStatsMoviesDurationTitle             string `json:"get_year_stats_movies_duration_title"`
 	GetYearStatsShowsDurationTitle              string `json:"get_year_stats_shows_duration_title"`
@@ -215,6 +226,8 @@ type SearchWrapperrRequest struct {
 
 type CacheWrapperrRequest struct {
 	CacheLimit int `json:"cache_limit"`
+	// Cache last year's plays, for the comparison with last year, instead of this year's
+	LastYear bool `json:"last_year"`
 }
 
 type WrapperrDay struct {
@@ -239,6 +252,12 @@ type WrapperrYearUserEntry struct {
 	DurationShows    int    `json:"duration_shows"`
 	DurationArtists  int    `json:"duration_artists"`
 	Duration         int    `json:"duration"`
+	// Places on last year's leaderboard by time and by plays, 0 for someone new to it; left out without the
+	// comparison with last year
+	LastRankDuration *int `json:"last_rank_duration,omitempty"`
+	LastRankPlays    *int `json:"last_rank_plays,omitempty"`
+	// Place on this list, shared with anyone tied as last year's are, to compare with them; set with them
+	Rank *int `json:"rank,omitempty"`
 }
 
 type WrapperrStatisticsReply struct {
@@ -287,6 +306,36 @@ type WrapperrStatisticsReply struct {
 		} `json:"year_users"`
 		YearRequests WrapperrYearRequests `json:"year_requests"`
 	} `json:"year_stats"`
+	YearCompare struct {
+		Data struct {
+			User   WrapperrCompareYears `json:"user"`
+			Server WrapperrCompareYears `json:"server"`
+			// Whether the years' requests are in
+			RequestsCompared bool `json:"requests_compared"`
+			// Whether everyone's split is in, which it is with the server-wide movie and show statistics
+			ServerCompared bool `json:"server_compared"`
+		} `json:"data"`
+		Message string `json:"message"`
+		Error   bool   `json:"error"`
+	} `json:"year_compare"`
+}
+
+// This year and last year, for the user or for the whole server
+type WrapperrCompareYears struct {
+	ThisYear WrapperrCompareYear `json:"this_year"`
+	LastYear WrapperrCompareYear `json:"last_year"`
+}
+
+// The movies and TV played in one year
+type WrapperrCompareYear struct {
+	Year          int `json:"year"`
+	MovieDuration int `json:"movie_duration"`
+	MoviePlays    int `json:"movie_plays"`
+	ShowDuration  int `json:"show_duration"`
+	ShowPlays     int `json:"show_plays"`
+	// Titles requested in the year, and those then watched in it
+	Requests        int `json:"requests"`
+	RequestsWatched int `json:"requests_watched"`
 }
 
 type WrapperrStatisticsUser struct {

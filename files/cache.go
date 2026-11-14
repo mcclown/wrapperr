@@ -14,6 +14,9 @@ import (
 
 var cache_path, _ = filepath.Abs("./config/cache.json")
 
+// Last year's plays, for the comparison with last year
+var last_year_cache_path, _ = filepath.Abs("./config/cache_last_year.json")
+
 // Saves the given config struct as cache.json
 func SaveCache(cache *[]models.WrapperrDay) error {
 
@@ -30,7 +33,8 @@ func SaveCache(cache *[]models.WrapperrDay) error {
 	return nil
 }
 
-// Saves an empty cache, clearing any data present
+// Saves an empty cache, clearing any data present. Last year's plays are cleared too, as whatever made the cache
+// stale (such as a user now ignored) makes them stale as well; they are cached again from the caching page.
 func ClearCache() error {
 	cache := []models.WrapperrDay{}
 
@@ -39,7 +43,7 @@ func ClearCache() error {
 		return err
 	}
 
-	return nil
+	return SaveLastYearCache(&cache)
 }
 
 // Creates empty cache.json
@@ -88,4 +92,32 @@ func GetCache() ([]models.WrapperrDay, error) {
 
 	// Return cache object
 	return cache, nil
+}
+
+// Saves last year's plays. They are written to a temporary file that then replaces the old one, so a statistics
+// request reading them meanwhile never sees half a file.
+func SaveLastYearCache(cache *[]models.WrapperrDay) error {
+	file, err := json.MarshalIndent(cache, "", "	")
+	if err != nil {
+		return err
+	}
+	temporary := last_year_cache_path + ".tmp"
+	if err := ioutil.WriteFile(temporary, file, 0644); err != nil {
+		return err
+	}
+	return os.Rename(temporary, last_year_cache_path)
+}
+
+// Reads last year's plays, which are empty until they have been downloaded
+func GetLastYearCache() ([]models.WrapperrDay, error) {
+	cache := []models.WrapperrDay{}
+	file, err := ioutil.ReadFile(last_year_cache_path)
+	if errors.Is(err, os.ErrNotExist) {
+		return cache, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(file, &cache)
+	return cache, err
 }
