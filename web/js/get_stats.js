@@ -1177,6 +1177,8 @@ function top_list_names(array, title, div_id) {
                     html += "<div class='number'>";
                         html += i+1 + ". ";
                     html += "</div>";
+
+                    html += rank_change(array === results.year_stats.year_users.data.users_plays ? array[i].last_rank_plays : array[i].last_rank_duration, i + 1);
  
                     html += "<div class='name'>";
                     
@@ -1695,6 +1697,24 @@ function load_users() {
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;
+}
+
+// How a place on a ranking moved since last year: up or down so many places, the same, or new (last year's
+// place 0). Nothing without last year's place.
+function rank_change(last_rank, rank) {
+    if(typeof(last_rank) !== "number") {
+        return "";
+    }
+    if(last_rank == 0) {
+        return "<div class='rank-change rank-new' title='New'>&#9733;</div>";
+    }
+    var moved = last_rank - rank;
+    if(moved > 0) {
+        return "<div class='rank-change rank-up' title='Up " + moved + "'>&#9650;" + moved + "</div>";
+    } else if(moved < 0) {
+        return "<div class='rank-change rank-down' title='Down " + (-moved) + "'>&#9660;" + (-moved) + "</div>";
+    }
+    return "<div class='rank-change rank-same' title='Same place'>&ndash;</div>";
 }
 
 // COMPARED WITH LAST YEAR

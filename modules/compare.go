@@ -2,6 +2,7 @@ package modules
 
 import (
 	"log"
+	"sort"
 	"time"
 
 	"github.com/aunefyren/wrapperr/files"
@@ -43,27 +44,34 @@ func CacheLastYear(config models.WrapperrConfig, cacheLimit int) (bool, error) {
 	return complete, files.SaveLastYearCache(&lastYear)
 }
 
-// Adds the year compared with last year to the reply. config has its wrapped period set for this year. requests
-// and users are those the request statistics loaded, nil if none.
-func WrapperrCompareStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, requests []models.SeerrRequest, users []models.WrapperrUser, reply models.WrapperrStatisticsReply) models.WrapperrStatisticsReply {
-	compare := &reply.YearCompare
-	compare.Error = true
+// Last year's plays, for the comparison with last year: nil, with why, when the comparison is off or not every
+// day of last year is cached. config has its wrapped period set for this year.
+func LastYearPlays(config models.WrapperrConfig) ([]models.WrapperrDay, string) {
 	if !config.WrapperrCustomize.GetYearCompare {
-		compare.Message = "The comparison with last year is disabled."
-		return reply
+		return nil, "The comparison with last year is disabled."
 	}
 
 	lastYear, err := files.GetLastYearCache()
 	if err != nil {
 		log.Println("Failed to load last year's cache. Error: " + err.Error())
-		compare.Message = "Failed to load last year's plays."
+		return nil, "Failed to load last year's plays."
+	}
+	if !lastYearCached(lastYear, lastYearConfig(config)) {
+		return nil, "Last year's plays have not all been cached."
+	}
+	return lastYear, ""
+}
+
+// Adds the year compared with last year to the reply. lastYear and lastYearMessage are from LastYearPlays;
+// requests and users are those the request statistics loaded, nil if none.
+func WrapperrCompareStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, lastYear []models.WrapperrDay, lastYearMessage string, requests []models.SeerrRequest, users []models.WrapperrUser, reply models.WrapperrStatisticsReply) models.WrapperrStatisticsReply {
+	compare := &reply.YearCompare
+	compare.Error = true
+	if lastYear == nil {
+		compare.Message = lastYearMessage
 		return reply
 	}
 	lastConfig := lastYearConfig(config)
-	if !lastYearCached(lastYear, lastConfig) {
-		compare.Message = "Last year's plays have not all been cached."
-		return reply
-	}
 
 	compare.Data.User.ThisYear, compare.Data.Server.ThisYear = compareYear(wrapperr_data, config, user_id)
 	compare.Data.User.LastYear, compare.Data.Server.LastYear = compareYear(lastYear, lastConfig, user_id)
@@ -143,4 +151,70 @@ func addComparePlay(year *models.WrapperrCompareYear, entry models.TautulliEntry
 		year.ShowDuration += entry.Duration
 		year.ShowPlays++
 	}
+}
+
+// Each user's place on last year's leaderboard, by time and by plays
+type leaderboardRanks struct {
+	duration map[int]int
+	plays    map[int]int
+}
+
+// Ranks last year's leaderboard as the leaderboard is: from the plays the server-wide movie, show and music
+// statistics count. nil without last year's plays or the leaderboard.
+func lastYearLeaderboard(config models.WrapperrConfig, lastYear []models.WrapperrDay) *leaderboardRanks {
+	customize := config.WrapperrCustomize
+	if lastYear == nil || !customize.GetYearStatsLeaderboard {
+		return nil
+	}
+	lastConfig := lastYearConfig(config)
+
+	duration, plays := map[int]int{}, map[int]int{}
+	for _, day := range lastYear {
+		for _, entry := range day.Data {
+			if entry.Date < lastConfig.WrappedStart || entry.Date > lastConfig.WrappedEnd {
+				continue
+			}
+			counted := false
+			switch entry.MediaType {
+			case "movie":
+				counted = customize.GetYearStatsMovies && entry.Year >= 1750 && entry.Duration >= 300
+			case "episode":
+				counted = customize.GetYearStatsShows
+			case "track":
+				counted = customize.GetYearStatsMusic
+			}
+			if counted {
+				duration[entry.UserID] += entry.Duration
+				plays[entry.UserID]++
+			}
+		}
+	}
+	return &leaderboardRanks{duration: rankUsers(duration), plays: rankUsers(plays)}
+}
+
+// Places users by a total, highest first; users with the same total share a place (1, 1, 3)
+func rankUsers(totals map[int]int) map[int]int {
+	users := []int{}
+	for userID := range totals {
+		users = append(users, userID)
+	}
+	sort.Slice(users, func(i, j int) bool { return totals[users[i]] > totals[users[j]] })
+
+	ranks := map[int]int{}
+	for index, userID := range users {
+		ranks[userID] = index + 1
+		if index > 0 && totals[users[index-1]] == totals[userID] {
+			ranks[userID] = ranks[users[index-1]]
+		}
+	}
+	return ranks
+}
+
+// Gives a leaderboard entry its places last year, 0 for someone not on it
+func (ranks *leaderboardRanks) set(entry *models.WrapperrYearUserEntry) {
+	if ranks == nil {
+		return
+	}
+	byDuration, byPlays := ranks.duration[entry.UserID], ranks.plays[entry.UserID]
+	entry.LastRankDuration, entry.LastRankPlays = &byDuration, &byPlays
 }

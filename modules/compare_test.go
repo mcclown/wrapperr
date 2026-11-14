@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -63,5 +64,40 @@ func TestLastYearCached(t *testing.T) {
 		if lastYearCached(cache, config) {
 			t.Errorf("expected %s to leave last year short", name)
 		}
+	}
+}
+
+func TestLastYearLeaderboard(t *testing.T) {
+	at := func(date string) int {
+		parsed, _ := time.Parse(time.RFC3339, date)
+		return int(parsed.Unix())
+	}
+	config := models.WrapperrConfig{WrappedStart: at("2026-01-01T00:00:00Z"), WrappedEnd: at("2026-12-31T23:59:59Z")}
+	config.WrapperrCustomize.GetYearStatsLeaderboard = true
+	config.WrapperrCustomize.GetYearStatsMovies = true
+	config.WrapperrCustomize.GetYearStatsShows = true
+	lastYear := []models.WrapperrDay{{Data: []models.TautulliEntry{
+		{UserID: 1, MediaType: "episode", Duration: 3000, Date: at("2025-03-01T20:00:00Z")},
+		{UserID: 2, MediaType: "movie", Year: 2020, Duration: 3000, Date: at("2025-03-01T20:00:00Z")},
+		{UserID: 3, MediaType: "episode", Duration: 1000, Date: at("2025-03-01T20:00:00Z")},
+		{UserID: 3, MediaType: "episode", Duration: 1000, Date: at("2025-03-02T20:00:00Z")},
+		{UserID: 4, MediaType: "track", Duration: 9000, Date: at("2025-03-01T20:00:00Z")}, // music statistics off
+	}}}
+
+	ranks := lastYearLeaderboard(config, lastYear)
+	if want := map[int]int{1: 1, 2: 1, 3: 3}; !reflect.DeepEqual(ranks.duration, want) {
+		t.Errorf("by time got %v, want %v", ranks.duration, want)
+	}
+	if want := map[int]int{3: 1, 1: 2, 2: 2}; !reflect.DeepEqual(ranks.plays, want) {
+		t.Errorf("by plays got %v, want %v", ranks.plays, want)
+	}
+
+	newcomer := models.WrapperrYearUserEntry{UserID: 5}
+	ranks.set(&newcomer)
+	if *newcomer.LastRankDuration != 0 || *newcomer.LastRankPlays != 0 {
+		t.Errorf("a newcomer should have no place last year, got %+v", newcomer)
+	}
+	if lastYearLeaderboard(config, nil) != nil {
+		t.Error("expected no ranks without last year's plays")
 	}
 }
