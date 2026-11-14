@@ -15,7 +15,9 @@ import (
 
 // Adds the Seerr request sections to the reply. Seerr failures are reported in
 // the request sections only, so the rest of the wrapped results still load.
-func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, namer *otherUserNamer, wrapperr_reply models.WrapperrStatisticsReply) models.WrapperrStatisticsReply {
+// Also returns the requests and users it loaded, for the comparison with last
+// year, or nil when it loaded none.
+func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, namer *otherUserNamer, wrapperr_reply models.WrapperrStatisticsReply) (models.WrapperrStatisticsReply, []models.SeerrRequest, []models.WrapperrUser) {
 	userRequests := models.WrapperrUserRequests{}
 	yearRequests := models.WrapperrYearRequests{}
 
@@ -31,24 +33,24 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr
 	}
 
 	if !config.SeerrConfig.SeerrEnabled {
-		return setError("Seerr is not enabled.")
+		return setError("Seerr is not enabled."), nil, nil
 	} else if !wantUser && !wantYear {
-		return setError("Request statistics are disabled in the settings.")
+		return setError("Request statistics are disabled in the settings."), nil, nil
 	}
 
 	start := time.Unix(int64(config.WrappedStart), 0)
 	end := time.Unix(int64(config.WrappedEnd), 0)
 
-	requests, err := SeerrGetRequests(config.SeerrConfig, start)
+	requests, err := SeerrGetRequests(config.SeerrConfig, seerrRequestsSince(config, start))
 	if err != nil {
 		log.Println("Failed to retrieve Seerr requests. Error: " + err.Error())
-		return setError("Failed to retrieve Seerr requests.")
+		return setError("Failed to retrieve Seerr requests."), nil, nil
 	}
 
 	users, err := files.GetUsers()
 	if err != nil {
 		log.Println("Failed to load users for Seerr statistics. Error: " + err.Error())
-		return setError("Failed to load users.")
+		return setError("Failed to load users."), nil, nil
 	}
 
 	topListLimit := config.WrapperrCustomize.StatsTopListLength
@@ -86,7 +88,7 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr
 
 	wrapperr_reply.User.UserRequests = userRequests
 	wrapperr_reply.YearStats.YearRequests = yearRequests
-	return wrapperr_reply
+	return wrapperr_reply, requests, users
 }
 
 // Builds per-user and server-wide request statistics from the Seerr requests
@@ -259,36 +261,7 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 		}
 		requestedTitles[requester.UserID][title] = true
 
-		for _, ratingKey := range []*string{request.Media.RatingKey, request.Media.RatingKey4k} {
-			if ratingKey == nil {
-				continue
-			}
-			key, err := strconv.Atoi(*ratingKey)
-			if err != nil || key == 0 {
-				continue
-			}
-			requested, found := requestedKeys[key]
-			if !found {
-				requested = &seerrRequestedKey{title: title, requesters: map[int]time.Time{}, seasons: map[int]map[int]time.Time{}}
-				requestedKeys[key] = requested
-			}
-			firstAsked(requested.requesters, requester.UserID, request.CreatedAt)
-			if request.Media.MediaType == "tv" {
-				seasons := []int{wholeShow}
-				if len(request.Seasons) > 0 {
-					seasons = []int{}
-					for _, season := range request.Seasons {
-						seasons = append(seasons, season.SeasonNumber)
-					}
-				}
-				for _, season := range seasons {
-					if requested.seasons[season] == nil {
-						requested.seasons[season] = map[int]time.Time{}
-					}
-					firstAsked(requested.seasons[season], requester.UserID, request.CreatedAt)
-				}
-			}
-		}
+		addRequestedKeys(requestedKeys, request, title, requester.UserID)
 	}
 
 	// Title details, taken from the first play of each requested title
@@ -405,6 +378,41 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 	reach.FollowingPercent = topRequestUsers(sortRequestUsers(idols, byPercent), topListLimit, user_id, namer, false)
 
 	return reach
+}
+
+// Records a request against the Plex rating keys of its title, with who asked and when, and for a show which
+// seasons
+func addRequestedKeys(requestedKeys map[int]*seerrRequestedKey, request models.SeerrRequest, title string, requesterID int) {
+	for _, ratingKey := range []*string{request.Media.RatingKey, request.Media.RatingKey4k} {
+		if ratingKey == nil {
+			continue
+		}
+		key, err := strconv.Atoi(*ratingKey)
+		if err != nil || key == 0 {
+			continue
+		}
+		requested, found := requestedKeys[key]
+		if !found {
+			requested = &seerrRequestedKey{title: title, requesters: map[int]time.Time{}, seasons: map[int]map[int]time.Time{}}
+			requestedKeys[key] = requested
+		}
+		firstAsked(requested.requesters, requesterID, request.CreatedAt)
+		if request.Media.MediaType == "tv" {
+			seasons := []int{wholeShow}
+			if len(request.Seasons) > 0 {
+				seasons = []int{}
+				for _, season := range request.Seasons {
+					seasons = append(seasons, season.SeasonNumber)
+				}
+			}
+			for _, season := range seasons {
+				if requested.seasons[season] == nil {
+					requested.seasons[season] = map[int]time.Time{}
+				}
+				firstAsked(requested.seasons[season], requesterID, request.CreatedAt)
+			}
+		}
+	}
 }
 
 // A requested title, with who asked for it and when each first did
