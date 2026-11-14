@@ -888,6 +888,15 @@ function loadAdminPage() {
     html += '/><br>';
     html += '</div>';
 
+    html += '<div class="form-group">';
+    html += '<label for="get_year_compare" title="Compares the year with last year, for the viewer and for the server. Last year has to be cached once on the caching page.">Get the comparison with last year:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_year_compare" ';
+    if(get_year_compare) {
+        html += 'checked="' + get_year_compare + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
     html += '<div class="form-group newline">';
     html += '</div>';
 
@@ -932,6 +941,46 @@ function loadAdminPage() {
             html += '<div class="form-group">';
             html += '<label for="get_year_stats_leaderboard_title" title="Custom title of the list of top users.">Title of top users list:<br>';
             html += '<input type="text" class="form-control" id="get_year_stats_leaderboard_title" value="' + get_year_stats_leaderboard_title + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_title" title="Title of the comparison with last year.">Comparison title:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_title" value="' + get_year_compare_title + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_subtitle" title="Subtitle of the comparison. Use {this_year} and {last_year}.">Comparison subtitle:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_subtitle" value="' + get_year_compare_subtitle + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_you" title="Heading over the cards about the viewer.">Comparison, heading for the viewer:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_you" value="' + get_year_compare_you + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_everyone" title="Heading over the cards about the whole server.">Comparison, heading for the server:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_everyone" value="' + get_year_compare_everyone + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_split_title" title="Title of the card comparing movies and TV.">Comparison, movies and TV card title:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_split_title" value="' + get_year_compare_split_title + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_movies" title="The word for movies in the comparison.">Comparison, movies:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_movies" value="' + get_year_compare_movies + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_shows" title="The word for TV in the comparison.">Comparison, TV:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_shows" value="' + get_year_compare_shows + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_none" title="Shown for a year with nothing watched. Use {year}.">Comparison, nothing watched:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_none" value="' + get_year_compare_none + '" autocomplete="off" placeholder="" required /><br>';
             html += '</div>';
         
         html += '</div>';
@@ -1408,6 +1457,15 @@ function set_wrapperr_customization_call() {
     get_year_stats_leaderboard = document.getElementById('get_year_stats_leaderboard').checked;
     get_year_stats_leaderboard_numbers = document.getElementById('get_year_stats_leaderboard_numbers').checked;
     get_year_stats_leaderboard_title = document.getElementById('get_year_stats_leaderboard_title').value;
+    get_year_compare = document.getElementById('get_year_compare').checked;
+    get_year_compare_title = document.getElementById('get_year_compare_title').value;
+    get_year_compare_subtitle = document.getElementById('get_year_compare_subtitle').value;
+    get_year_compare_you = document.getElementById('get_year_compare_you').value;
+    get_year_compare_everyone = document.getElementById('get_year_compare_everyone').value;
+    get_year_compare_split_title = document.getElementById('get_year_compare_split_title').value;
+    get_year_compare_movies = document.getElementById('get_year_compare_movies').value;
+    get_year_compare_shows = document.getElementById('get_year_compare_shows').value;
+    get_year_compare_none = document.getElementById('get_year_compare_none').value;
     get_year_stats_duration_sum_title = document.getElementById('get_year_stats_duration_sum_title').value;
     clear_cache = document.getElementById('clear_cache').checked;
     clear_poster_cache = document.getElementById('clear_poster_cache').checked;
@@ -1553,6 +1611,15 @@ function set_wrapperr_customization_call() {
             "get_year_stats_leaderboard" : get_year_stats_leaderboard,
             "get_year_stats_leaderboard_numbers" : get_year_stats_leaderboard_numbers,
             "get_year_stats_leaderboard_title" : get_year_stats_leaderboard_title,
+            "get_year_compare" : get_year_compare,
+            "get_year_compare_title" : get_year_compare_title,
+            "get_year_compare_subtitle" : get_year_compare_subtitle,
+            "get_year_compare_you" : get_year_compare_you,
+            "get_year_compare_everyone" : get_year_compare_everyone,
+            "get_year_compare_split_title" : get_year_compare_split_title,
+            "get_year_compare_movies" : get_year_compare_movies,
+            "get_year_compare_shows" : get_year_compare_shows,
+            "get_year_compare_none" : get_year_compare_none,
             "get_year_stats_duration_sum_title" : get_year_stats_duration_sum_title,
             "get_user_request_stats" : get_user_request_stats,
             "get_year_stats_requests" : get_year_stats_requests,

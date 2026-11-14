@@ -39,10 +39,7 @@ func GetWrapperStatistics(user_name string, user_friendlyname string, user_id in
 	log.Println("Cache stage completed for " + user_name + ".")
 
 	// Change wrapped start & end dates if dynamic setting is configured
-	if config.WrappedDynamic {
-		config.WrappedEnd = int(time.Now().Unix())
-		config.WrappedStart = int(time.Now().AddDate(0, 0, -config.WrappedDynamicDays).Unix())
-	}
+	config = currentWrappedPeriod(config)
 
 	// Download/refresh data-set from Tautulli
 	wrapperr_data, wrapperr_data_complete, err := WrapperrDownloadDays(user_id, wrapperr_data, cacheLimit, config)
@@ -87,6 +84,8 @@ func GetWrapperStatistics(user_name string, user_friendlyname string, user_id in
 
 	// Add request statistics from Seerr
 	wrapperrReply = WrapperrSeerrStatistics(user_id, config, wrapperr_data, namer, wrapperrReply)
+	// Compare the year with last year
+	wrapperrReply = WrapperrCompareStatistics(user_id, config, wrapperr_data, wrapperrReply)
 
 	return wrapperrReply, cachingComplete, err
 }

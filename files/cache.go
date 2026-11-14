@@ -14,6 +14,9 @@ import (
 
 var cache_path, _ = filepath.Abs("./config/cache.json")
 
+// Last year's plays, for the comparison with last year
+var last_year_cache_path, _ = filepath.Abs("./config/cache_last_year.json")
+
 // Saves the given config struct as cache.json
 func SaveCache(cache *[]models.WrapperrDay) error {
 
@@ -88,4 +91,27 @@ func GetCache() ([]models.WrapperrDay, error) {
 
 	// Return cache object
 	return cache, nil
+}
+
+// Saves last year's plays
+func SaveLastYearCache(cache *[]models.WrapperrDay) error {
+	file, err := json.MarshalIndent(cache, "", "	")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(last_year_cache_path, file, 0644)
+}
+
+// Reads last year's plays, which are empty until they have been downloaded
+func GetLastYearCache() ([]models.WrapperrDay, error) {
+	cache := []models.WrapperrDay{}
+	file, err := ioutil.ReadFile(last_year_cache_path)
+	if errors.Is(err, os.ErrNotExist) {
+		return cache, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(file, &cache)
+	return cache, err
 }
