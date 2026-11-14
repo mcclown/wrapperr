@@ -256,6 +256,8 @@ type WrapperrYearUserEntry struct {
 	// comparison with last year
 	LastRankDuration *int `json:"last_rank_duration,omitempty"`
 	LastRankPlays    *int `json:"last_rank_plays,omitempty"`
+	// Place on this list, shared with anyone tied as last year's are, to compare with them; set with them
+	Rank *int `json:"rank,omitempty"`
 }
 
 type WrapperrStatisticsReply struct {
