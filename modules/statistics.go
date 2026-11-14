@@ -576,6 +576,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 						wrapperr_user_movie[d].Plays += 1
 						wrapperr_user_movie[d].Duration += wrapperr_data[i].Data[j].Duration
 						wrapperr_user_movie[d].PausedCounter += wrapperr_data[i].Data[j].PausedCounter
+						takeNewerPlay(&wrapperr_user_movie[d], wrapperr_data[i].Data[j], false)
 
 						movie_found = true
 						break
@@ -629,6 +630,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 						wrapperr_user_show[d].Plays += 1
 						wrapperr_user_show[d].Duration += wrapperr_data[i].Data[j].Duration
 						wrapperr_user_show[d].PausedCounter += wrapperr_data[i].Data[j].PausedCounter
+						takeNewerPlay(&wrapperr_user_show[d], wrapperr_data[i].Data[j], true)
 
 						show_found = true
 						break
@@ -730,6 +732,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 						wrapperr_year_movie[d].Plays += 1
 						wrapperr_year_movie[d].Duration += wrapperr_data[i].Data[j].Duration
 						wrapperr_year_movie[d].PausedCounter += wrapperr_data[i].Data[j].PausedCounter
+						takeNewerPlay(&wrapperr_year_movie[d], wrapperr_data[i].Data[j], false)
 						addYearViewer(year_movie_viewers, d, wrapperr_data[i].Data[j].UserID)
 
 						movie_found = true
@@ -783,6 +786,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 						wrapperr_year_show[d].Plays += 1
 						wrapperr_year_show[d].Duration += wrapperr_data[i].Data[j].Duration
 						wrapperr_year_show[d].PausedCounter += wrapperr_data[i].Data[j].PausedCounter
+						takeNewerPlay(&wrapperr_year_show[d], wrapperr_data[i].Data[j], true)
 						addYearViewer(year_show_viewers, d, wrapperr_data[i].Data[j].UserID)
 
 						show_found = true
@@ -1650,6 +1654,22 @@ func mostPopular(entries []models.TautulliEntry, limit int) []models.TautulliEnt
 		ranked = ranked[:limit]
 	}
 	return ranked
+}
+
+// A title re-added to Plex gets a new rating key and the old one's poster is gone, so a list entry takes its
+// rating key and poster from the title's newest play. For a show, the show's.
+func takeNewerPlay(entry *models.TautulliEntry, play models.TautulliEntry, show bool) {
+	if play.Date <= entry.Date {
+		return
+	}
+	entry.Date = play.Date
+	if show {
+		entry.GrandparentRatingKey = play.GrandparentRatingKey
+		entry.RatingKey = play.GrandparentRatingKey
+		entry.Thumb = fmt.Sprintf("/library/metadata/%d/thumb", play.GrandparentRatingKey)
+	} else {
+		entry.RatingKey, entry.Thumb = play.RatingKey, play.Thumb
+	}
 }
 
 // Clears what a server-wide entry kept of the play it was made from: who played it and when, and for a show or
