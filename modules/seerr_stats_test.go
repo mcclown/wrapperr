@@ -212,7 +212,7 @@ func TestSeerrRequestReach(t *testing.T) {
 		seerrTestPlay(300, "carol", "movie", 11, "Movie A", "2026-02-07T20:00:00Z", 100),
 	}}
 
-	reach := SeerrRequestReach(requests, users, []models.WrapperrDay{day}, 100, start, end, 10, true, newOtherUserNamer("friendly_name"))
+	reach := SeerrRequestReach(requests, users, []models.WrapperrDay{day}, 100, start, end, 10, true, newOtherUserNamer("friendly_name"), nil)
 
 	if reach.Viewers != 3 {
 		t.Errorf("expected Alice's requests to reach 3 viewers, got %d", reach.Viewers)
@@ -273,7 +273,7 @@ func TestSeerrRequestReachHidesLeaderboardNumbers(t *testing.T) {
 		seerrTestPlay(200, "bob", "movie", 10, "Movie A", "2026-02-05T20:00:00Z", 6000),
 	}}
 
-	reach := SeerrRequestReach([]models.SeerrRequest{request}, nil, []models.WrapperrDay{day}, 200, start, end, 10, false, newOtherUserNamer("friendly_name"))
+	reach := SeerrRequestReach([]models.SeerrRequest{request}, nil, []models.WrapperrDay{day}, 200, start, end, 10, false, newOtherUserNamer("friendly_name"), nil)
 
 	for _, list := range [][]models.WrapperrRequestUser{reach.TrendsettersTitles, reach.TrendsettersPercent, reach.TrendsettersViewers} {
 		if len(list) != 1 || list[0].Viewers != 0 || list[0].TitlesWatched != 0 || list[0].TitlesWatchedPercent != 0 || list[0].TopRequest.Viewers != 0 {
@@ -320,7 +320,7 @@ func TestSeerrRequestReachCreditsSeasons(t *testing.T) {
 		episode(-1, 5),   // no season number: everyone who asked for the show
 	}}
 
-	reach := SeerrRequestReach(requests, nil, []models.WrapperrDay{day}, 300, start, end, 10, true, newOtherUserNamer("plex_username"))
+	reach := SeerrRequestReach(requests, nil, []models.WrapperrDay{day}, 300, start, end, 10, true, newOtherUserNamer("plex_username"), nil)
 
 	got := map[string]int{}
 	for _, entry := range reach.FollowingTitles {
