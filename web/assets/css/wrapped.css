@@ -684,6 +684,32 @@ hr {
     flex: 1;
 }
 
+/* Movement on a ranking since last year, beside each place */
+.rank-change {
+    min-width: 2.2em;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.rank-up {
+    color: var(--pistach);
+}
+
+.rank-down {
+    color: var(--red);
+}
+
+.rank-same {
+    opacity: 0.6;
+}
+
+.rank-new {
+    color: var(--yellow);
+    font-size: 1em;
+}
+
 /* Compared with last year */
 .compare-heading {
     margin: 1.5em 0 0.5em 0;
