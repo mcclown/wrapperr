@@ -252,6 +252,10 @@ type WrapperrYearUserEntry struct {
 	DurationShows    int    `json:"duration_shows"`
 	DurationArtists  int    `json:"duration_artists"`
 	Duration         int    `json:"duration"`
+	// Places on last year's leaderboard by time and by plays, 0 for someone new to it; left out without the
+	// comparison with last year
+	LastRankDuration *int `json:"last_rank_duration,omitempty"`
+	LastRankPlays    *int `json:"last_rank_plays,omitempty"`
 }
 
 type WrapperrStatisticsReply struct {
