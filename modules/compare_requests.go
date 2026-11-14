@@ -115,12 +115,15 @@ func lastYearRequesterRanks(requests []models.SeerrRequest, users []models.Wrapp
 	return rankUsers(counts)
 }
 
-// Places on last year's lists of the user's followers and of the requesters the user follows, by titles watched
-// and by share watched
+// Places on last year's lists: the trendsetters by titles watched, share watched and viewers reached, the user's
+// followers, and the requesters the user follows by titles watched and by share watched
 type reachRanks struct {
-	followers        map[int]int
-	followingTitles  map[int]int
-	followingPercent map[int]int
+	trendsettersTitles  map[int]int
+	trendsettersPercent map[int]int
+	trendsettersViewers map[int]int
+	followers           map[int]int
+	followingTitles     map[int]int
+	followingPercent    map[int]int
 }
 
 // One of the lists' places, nil without last year's
@@ -131,7 +134,8 @@ func (ranks *reachRanks) list(pick func(*reachRanks) map[int]int) map[int]int {
 	return pick(ranks)
 }
 
-// Ranks the user's followers and followed requesters in last year's period as this year's lists are ranked,
+// Ranks the trendsetters, the user's followers and followed requesters in last year's period as this year's lists
+// are ranked,
 // from last year's requests and plays. nil without last year's plays.
 func lastYearReachRanks(requests []models.SeerrRequest, users []models.WrapperrUser, lastYear []models.WrapperrDay, user_id int, lastConfig models.WrapperrConfig) *reachRanks {
 	if lastYear == nil {
@@ -148,5 +152,12 @@ func lastYearReachRanks(requests []models.SeerrRequest, users []models.WrapperrU
 		}
 		return ranks
 	}
-	return &reachRanks{followers: places(reach.Followers), followingTitles: places(reach.FollowingTitles), followingPercent: places(reach.FollowingPercent)}
+	return &reachRanks{
+		trendsettersTitles:  places(reach.TrendsettersTitles),
+		trendsettersPercent: places(reach.TrendsettersPercent),
+		trendsettersViewers: places(reach.TrendsettersViewers),
+		followers:           places(reach.Followers),
+		followingTitles:     places(reach.FollowingTitles),
+		followingPercent:    places(reach.FollowingPercent),
+	}
 }
