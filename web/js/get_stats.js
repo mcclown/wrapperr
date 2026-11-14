@@ -1708,19 +1708,24 @@ function load_compare() {
 
     text += "<div class='boks' data-color='mango' style='height: auto !important; width: 100%; padding-bottom: 25em; padding-top: 25em; height:10em; background-color: none;'>";
         text += "<h1>" + ReplaceStandardStrings(functions.get_year_compare_title) + "</h1>";
-        text += "<h2>" + ReplaceStandardStrings(functions.get_year_compare_subtitle.replaceAll('{this_year}', compare.server.this_year.year).replaceAll('{last_year}', compare.server.last_year.year)) + "</h2>";
-        text += compare_row(compare.user, functions.get_year_compare_you, compare.requests_compared && functions.get_user_request_stats);
-        text += compare_row(compare.server, functions.get_year_compare_everyone, compare.requests_compared && functions.get_year_stats_requests);
+        text += "<h2>" + ReplaceStandardStrings(functions.get_year_compare_subtitle.replaceAll('{this_year}', compare.user.this_year.year).replaceAll('{last_year}', compare.user.last_year.year)) + "</h2>";
+        text += compare_row(compare.user, functions.get_year_compare_you, true, compare.requests_compared && functions.get_user_request_stats);
+        var server_requests = compare.requests_compared && functions.get_year_stats_requests;
+        if(compare.server_compared || server_requests) {
+            text += compare_row(compare.server, functions.get_year_compare_everyone, compare.server_compared, server_requests);
+        }
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;
 }
 
-// The comparison cards for the viewer or for everyone, under a heading, with requests if wanted
-function compare_row(years, heading, requests) {
+// The comparison cards for the viewer or for everyone, under a heading: movies and TV, and requests, if wanted
+function compare_row(years, heading, split, requests) {
     var text = "<h3 class='compare-heading'>" + ReplaceStandardStrings(heading) + "</h3>";
     text += "<div class='boks3'>";
-        text += "<div class='boks2'>" + compare_split_card(years) + "</div>";
+        if(split) {
+            text += "<div class='boks2'>" + compare_split_card(years) + "</div>";
+        }
         if(requests && functions.get_year_compare_requests_title) {
             text += "<div class='boks2'>" + compare_requests_card(years) + "</div>";
         }
