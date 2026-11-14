@@ -8,12 +8,16 @@ import (
 	"github.com/aunefyren/wrapperr/models"
 )
 
+// Request IDs for test requests, so each is its own title unless a test gives two the same media
+var seerrTestRequestID int
+
 func seerrTestRequest(seerrID int, plexID int, plexUsername string, mediaType string, createdAt string) models.SeerrRequest {
 	created, err := time.Parse(time.RFC3339, createdAt)
 	if err != nil {
 		panic(err)
 	}
-	request := models.SeerrRequest{CreatedAt: created}
+	seerrTestRequestID++
+	request := models.SeerrRequest{ID: seerrTestRequestID, CreatedAt: created}
 	request.Media.MediaType = mediaType
 	request.RequestedBy.ID = seerrID
 	request.RequestedBy.DisplayName = plexUsername
@@ -134,5 +138,40 @@ func TestOtherUserNamerIsConsistent(t *testing.T) {
 	}
 	if managed != "Managed user" {
 		t.Errorf("expected managed user name, got %q", managed)
+	}
+}
+
+func TestSeerrRequestStatisticsCountsTitlesOnce(t *testing.T) {
+	originalLocal := time.Local
+	time.Local = time.UTC
+	defer func() { time.Local = originalLocal }()
+
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 12, 31, 23, 59, 59, 0, time.UTC)
+	title := func(request models.SeerrRequest, mediaID int) models.SeerrRequest {
+		request.Media.ID = mediaID
+		return request
+	}
+	requests := []models.SeerrRequest{
+		// alice asks for a show's next season in March, having first asked for it in January
+		title(seerrTestRequest(1, 100, "alice", "tv", "2026-03-01T12:00:00Z"), 10),
+		title(seerrTestRequest(1, 100, "alice", "tv", "2026-01-05T12:00:00Z"), 10),
+		title(seerrTestRequest(1, 100, "alice", "movie", "2026-02-01T12:00:00Z"), 20),
+		// bob asks for the same show: once for him, but not again for everyone
+		title(seerrTestRequest(2, 200, "bob", "tv", "2026-04-01T12:00:00Z"), 10),
+	}
+
+	user, year := SeerrRequestStatistics(requests, nil, 100, start, end, 10, true, newOtherUserNamer("plex_username"))
+	if user.Data.RequestCount != 2 || user.Data.ShowRequestCount != 1 || user.Data.MovieRequestCount != 1 {
+		t.Errorf("alice got %d requests (%d shows, %d films), want 2 (1 and 1)", user.Data.RequestCount, user.Data.ShowRequestCount, user.Data.MovieRequestCount)
+	}
+	if user.Data.Timeline[0].Requests != 1 || user.Data.Timeline[2].Requests != 0 {
+		t.Errorf("expected alice's show counted in January only, got %+v", user.Data.Timeline)
+	}
+	if year.Data.RequestCount != 2 {
+		t.Errorf("everyone got %d requests, want 2 titles", year.Data.RequestCount)
+	}
+	if len(year.Data.Requesters) != 2 || year.Data.Requesters[1].User != "bob" || year.Data.Requesters[1].Requests != 1 {
+		t.Errorf("expected bob with 1 request, got %+v", year.Data.Requesters)
 	}
 }
