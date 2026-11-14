@@ -355,7 +355,7 @@ func TestSeerrRequestStatisticsCountsTitlesOnce(t *testing.T) {
 		title(seerrTestRequest(2, 200, "bob", "tv", "2026-04-01T12:00:00Z"), 10),
 	}
 
-	user, year := SeerrRequestStatistics(requests, nil, 100, start, end, 10, true, newOtherUserNamer("plex_username"))
+	user, year := SeerrRequestStatistics(requests, nil, 100, start, end, 10, true, newOtherUserNamer("plex_username"), nil)
 	if user.Data.RequestCount != 2 || user.Data.ShowRequestCount != 1 || user.Data.MovieRequestCount != 1 {
 		t.Errorf("alice got %d requests (%d shows, %d films), want 2 (1 and 1)", user.Data.RequestCount, user.Data.ShowRequestCount, user.Data.MovieRequestCount)
 	}
