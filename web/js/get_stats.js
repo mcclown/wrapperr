@@ -1710,7 +1710,7 @@ function load_compare() {
         text += "<h1>" + ReplaceStandardStrings(functions.get_year_compare_title) + "</h1>";
         text += "<h2>" + ReplaceStandardStrings(functions.get_year_compare_subtitle.replaceAll('{this_year}', compare.user.this_year.year).replaceAll('{last_year}', compare.user.last_year.year)) + "</h2>";
         text += compare_row(compare.user, functions.get_year_compare_you, true, compare.requests_compared && functions.get_user_request_stats);
-        var server_requests = compare.requests_compared && functions.get_year_stats_requests;
+        var server_requests = compare.requests_compared && functions.get_year_stats_requests && functions.get_year_compare_requests_title;
         if(compare.server_compared || server_requests) {
             text += compare_row(compare.server, functions.get_year_compare_everyone, compare.server_compared, server_requests);
         }
