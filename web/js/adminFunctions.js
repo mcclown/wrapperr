@@ -295,6 +295,7 @@ function get_config(cookie) {
                 get_user_request_stats_subtitle_none = result.data.wrapperr_customize.get_user_request_stats_subtitle_none;
                 get_user_request_stats_timeline_title = result.data.wrapperr_customize.get_user_request_stats_timeline_title;
                 get_year_stats_requests_title = result.data.wrapperr_customize.get_year_stats_requests_title;
+                get_year_stats_requests_heroes = result.data.wrapperr_customize.get_year_stats_requests_heroes;
                 get_year_stats_requests_total_title = result.data.wrapperr_customize.get_year_stats_requests_total_title;
                 get_year_stats_requests_timeline_title = result.data.wrapperr_customize.get_year_stats_requests_timeline_title;
                 get_user_request_stats_followers = result.data.wrapperr_customize.get_user_request_stats_followers;
@@ -323,6 +324,7 @@ function get_config(cookie) {
                 wrapperr_sort_duration = result.data.wrapperr_customize.wrapperr_sort_duration;
                 wrapperr_sort_titles = result.data.wrapperr_customize.wrapperr_sort_titles;
                 wrapperr_sort_percent = result.data.wrapperr_customize.wrapperr_sort_percent;
+                wrapperr_sort_viewers = result.data.wrapperr_customize.wrapperr_sort_viewers;
                 wrapperr_viewer = result.data.wrapperr_customize.wrapperr_viewer;
                 wrapperr_viewer_plural = result.data.wrapperr_customize.wrapperr_viewer_plural;
                 wrapperr_request_top_hit = result.data.wrapperr_customize.wrapperr_request_top_hit;

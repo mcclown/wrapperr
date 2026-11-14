@@ -1321,6 +1321,14 @@ function year_requests_html() {
     var year_requests = results.year_stats.year_requests;
     var text = "";
 
+    if(functions.get_year_stats_requests_heroes) {
+        text += "<div class='boks3'>";
+            text += "<div class='status request-heroes'>";
+                text += "<div class='stats'>" + ReplaceStandardStrings(functions.get_year_stats_requests_heroes) + "</div>";
+            text += "</div>";
+        text += "</div>";
+    }
+
     text += "<div class='boks3'>";
         text += "<div class='boks2'>";
             text += top_list_requesters(year_requests.data.requesters, functions.get_year_stats_requests_title, 'year_stats_year_requests', 'requests');
@@ -1338,7 +1346,7 @@ function year_requests_html() {
 
         if(functions.get_year_stats_requests_trendsetters && year_requests.data.trendsetters_titles && year_requests.data.trendsetters_titles.length > 0) {
             text += "<div class='boks2 boks2-wide'>";
-                text += top_list_requesters_sortable(year_requests.data.trendsetters_titles, year_requests.data.trendsetters_percent, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters', 'trendsetters');
+                text += top_list_requesters_sortable(year_requests.data.trendsetters_titles, year_requests.data.trendsetters_percent, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters', 'trendsetters', year_requests.data.trendsetters_viewers);
             text += "</div>";
         }
     text += "</div>";
@@ -1359,30 +1367,47 @@ function has_request_poster(title) {
     return functions.enable_posters && title && title.thumb && title.rating_key && title.tautulli_server_hash;
 }
 
-// Requester lists that can be ordered by titles watched or by percentage watched, by list ID
+// Requester lists that can be reordered, by list ID
 var request_lists = {};
 
-// A requester list with a button to switch between ordering by titles watched and by percentage watched
-function top_list_requesters_sortable(array_titles, array_percent, title, div_id, kind) {
-    var by_titles = functions.stats_order_requests_by_titles !== false;
-    var by_percent = functions.stats_order_requests_by_percent !== false && array_percent;
-    var list = {titles: array_titles, percent: array_percent, title: title, kind: kind, order: (by_titles || !by_percent) ? 'titles' : 'percent'};
+// The button text for switching a requester list to an order
+function request_sort_label(order) {
+    return {titles: functions.wrapperr_sort_titles, percent: functions.wrapperr_sort_percent, viewers: functions.wrapperr_sort_viewers || 'Sort by viewers reached'}[order];
+}
+
+// A requester list with a button that steps through its orders: by titles watched, by percentage watched and,
+// for trendsetters, by viewers reached
+function top_list_requesters_sortable(array_titles, array_percent, title, div_id, kind, array_viewers) {
+    var orders = [];
+    if(functions.stats_order_requests_by_titles !== false) {
+        orders.push('titles');
+    }
+    if(functions.stats_order_requests_by_percent !== false && array_percent) {
+        orders.push('percent');
+    }
+    if(array_viewers && array_viewers.length > 0) {
+        orders.push('viewers');
+    }
+    if(orders.length == 0) {
+        orders.push('titles');
+    }
+    var list = {titles: array_titles, percent: array_percent, viewers: array_viewers, title: title, kind: kind, orders: orders, order: 0};
     request_lists[div_id] = list;
 
     var html = "";
-    if(by_titles && by_percent) {
-        html += '<button class="form-control btn" style="margin: 0.5em auto; width: fit-content;" name="' + div_id + '_button" id="' + div_id + '_button" onclick="top_list_requesters_sort_by(\'' + div_id + '\');"><img src="assets/tweak.svg" class="btn_logo"><p2 id="' + div_id + '_button_text">' + functions.wrapperr_sort_percent + '</p2></button>';
+    if(orders.length > 1) {
+        html += '<button class="form-control btn" style="margin: 0.5em auto; width: fit-content;" name="' + div_id + '_button" id="' + div_id + '_button" onclick="top_list_requesters_sort_by(\'' + div_id + '\');"><img src="assets/tweak.svg" class="btn_logo"><p2 id="' + div_id + '_button_text">' + request_sort_label(orders[1]) + '</p2></button>';
     }
-    html += top_list_requesters(list[list.order], title, div_id, kind);
+    html += top_list_requesters(list[orders[0]], title, div_id, kind);
     return html;
 }
 
-// Toggle a requester list between ordering by titles watched and by percentage watched
+// Switch a requester list to its next order
 function top_list_requesters_sort_by(div_id) {
     var list = request_lists[div_id];
-    list.order = list.order === 'titles' ? 'percent' : 'titles';
-    document.getElementById(div_id).outerHTML = top_list_requesters(list[list.order], list.title, div_id, list.kind);
-    document.getElementById(div_id + '_button_text').innerHTML = list.order === 'titles' ? functions.wrapperr_sort_percent : functions.wrapperr_sort_titles;
+    list.order = (list.order + 1) % list.orders.length;
+    document.getElementById(div_id).outerHTML = top_list_requesters(list[list.orders[list.order]], list.title, div_id, list.kind);
+    document.getElementById(div_id + '_button_text').innerHTML = request_sort_label(list.orders[(list.order + 1) % list.orders.length]);
 }
 
 // Lists requesters or viewers. kind is 'requests' (a request count), or 'trendsetters', 'following' or
