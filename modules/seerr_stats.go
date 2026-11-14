@@ -73,6 +73,7 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr
 		if wantTrendsetters {
 			yearRequests.Data.TrendsettersTitles = reach.TrendsettersTitles
 			yearRequests.Data.TrendsettersPercent = reach.TrendsettersPercent
+			yearRequests.Data.TrendsettersViewers = reach.TrendsettersViewers
 		}
 	}
 
@@ -185,6 +186,7 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 	userRequests.Data.FollowingPercent = []models.WrapperrRequestUser{}
 	yearRequests.Data.TrendsettersTitles = []models.WrapperrRequestUser{}
 	yearRequests.Data.TrendsettersPercent = []models.WrapperrRequestUser{}
+	yearRequests.Data.TrendsettersViewers = []models.WrapperrRequestUser{}
 
 	userRequests.Message = "Requests processed."
 	yearRequests.Message = "Requests processed."
@@ -202,9 +204,11 @@ type SeerrReach struct {
 	FollowingTitles  []models.WrapperrRequestUser
 	FollowingPercent []models.WrapperrRequestUser
 	// Requesters ranked by how many of their requests were watched by others,
-	// by number of titles and by share of their requests
+	// by number of titles and by share of their requests, and by how many
+	// people watched them
 	TrendsettersTitles  []models.WrapperrRequestUser
 	TrendsettersPercent []models.WrapperrRequestUser
+	TrendsettersViewers []models.WrapperrRequestUser
 }
 
 // Tracks the requested titles one user watched, with time spent on each
@@ -368,8 +372,9 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 			reach.TopRequest = top
 		}
 	}
-	reach.TrendsettersTitles = topRequestUsers(sortRequestUsers(trendsetters, false), topListLimit, user_id, namer, !showNumbers)
-	reach.TrendsettersPercent = topRequestUsers(sortRequestUsers(trendsetters, true), topListLimit, user_id, namer, !showNumbers)
+	reach.TrendsettersTitles = topRequestUsers(sortRequestUsers(trendsetters, byTitles), topListLimit, user_id, namer, !showNumbers)
+	reach.TrendsettersPercent = topRequestUsers(sortRequestUsers(trendsetters, byPercent), topListLimit, user_id, namer, !showNumbers)
+	reach.TrendsettersViewers = topRequestUsers(sortRequestUsers(trendsetters, byViewers), topListLimit, user_id, namer, !showNumbers)
 
 	// Followers of the current user
 	fans := []models.WrapperrRequestUser{}
@@ -379,7 +384,7 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 		setTitlesWatched(&entry, len(fan.titles), len(requestedTitles[user_id]))
 		fans = append(fans, entry)
 	}
-	reach.Followers = topRequestUsers(sortRequestUsers(fans, false), topListLimit, user_id, namer, false)
+	reach.Followers = topRequestUsers(sortRequestUsers(fans, byTitles), topListLimit, user_id, namer, false)
 
 	// Requesters the current user follows, with the request the user spent the most time on
 	idols := []models.WrapperrRequestUser{}
@@ -396,8 +401,8 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 		}
 		idols = append(idols, entry)
 	}
-	reach.FollowingTitles = topRequestUsers(sortRequestUsers(idols, false), topListLimit, user_id, namer, false)
-	reach.FollowingPercent = topRequestUsers(sortRequestUsers(idols, true), topListLimit, user_id, namer, false)
+	reach.FollowingTitles = topRequestUsers(sortRequestUsers(idols, byTitles), topListLimit, user_id, namer, false)
+	reach.FollowingPercent = topRequestUsers(sortRequestUsers(idols, byPercent), topListLimit, user_id, namer, false)
 
 	return reach
 }
@@ -472,13 +477,25 @@ func setTitlesWatched(entry *models.WrapperrRequestUser, watched int, requested 
 	}
 }
 
+// How a requester list is ranked first; ties go to titles watched, then viewers, then time
+type requestOrder int
+
+const (
+	byTitles requestOrder = iota
+	byPercent
+	byViewers
+)
+
 // Returns a copy ranked by titles watched, or by share of titles watched first
-func sortRequestUsers(list []models.WrapperrRequestUser, byPercent bool) []models.WrapperrRequestUser {
+func sortRequestUsers(list []models.WrapperrRequestUser, order requestOrder) []models.WrapperrRequestUser {
 	sorted := append([]models.WrapperrRequestUser{}, list...)
 	sort.Slice(sorted, func(i, j int) bool {
 		a, b := sorted[i], sorted[j]
-		if byPercent && a.TitlesWatchedPercent != b.TitlesWatchedPercent {
+		if order == byPercent && a.TitlesWatchedPercent != b.TitlesWatchedPercent {
 			return a.TitlesWatchedPercent > b.TitlesWatchedPercent
+		}
+		if order == byViewers && a.Viewers != b.Viewers {
+			return a.Viewers > b.Viewers
 		}
 		if a.TitlesWatched != b.TitlesWatched {
 			return a.TitlesWatched > b.TitlesWatched
