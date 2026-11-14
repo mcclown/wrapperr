@@ -1169,7 +1169,7 @@ function top_list_names(array, title, div_id) {
                         html += i+1 + ". ";
                     html += "</div>";
 
-                    html += rank_change(array === results.year_stats.year_users.data.users_plays ? array[i].last_rank_plays : array[i].last_rank_duration, i + 1);
+                    html += rank_change(array === results.year_stats.year_users.data.users_plays ? array[i].last_rank_plays : array[i].last_rank_duration, array[i].rank || i + 1);
  
                     html += "<div class='name'>";
                     

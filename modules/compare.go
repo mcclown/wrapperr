@@ -208,6 +208,27 @@ func rankUsers(totals map[int]int) map[int]int {
 	return ranks
 }
 
+// Gives a ranked leaderboard list its places this year, ties shared as last year's are, so a tie is not a move;
+// value is what the list is ranked by
+func (ranks *leaderboardRanks) place(list []models.WrapperrYearUserEntry, value func(int) int) {
+	if ranks == nil {
+		return
+	}
+	for index := range list {
+		place := sharedPlace(index, value)
+		list[index].Rank = &place
+	}
+}
+
+// The place of the entry at index in a list ranked by value, highest first, shared with those tied (1, 1, 3)
+func sharedPlace(index int, value func(int) int) int {
+	place := index + 1
+	for place > 1 && value(place-2) == value(index) {
+		place--
+	}
+	return place
+}
+
 // Gives a leaderboard entry its places last year, 0 for someone not on it
 func (ranks *leaderboardRanks) set(entry *models.WrapperrYearUserEntry) {
 	if ranks == nil {
