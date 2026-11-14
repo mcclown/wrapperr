@@ -757,6 +757,7 @@ hr {
 /* Movement on a ranking since last year, beside each place */
 .rank-change {
     min-width: 2.2em;
+    margin-right: 0.4em;
     font-size: 0.8em;
     font-weight: bold;
     text-align: center;
@@ -782,11 +783,16 @@ hr {
     min-width: 1.76em;
 }
 
-/* A dark backing on the medal rows, where the colours are hard to read */
+/* A solid dark backing on the medal rows, where the colours are hard to read */
 .gold .rank-change, .silver .rank-change, .bronze .rank-change {
-    background-color: rgba(0, 0, 0, 0.45);
+    background-color: var(--black);
     border-radius: 0.4em;
-    padding: 0.1em 0;
+    padding: 0.15em 0;
+}
+
+.gold .rank-same, .silver .rank-same, .bronze .rank-same {
+    opacity: 1;
+    color: #a0a0a0;
 }
 
 /* Compared with last year */
