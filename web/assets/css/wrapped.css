@@ -700,6 +700,10 @@ hr {
     width: 60em;
 }
 
+.stats-list.request-list {
+    max-height: none;
+}
+
 .stats-list .item.request-item {
     max-height: none;
     align-items: flex-start;
