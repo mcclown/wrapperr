@@ -115,6 +115,8 @@ type WrapperrCustomize struct {
 	GetYearCompareMovies                        string `json:"get_year_compare_movies"`
 	GetYearCompareShows                         string `json:"get_year_compare_shows"`
 	GetYearCompareNone                          string `json:"get_year_compare_none"`
+	GetYearCompareRequestsTitle                 string `json:"get_year_compare_requests_title"`
+	GetYearCompareRequestsLine                  string `json:"get_year_compare_requests_line"`
 	GetYearStatsLeaderboardTitle                string `json:"get_year_stats_leaderboard_title"`
 	GetYearStatsMoviesDurationTitle             string `json:"get_year_stats_movies_duration_title"`
 	GetYearStatsShowsDurationTitle              string `json:"get_year_stats_shows_duration_title"`
@@ -302,6 +304,8 @@ type WrapperrStatisticsReply struct {
 		Data struct {
 			User   WrapperrCompareYears `json:"user"`
 			Server WrapperrCompareYears `json:"server"`
+			// Whether the years' requests are in
+			RequestsCompared bool `json:"requests_compared"`
 		} `json:"data"`
 		Message string `json:"message"`
 		Error   bool   `json:"error"`
@@ -321,6 +325,9 @@ type WrapperrCompareYear struct {
 	MoviePlays    int `json:"movie_plays"`
 	ShowDuration  int `json:"show_duration"`
 	ShowPlays     int `json:"show_plays"`
+	// Titles requested in the year, and those then watched in it
+	Requests        int `json:"requests"`
+	RequestsWatched int `json:"requests_watched"`
 }
 
 type WrapperrStatisticsUser struct {

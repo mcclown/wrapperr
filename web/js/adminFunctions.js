@@ -295,6 +295,8 @@ function get_config(cookie) {
                 get_year_compare_movies = result.data.wrapperr_customize.get_year_compare_movies;
                 get_year_compare_shows = result.data.wrapperr_customize.get_year_compare_shows;
                 get_year_compare_none = result.data.wrapperr_customize.get_year_compare_none;
+                get_year_compare_requests_title = result.data.wrapperr_customize.get_year_compare_requests_title;
+                get_year_compare_requests_line = result.data.wrapperr_customize.get_year_compare_requests_line;
                 get_year_stats_duration_sum_title = result.data.wrapperr_customize.get_year_stats_duration_sum_title;
                 get_user_request_stats = result.data.wrapperr_customize.get_user_request_stats;
                 get_year_stats_requests = result.data.wrapperr_customize.get_year_stats_requests;

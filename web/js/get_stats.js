@@ -1690,20 +1690,55 @@ function load_compare() {
     text += "<div class='boks' data-color='mango' style='height: auto !important; width: 100%; padding-bottom: 25em; padding-top: 25em; height:10em; background-color: none;'>";
         text += "<h1>" + ReplaceStandardStrings(functions.get_year_compare_title) + "</h1>";
         text += "<h2>" + ReplaceStandardStrings(functions.get_year_compare_subtitle.replaceAll('{this_year}', compare.server.this_year.year).replaceAll('{last_year}', compare.server.last_year.year)) + "</h2>";
-        text += compare_row(compare.user, functions.get_year_compare_you);
-        text += compare_row(compare.server, functions.get_year_compare_everyone);
+        text += compare_row(compare.user, functions.get_year_compare_you, compare.requests_compared && functions.get_user_request_stats);
+        text += compare_row(compare.server, functions.get_year_compare_everyone, compare.requests_compared && functions.get_year_stats_requests);
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;
 }
 
-// The comparison cards for the viewer or for everyone, under a heading
-function compare_row(years, heading) {
+// The comparison cards for the viewer or for everyone, under a heading, with requests if wanted
+function compare_row(years, heading, requests) {
     var text = "<h3 class='compare-heading'>" + ReplaceStandardStrings(heading) + "</h3>";
     text += "<div class='boks3'>";
         text += "<div class='boks2'>" + compare_split_card(years) + "</div>";
+        if(requests && functions.get_year_compare_requests_title) {
+            text += "<div class='boks2'>" + compare_requests_card(years) + "</div>";
+        }
     text += "</div>";
     return text;
+}
+
+// The titles requested each year and the share of them watched, and how the number requested changed
+function compare_requests_card(years) {
+    var html = "<div class='status'>";
+        html += "<div class='stats'>";
+            html += "<div class='compare-title'>" + ReplaceStandardStrings(functions.get_year_compare_requests_title) + "</div>";
+            [years.last_year, years.this_year].forEach(function(year) {
+                var share = year.requests > 0 ? Math.round(year.requests_watched / year.requests * 100) : 0;
+                html += "<div class='compare-year'>";
+                    html += "<div class='compare-year-label'>" + year.year + "</div>";
+                    html += "<div class='compare-requests'>";
+                        html += "<div>" + ReplaceStandardStrings(functions.get_year_compare_requests_line.replaceAll('{requests}', '<b>' + number_with_spaces(year.requests) + '</b>').replaceAll('{watched}', '<b>' + number_with_spaces(year.requests_watched) + '</b>')) + "</div>";
+                        if(year.requests > 0) {
+                            html += "<div class='request-share'><div class='request-bar'><div style='width:" + share + "%'></div></div><b>" + share + "%</b></div>";
+                        }
+                    html += "</div>";
+                html += "</div>";
+            });
+            html += compare_count_change(years.last_year.year, years.last_year.requests, years.this_year.requests);
+        html += "</div>";
+    html += "</div>";
+    return html;
+}
+
+// The change in a count from last year, as an arrow and a percentage
+function compare_count_change(last_year, last, now) {
+    if(last == 0) {
+        return "";
+    }
+    var change = Math.round((now - last) / last * 100);
+    return "<div class='compare-change'><span class='" + (change >= 0 ? "compare-up" : "compare-down") + "'>" + (change >= 0 ? "&#9650; " : "&#9660; ") + number_with_spaces(Math.abs(change)) + "%</span> <span class='compare-was'>(" + last_year + ": " + number_with_spaces(last) + ")</span></div>";
 }
 
 // How viewing split between movies and TV in each year, and how much each changed
