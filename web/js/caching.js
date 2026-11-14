@@ -31,6 +31,9 @@ function loadAdminPage() {
 					The loop used on this page ensures the cache is saved after a certain amount of days are downloaded. If the value below is set to 50, it will save the cache for every 50 days downloaded.
 					<br>
 					<br>
+					The comparison with last year needs last year's plays, the same dates a year earlier. Tick the box below to cache those instead. They only need caching once.
+					<br>
+					<br>
 				</p>
 			</div>
 
@@ -45,6 +48,13 @@ function loadAdminPage() {
 
                 <label for="days" title="">Days between safety-save of cache:</label>
                 <input type="number" class='form-control' name="days" id="days" min='` + min_day_length + `' value='50' autocomplete="off" required />
+
+            </div>
+
+            <div class='form-group newline'>
+
+                <label for="last_year" title="Caches last year's plays, for the comparison with last year, instead of this year's.">Cache last year instead (for the comparison with last year):</label>
+                <input type="checkbox" class='form-control' name="last_year" id="last_year" />
 
             </div>
 
@@ -81,9 +91,13 @@ function add_to_cache_log(log_message, state, color) {
 
 }
 
+// Whether the caching request is for last year's plays
+var cache_last_year = false;
+
 function cache_initiate() {
 
     var days = parseInt(document.getElementById('days').value);
+    cache_last_year = document.getElementById('last_year').checked;
 
     var html = `
         <form id='stats_form' class='form' onsubmit='return false' action="" method="post">
@@ -111,7 +125,7 @@ function cache_initiate() {
 
     document.getElementById('cache').innerHTML = html;
 	
-    add_to_cache_log('Creating new cache request. Maximum ' + days + ' days.')
+    add_to_cache_log('Creating new cache request' + (cache_last_year ? ' for last year' : '') + '. Maximum ' + days + ' days.')
 
     get_stats(days);
 }
@@ -147,7 +161,8 @@ function get_stats(days) {
 
     stats_form = {
 						"caching" : true,
-						"cache_limit" : days
+						"cache_limit" : days,
+						"last_year" : cache_last_year
                    };
 
     var stats_data = JSON.stringify(stats_form);

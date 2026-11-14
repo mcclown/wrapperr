@@ -319,12 +319,6 @@ func ApiWrapperCacheStatistics(context *gin.Context) {
 		return
 	}
 
-	if !config.UseCache {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Caching is not enabled, so a cache request is useless."})
-		context.Abort()
-		return
-	}
-
 	// Check connection to every Tautulli server
 	for i := 0; i < len(config.TautulliConfig); i++ {
 		log.Println("Checking Tautulli server '" + config.TautulliConfig[i].TautulliName + "'.")
@@ -358,6 +352,25 @@ func ApiWrapperCacheStatistics(context *gin.Context) {
 
 	if cachingRequest.CacheLimit < 1 {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Chache limit too low."})
+		context.Abort()
+		return
+	}
+
+	// Last year's plays are always kept on disk, for the comparison with last year
+	if cachingRequest.LastYear {
+		complete, err := modules.CacheLastYear(config, cachingRequest.CacheLimit)
+		if err != nil {
+			log.Println("Failed to cache last year. Error: " + err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cache last year."})
+			context.Abort()
+			return
+		}
+		context.JSON(http.StatusOK, gin.H{"message": "Completed caching request.", "error": false, "data": complete})
+		return
+	}
+
+	if !config.UseCache {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Caching is not enabled, so a cache request is useless."})
 		context.Abort()
 		return
 	}

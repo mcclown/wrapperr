@@ -106,6 +106,15 @@ type WrapperrCustomize struct {
 	GetYearStatsMusicTitle                      string `json:"get_year_stats_music_title"`
 	GetYearStatsLeaderboard                     bool   `json:"get_year_stats_leaderboard"`
 	GetYearStatsLeaderboardNumbers              bool   `json:"get_year_stats_leaderboard_numbers"`
+	GetYearCompare                              bool   `json:"get_year_compare"`
+	GetYearCompareTitle                         string `json:"get_year_compare_title"`
+	GetYearCompareSubtitle                      string `json:"get_year_compare_subtitle"`
+	GetYearCompareYou                           string `json:"get_year_compare_you"`
+	GetYearCompareEveryone                      string `json:"get_year_compare_everyone"`
+	GetYearCompareSplitTitle                    string `json:"get_year_compare_split_title"`
+	GetYearCompareMovies                        string `json:"get_year_compare_movies"`
+	GetYearCompareShows                         string `json:"get_year_compare_shows"`
+	GetYearCompareNone                          string `json:"get_year_compare_none"`
 	GetYearStatsLeaderboardTitle                string `json:"get_year_stats_leaderboard_title"`
 	GetYearStatsMoviesDurationTitle             string `json:"get_year_stats_movies_duration_title"`
 	GetYearStatsShowsDurationTitle              string `json:"get_year_stats_shows_duration_title"`
@@ -183,6 +192,8 @@ type SearchWrapperrRequest struct {
 
 type CacheWrapperrRequest struct {
 	CacheLimit int `json:"cache_limit"`
+	// Cache last year's plays, for the comparison with last year, instead of this year's
+	LastYear bool `json:"last_year"`
 }
 
 type WrapperrDay struct {
@@ -254,6 +265,29 @@ type WrapperrStatisticsReply struct {
 			Error   bool   `json:"error"`
 		} `json:"year_users"`
 	} `json:"year_stats"`
+	YearCompare struct {
+		Data struct {
+			User   WrapperrCompareYears `json:"user"`
+			Server WrapperrCompareYears `json:"server"`
+		} `json:"data"`
+		Message string `json:"message"`
+		Error   bool   `json:"error"`
+	} `json:"year_compare"`
+}
+
+// This year and last year, for the user or for the whole server
+type WrapperrCompareYears struct {
+	ThisYear WrapperrCompareYear `json:"this_year"`
+	LastYear WrapperrCompareYear `json:"last_year"`
+}
+
+// The movies and TV played in one year
+type WrapperrCompareYear struct {
+	Year          int `json:"year"`
+	MovieDuration int `json:"movie_duration"`
+	MoviePlays    int `json:"movie_plays"`
+	ShowDuration  int `json:"show_duration"`
+	ShowPlays     int `json:"show_plays"`
 }
 
 type WrapperrStatisticsUser struct {

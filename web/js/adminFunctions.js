@@ -285,6 +285,15 @@ function get_config(cookie) {
                 get_year_stats_leaderboard = result.data.wrapperr_customize.get_year_stats_leaderboard;
                 get_year_stats_leaderboard_numbers = result.data.wrapperr_customize.get_year_stats_leaderboard_numbers;
                 get_year_stats_leaderboard_title = result.data.wrapperr_customize.get_year_stats_leaderboard_title;
+                get_year_compare = result.data.wrapperr_customize.get_year_compare;
+                get_year_compare_title = result.data.wrapperr_customize.get_year_compare_title;
+                get_year_compare_subtitle = result.data.wrapperr_customize.get_year_compare_subtitle;
+                get_year_compare_you = result.data.wrapperr_customize.get_year_compare_you;
+                get_year_compare_everyone = result.data.wrapperr_customize.get_year_compare_everyone;
+                get_year_compare_split_title = result.data.wrapperr_customize.get_year_compare_split_title;
+                get_year_compare_movies = result.data.wrapperr_customize.get_year_compare_movies;
+                get_year_compare_shows = result.data.wrapperr_customize.get_year_compare_shows;
+                get_year_compare_none = result.data.wrapperr_customize.get_year_compare_none;
                 get_year_stats_duration_sum_title = result.data.wrapperr_customize.get_year_stats_duration_sum_title;
                 
                 wrapperr_and = result.data.wrapperr_customize.wrapperr_and;
