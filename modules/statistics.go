@@ -543,6 +543,9 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 	var wrapperr_year_user []models.WrapperrYearUserEntry
 	var wrapperr_year_movie []models.TautulliEntry
 	var wrapperr_year_show []models.TautulliEntry
+	// Who watched each server-wide movie and show, by its place in the lists above
+	year_movie_viewers := map[int]map[int]bool{}
+	year_show_viewers := map[int]map[int]bool{}
 	var wrapperr_year_artist []models.TautulliEntry
 
 	for i := 0; i < len(wrapperr_data); i++ {
@@ -573,6 +576,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 						wrapperr_user_movie[d].Plays += 1
 						wrapperr_user_movie[d].Duration += wrapperr_data[i].Data[j].Duration
 						wrapperr_user_movie[d].PausedCounter += wrapperr_data[i].Data[j].PausedCounter
+						takeNewerPlay(&wrapperr_user_movie[d], wrapperr_data[i].Data[j], false)
 
 						movie_found = true
 						break
@@ -626,6 +630,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 						wrapperr_user_show[d].Plays += 1
 						wrapperr_user_show[d].Duration += wrapperr_data[i].Data[j].Duration
 						wrapperr_user_show[d].PausedCounter += wrapperr_data[i].Data[j].PausedCounter
+						takeNewerPlay(&wrapperr_user_show[d], wrapperr_data[i].Data[j], true)
 
 						show_found = true
 						break
@@ -727,6 +732,8 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 						wrapperr_year_movie[d].Plays += 1
 						wrapperr_year_movie[d].Duration += wrapperr_data[i].Data[j].Duration
 						wrapperr_year_movie[d].PausedCounter += wrapperr_data[i].Data[j].PausedCounter
+						takeNewerPlay(&wrapperr_year_movie[d], wrapperr_data[i].Data[j], false)
+						addYearViewer(year_movie_viewers, d, wrapperr_data[i].Data[j].UserID)
 
 						movie_found = true
 						break
@@ -737,6 +744,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 				if !movie_found {
 					wrapperr_data[i].Data[j].Plays = 1
 					wrapperr_year_movie = append(wrapperr_year_movie, wrapperr_data[i].Data[j])
+					addYearViewer(year_movie_viewers, len(wrapperr_year_movie)-1, wrapperr_data[i].Data[j].UserID)
 				}
 
 				// Look for user within pre-defined array
@@ -778,6 +786,8 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 						wrapperr_year_show[d].Plays += 1
 						wrapperr_year_show[d].Duration += wrapperr_data[i].Data[j].Duration
 						wrapperr_year_show[d].PausedCounter += wrapperr_data[i].Data[j].PausedCounter
+						takeNewerPlay(&wrapperr_year_show[d], wrapperr_data[i].Data[j], true)
+						addYearViewer(year_show_viewers, d, wrapperr_data[i].Data[j].UserID)
 
 						show_found = true
 						break
@@ -794,6 +804,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 					// Update thumb path to point to show instead of episode/season
 					showEntry.Thumb = fmt.Sprintf("/library/metadata/%d/thumb", showEntry.GrandparentRatingKey)
 					wrapperr_year_show = append(wrapperr_year_show, showEntry)
+					addYearViewer(year_show_viewers, len(wrapperr_year_show)-1, wrapperr_data[i].Data[j].UserID)
 				}
 
 				// Look for user within pre-defined array
@@ -1145,6 +1156,24 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 		wrapperr_reply.User.UserMusic.Message = "No tracks processed."
 	}
 
+	for index, viewers := range year_movie_viewers {
+		wrapperr_year_movie[index].Viewers = len(viewers)
+	}
+	for index, viewers := range year_show_viewers {
+		wrapperr_year_show[index].Viewers = len(viewers)
+	}
+
+	// Each server-wide title is a copy of its first play: keep the title, not who played what, when
+	for index := range wrapperr_year_movie {
+		forgetYearPlay(&wrapperr_year_movie[index], false)
+	}
+	for index := range wrapperr_year_show {
+		forgetYearPlay(&wrapperr_year_show[index], true)
+	}
+	for index := range wrapperr_year_artist {
+		forgetYearPlay(&wrapperr_year_artist[index], true)
+	}
+
 	// Format reply for universal movie details
 	if config.WrapperrCustomize.GetYearStatsMovies && len(wrapperr_year_movie) > 0 {
 
@@ -1170,6 +1199,8 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 			count += 1
 		}
 
+		wrapperr_reply.YearStats.YearMovies.Data.MoviesViewers = mostPopular(wrapperr_year_movie, top_list_limit)
+
 		// Find duration sum and play sum
 		movie_duration_sum := 0
 		movie_play_sum := 0
@@ -1185,6 +1216,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 	} else {
 		wrapperr_reply.YearStats.YearMovies.Data.MoviesDuration = []models.TautulliEntry{}
 		wrapperr_reply.YearStats.YearMovies.Data.MoviesPlays = []models.TautulliEntry{}
+		wrapperr_reply.YearStats.YearMovies.Data.MoviesViewers = []models.TautulliEntry{}
 
 		wrapperr_reply.YearStats.YearMovies.Message = "No movies processed."
 	}
@@ -1214,6 +1246,8 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 			count += 1
 		}
 
+		wrapperr_reply.YearStats.YearShows.Data.ShowsViewers = mostPopular(wrapperr_year_show, top_list_limit)
+
 		// Find duration sum and play sum
 		show_duration_sum := 0
 		show_play_sum := 0
@@ -1229,6 +1263,7 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 	} else {
 		wrapperr_reply.YearStats.YearShows.Data.ShowsDuration = []models.TautulliEntry{}
 		wrapperr_reply.YearStats.YearShows.Data.ShowsPlays = []models.TautulliEntry{}
+		wrapperr_reply.YearStats.YearShows.Data.ShowsViewers = []models.TautulliEntry{}
 
 		wrapperr_reply.YearStats.YearShows.Message = "No shows processed."
 	}
@@ -1596,4 +1631,53 @@ func GetUserShowBuddy(config models.WrapperrConfig, top_show models.TautulliEntr
 
 	return error_bool, top_show_buddy_friendly_name, top_show_buddy_plex_username, top_show_buddy_id, top_show_buddy_found, top_show_buddy_duration
 
+}
+
+// Records that a user watched the server-wide title at an index
+func addYearViewer(viewers map[int]map[int]bool, index int, userID int) {
+	if viewers[index] == nil {
+		viewers[index] = map[int]bool{}
+	}
+	viewers[index][userID] = true
+}
+
+// The titles most people watched, then the most played, up to the list length (0 for no limit)
+func mostPopular(entries []models.TautulliEntry, limit int) []models.TautulliEntry {
+	ranked := append([]models.TautulliEntry{}, entries...)
+	sort.SliceStable(ranked, func(i, j int) bool {
+		if ranked[i].Viewers != ranked[j].Viewers {
+			return ranked[i].Viewers > ranked[j].Viewers
+		}
+		return ranked[i].Plays > ranked[j].Plays
+	})
+	if limit != 0 && len(ranked) > limit {
+		ranked = ranked[:limit]
+	}
+	return ranked
+}
+
+// A title re-added to Plex gets a new rating key and the old one's poster is gone, so a list entry takes its
+// rating key and poster from the title's newest play. For a show, the show's.
+func takeNewerPlay(entry *models.TautulliEntry, play models.TautulliEntry, show bool) {
+	if play.Date <= entry.Date {
+		return
+	}
+	entry.Date = play.Date
+	if show {
+		entry.GrandparentRatingKey = play.GrandparentRatingKey
+		entry.RatingKey = play.GrandparentRatingKey
+		entry.Thumb = fmt.Sprintf("/library/metadata/%d/thumb", play.GrandparentRatingKey)
+	} else {
+		entry.RatingKey, entry.Thumb = play.RatingKey, play.Thumb
+	}
+}
+
+// Clears what a server-wide entry kept of the play it was made from: who played it and when, and for a show or
+// artist, which episode or track
+func forgetYearPlay(entry *models.TautulliEntry, keepParentOnly bool) {
+	entry.User, entry.FriendlyName, entry.UserID = "", "", 0
+	entry.Date, entry.RowID, entry.FullTitle = 0, 0, ""
+	if keepParentOnly {
+		entry.Title, entry.ParentTitle, entry.ParentRatingKey = "", "", 0
+	}
 }

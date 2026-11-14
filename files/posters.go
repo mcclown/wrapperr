@@ -331,6 +331,8 @@ func ExtractYearPosterReferences(reply models.WrapperrStatisticsReply) []PosterR
 	addEntriesToPosterMap(posterMap, reply.YearStats.YearMovies.Data.MoviesPlays)
 	addEntriesToPosterMap(posterMap, reply.YearStats.YearShows.Data.ShowsDuration)
 	addEntriesToPosterMap(posterMap, reply.YearStats.YearShows.Data.ShowsPlays)
+	addEntriesToPosterMap(posterMap, reply.YearStats.YearMovies.Data.MoviesViewers)
+	addEntriesToPosterMap(posterMap, reply.YearStats.YearShows.Data.ShowsViewers)
 
 	return posterMapToSlice(posterMap)
 }

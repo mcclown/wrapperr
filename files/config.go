@@ -412,6 +412,7 @@ func CreateConfigFile() error {
 	config.WrapperrCustomize.GetYearStatsShows = true
 	config.WrapperrCustomize.GetYearStatsMusic = true
 	config.WrapperrCustomize.GetYearStatsLeaderboard = true
+	config.WrapperrCustomize.GetYearStatsPopular = true
 	config.WrapperrCustomize.GetYearStatsLeaderboardNumbers = false
 
 	// Write straight to disk without touching the cache or lock: this is only
@@ -964,6 +965,15 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 		config.WrapperrCustomize.GetYearStatsSubsubtitle = config_default.WrapperrCustomize.GetYearStatsSubsubtitle
 	}
 
+	// The server-wide top lists were renamed once the most popular lists came, and a title still at the old
+	// default takes the new one
+	if config.WrapperrCustomize.GetYearStatsMoviesTitle == "Top movies" {
+		config.WrapperrCustomize.GetYearStatsMoviesTitle = ""
+	}
+	if config.WrapperrCustomize.GetYearStatsShowsTitle == "Top shows" {
+		config.WrapperrCustomize.GetYearStatsShowsTitle = ""
+	}
+
 	if config.WrapperrCustomize.GetYearStatsMoviesTitle == "" {
 		config.WrapperrCustomize.GetYearStatsMoviesTitle = config_default.WrapperrCustomize.GetYearStatsMoviesTitle
 	}
@@ -1046,6 +1056,22 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 
 	if config.WrapperrCustomize.WrapperrSortDuration == "" {
 		config.WrapperrCustomize.WrapperrSortDuration = config_default.WrapperrCustomize.WrapperrSortDuration
+	}
+
+	if config.WrapperrCustomize.GetYearStatsMoviesPopularTitle == "" {
+		config.WrapperrCustomize.GetYearStatsMoviesPopularTitle = config_default.WrapperrCustomize.GetYearStatsMoviesPopularTitle
+	}
+
+	if config.WrapperrCustomize.GetYearStatsShowsPopularTitle == "" {
+		config.WrapperrCustomize.GetYearStatsShowsPopularTitle = config_default.WrapperrCustomize.GetYearStatsShowsPopularTitle
+	}
+
+	if config.WrapperrCustomize.GetYearStatsPopularViewer == "" {
+		config.WrapperrCustomize.GetYearStatsPopularViewer = config_default.WrapperrCustomize.GetYearStatsPopularViewer
+	}
+
+	if config.WrapperrCustomize.GetYearStatsPopularViewerPlural == "" {
+		config.WrapperrCustomize.GetYearStatsPopularViewerPlural = config_default.WrapperrCustomize.GetYearStatsPopularViewerPlural
 	}
 
 	return config, nil
