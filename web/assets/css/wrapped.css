@@ -778,6 +778,15 @@ hr {
 .rank-new {
     color: var(--yellow);
     font-size: 1em;
+    /* The same width as the arrows, at its larger size */
+    min-width: 1.76em;
+}
+
+/* A dark backing on the medal rows, where the colours are hard to read */
+.gold .rank-change, .silver .rank-change, .bronze .rank-change {
+    background-color: rgba(0, 0, 0, 0.45);
+    border-radius: 0.4em;
+    padding: 0.1em 0;
 }
 
 /* Compared with last year */
