@@ -25,3 +25,18 @@ func TestMostPopular(t *testing.T) {
 		t.Errorf("expected the original order to be kept, got %+v", entries)
 	}
 }
+
+func TestTakeNewerPlay(t *testing.T) {
+	movie := models.TautulliEntry{Date: 100, RatingKey: 1, Thumb: "/library/metadata/1/thumb/1"}
+	takeNewerPlay(&movie, models.TautulliEntry{Date: 200, RatingKey: 2, Thumb: "/library/metadata/2/thumb/2"}, false)
+	takeNewerPlay(&movie, models.TautulliEntry{Date: 150, RatingKey: 1, Thumb: "/library/metadata/1/thumb/1"}, false)
+	if movie.RatingKey != 2 || movie.Thumb != "/library/metadata/2/thumb/2" || movie.Date != 200 {
+		t.Errorf("movie took %d %s at %d, want the newest play's key 2", movie.RatingKey, movie.Thumb, movie.Date)
+	}
+
+	show := models.TautulliEntry{Date: 100, RatingKey: 10, GrandparentRatingKey: 10, Thumb: "/library/metadata/10/thumb"}
+	takeNewerPlay(&show, models.TautulliEntry{Date: 200, RatingKey: 31, GrandparentRatingKey: 30}, true)
+	if show.RatingKey != 30 || show.GrandparentRatingKey != 30 || show.Thumb != "/library/metadata/30/thumb" {
+		t.Errorf("show took %d %d %s, want the newest play's show 30", show.RatingKey, show.GrandparentRatingKey, show.Thumb)
+	}
+}
