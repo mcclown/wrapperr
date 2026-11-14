@@ -37,8 +37,8 @@ Rules:
 | H | Static voyage export | `fork/voyage-export` | #9 | G | in develop, PR open | maybe | 2026-11-07: code-review high (10: 9 fixed, 1 moot), medium (3 fixed); no security-review (CLI, no new route) |
 | I | Voyage share links (one link carries the voyage too) | `fork/voyage-share` | #10 | G | in develop, PR open | maybe | 2026-11-08: code-review high (10: 8 fixed, 2 answered), security-review (0 at bar; 1 suggestion, moot), medium x3 (1, 1, 2 low: all fixed) |
 | V1 | Server-wide most popular movies and shows | `fork/view-popular` | #11 | main | in develop, PR open | yes | 2026-11-11: code and security review (1 medium privacy fix to the existing year lists, 1 low: both fixed) |
-| V2 | Compared with last year: movies and TV, last year's cache | `fork/view-compare` | none yet | main | in develop, no PR | yes | not yet reviewed |
-| V3 | Compared with last year: requests | `fork/view-compare-requests` | none yet | A2 + V2 | in develop, no PR | with A | not yet reviewed |
+| V2 | Compared with last year: movies and TV, last year's cache | `fork/view-compare` | #12 | main | in develop, PR open | yes | 2026-11-14: code review high with security (6 fixed here, 1 skipped by design), medium re-review (1 low left: cache race shared with the main cache) |
+| V3 | Compared with last year: requests | `fork/view-compare-requests` | #13 | A2 + V2 | in develop, PR open | with A | 2026-11-14: code review high with security (3 fixed), medium re-review (1 low fixed) |
 
 Household splitting (split by device) was dropped on 2026-11-06 as too inaccurate, and theme B
 (fuller play records for it) went with it: every calculation is per Plex account.
