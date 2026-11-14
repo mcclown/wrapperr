@@ -60,7 +60,7 @@ func TestSeerrRequestStatistics(t *testing.T) {
 	requests[7].RequestedBy.DisplayName = "Local Dave"
 
 	t.Run("current user", func(t *testing.T) {
-		user, year := SeerrRequestStatistics(requests, users, 200, start, end, 10, true, newOtherUserNamer("friendly_name"))
+		user, year := SeerrRequestStatistics(requests, users, 200, start, end, 10, true, newOtherUserNamer("friendly_name"), nil)
 
 		if user.Data.RequestCount != 2 || user.Data.MovieRequestCount != 1 || user.Data.ShowRequestCount != 1 {
 			t.Errorf("unexpected user counts: %+v", user.Data)
@@ -96,7 +96,7 @@ func TestSeerrRequestStatistics(t *testing.T) {
 	})
 
 	t.Run("shared rank and top list limit", func(t *testing.T) {
-		user, year := SeerrRequestStatistics(requests, users, 300, start, end, 2, true, newOtherUserNamer("friendly_name"))
+		user, year := SeerrRequestStatistics(requests, users, 300, start, end, 2, true, newOtherUserNamer("friendly_name"), nil)
 
 		if user.Data.RequestRank != 3 || user.Data.RequestCount != 1 {
 			t.Errorf("expected carol to share rank 3 with one request, got rank %d with %d", user.Data.RequestRank, user.Data.RequestCount)
@@ -107,7 +107,7 @@ func TestSeerrRequestStatistics(t *testing.T) {
 	})
 
 	t.Run("no requests and hidden numbers", func(t *testing.T) {
-		user, year := SeerrRequestStatistics(requests, users, 999, start, end, 0, false, newOtherUserNamer("obfuscate"))
+		user, year := SeerrRequestStatistics(requests, users, 999, start, end, 0, false, newOtherUserNamer("obfuscate"), nil)
 
 		if user.Data.RequestCount != 0 || user.Data.RequestRank != 0 {
 			t.Errorf("expected no requests for unknown user, got %+v", user.Data)

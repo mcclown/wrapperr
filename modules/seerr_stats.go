@@ -56,7 +56,13 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr
 	topListLimit := config.WrapperrCustomize.StatsTopListLength
 	showNumbers := config.WrapperrCustomize.GetYearStatsLeaderboardNumbers
 
-	userRequests, yearRequests = SeerrRequestStatistics(requests, users, user_id, start, end, topListLimit, showNumbers, namer)
+	// Requesters' places last year, for the top requesters' movement since, with the comparison on
+	var lastRanks map[int]int
+	if config.WrapperrCustomize.GetYearCompare {
+		lastRanks = lastYearRequesterRanks(requests, users, lastYearConfig(config))
+	}
+
+	userRequests, yearRequests = SeerrRequestStatistics(requests, users, user_id, start, end, topListLimit, showNumbers, namer, lastRanks)
 
 	wantFollowers := wantUser && config.WrapperrCustomize.GetUserRequestStatsFollowers
 	wantFollowing := wantUser && config.WrapperrCustomize.GetUserRequestStatsFollowing
@@ -94,8 +100,9 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr
 // Builds per-user and server-wide request statistics from the Seerr requests
 // created within the wrapped period. Requesters are matched to Wrapperr users
 // by Plex ID, then email, then Plex username. Requesters who cannot be matched
-// are still counted under their Seerr name.
-func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.WrapperrUser, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer) (models.WrapperrUserRequests, models.WrapperrYearRequests) {
+// are still counted under their Seerr name. lastRanks, if not nil, are the
+// requesters' places last year, given to the top requesters.
+func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.WrapperrUser, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer, lastRanks map[int]int) (models.WrapperrUserRequests, models.WrapperrYearRequests) {
 	userRequests := models.WrapperrUserRequests{}
 	yearRequests := models.WrapperrYearRequests{}
 
@@ -168,6 +175,10 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 	for index, entry := range ranked {
 		if topListLimit != 0 && index >= topListLimit {
 			break
+		}
+		if lastRanks != nil {
+			lastRank := lastRanks[entry.UserID]
+			entry.LastRank = &lastRank
 		}
 		nameOtherUser(&entry, user_id, namer)
 		if !showNumbers {

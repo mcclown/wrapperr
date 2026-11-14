@@ -1438,6 +1438,7 @@ function top_list_requesters(array, title, div_id, kind) {
                 if(kind === 'requests') {
                     html += "<div class='item " + medal + "'>";
                         html += "<div class='number'>" + (i+1) + ". </div>";
+                        html += rank_change(array[i].last_rank, i + 1);
                         html += "<div class='name'>";
                             html += array[i].user;
                             // Counts are zeroed when leaderboard numbers are hidden
