@@ -183,7 +183,8 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 		}
 		if lastRanks != nil {
 			lastRank := lastRanks[entry.UserID]
-			entry.LastRank = &lastRank
+			place := sharedPlace(index, func(i int) int { return ranked[i].Requests })
+			entry.LastRank, entry.Rank = &lastRank, &place
 		}
 		nameOtherUser(&entry, user_id, namer)
 		if !showNumbers {
