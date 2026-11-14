@@ -306,6 +306,8 @@ type WrapperrStatisticsReply struct {
 			Server WrapperrCompareYears `json:"server"`
 			// Whether the years' requests are in
 			RequestsCompared bool `json:"requests_compared"`
+			// Whether everyone's split is in, which it is with the server-wide movie and show statistics
+			ServerCompared bool `json:"server_compared"`
 		} `json:"data"`
 		Message string `json:"message"`
 		Error   bool   `json:"error"`

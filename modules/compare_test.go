@@ -14,9 +14,10 @@ func TestCompareYear(t *testing.T) {
 	}
 	config := models.WrapperrConfig{WrappedStart: at("2026-01-01T00:00:00Z"), WrappedEnd: at("2026-12-31T23:59:59Z")}
 	day := models.WrapperrDay{Data: []models.TautulliEntry{
-		{UserID: 1, MediaType: "movie", Duration: 6000, Date: at("2026-02-01T20:00:00Z")},
-		{UserID: 2, MediaType: "movie", Duration: 7000, Date: at("2026-02-01T20:00:00Z")},
-		{UserID: 1, MediaType: "movie", Duration: 200, Date: at("2026-02-02T20:00:00Z")}, // under five minutes
+		{UserID: 1, MediaType: "movie", Year: 2020, Duration: 6000, Date: at("2026-02-01T20:00:00Z")},
+		{UserID: 2, MediaType: "movie", Year: 2021, Duration: 7000, Date: at("2026-02-01T20:00:00Z")},
+		{UserID: 1, MediaType: "movie", Year: 2020, Duration: 200, Date: at("2026-02-02T20:00:00Z")}, // under five minutes
+		{UserID: 1, MediaType: "movie", Duration: 6000, Date: at("2026-02-03T20:00:00Z")},            // no year
 		{UserID: 1, MediaType: "episode", Duration: 1500, Date: at("2026-03-01T20:00:00Z")},
 		{UserID: 2, MediaType: "track", Duration: 180, Date: at("2026-03-01T20:00:00Z")},
 		{UserID: 1, MediaType: "episode", Duration: 1500, Date: at("2025-12-31T20:00:00Z")}, // before the period
@@ -34,5 +35,33 @@ func TestCompareYear(t *testing.T) {
 	user, _ = compareYear([]models.WrapperrDay{day}, lastYearConfig(config), 1)
 	if want := (models.WrapperrCompareYear{Year: 2025, ShowDuration: 1500, ShowPlays: 1}); user != want {
 		t.Errorf("last year got %+v, want %+v", user, want)
+	}
+}
+
+func TestLastYearCached(t *testing.T) {
+	local := func(year int, month time.Month, day int) int {
+		return int(time.Date(year, month, day, 0, 0, 0, 0, time.Local).Unix())
+	}
+	config := models.WrapperrConfig{
+		WrappedStart:   local(2025, 1, 1),
+		WrappedEnd:     local(2025, 1, 3) + 86399,
+		TautulliConfig: []models.TautulliConfig{{TautulliName: "a"}},
+	}
+	day := func(date string, complete bool, servers ...string) models.WrapperrDay {
+		return models.WrapperrDay{Date: date, DataComplete: complete, TautulliServers: servers}
+	}
+
+	full := []models.WrapperrDay{day("2025-01-01", true, "a"), day("2025-01-02", true, "a"), day("2025-01-03", true, "a")}
+	if !lastYearCached(full, config) {
+		t.Error("expected every day cached")
+	}
+	for name, cache := range map[string][]models.WrapperrDay{
+		"a missing day":     full[:2],
+		"an unfinished day": {full[0], full[1], day("2025-01-03", false, "a")},
+		"a missing server":  {full[0], full[1], day("2025-01-03", true, "b")},
+	} {
+		if lastYearCached(cache, config) {
+			t.Errorf("expected %s to leave last year short", name)
+		}
 	}
 }

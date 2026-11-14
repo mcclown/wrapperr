@@ -31,7 +31,7 @@ function loadAdminPage() {
 					The loop used on this page ensures the cache is saved after a certain amount of days are downloaded. If the value below is set to 50, it will save the cache for every 50 days downloaded.
 					<br>
 					<br>
-					The comparison with last year needs last year's plays, the same dates a year earlier. Tick the box below to cache those instead. They only need caching once.
+					The comparison with last year needs last year's plays, the same dates a year earlier. Tick the box below to cache those instead. The comparison stays hidden until every day is cached, and they need caching again after the cache is cleared, a user is ignored or the wrapped period changes (with a dynamic wrapped period, as it moves).
 					<br>
 					<br>
 				</p>
