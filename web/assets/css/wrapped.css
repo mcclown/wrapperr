@@ -685,6 +685,16 @@ hr {
     flex: 1;
 }
 
+/* The tribute to the requesters, across the top of the server-wide requests */
+.request-heroes {
+    width: 100%;
+    max-width: 60em;
+    padding: 1em 1.5em;
+    box-sizing: border-box;
+    font-size: 1.2em;
+    text-align: center;
+}
+
 /* Request lists with more to say: double width where there is room, and rows that grow to fit */
 .boks2-wide {
     width: 60em;

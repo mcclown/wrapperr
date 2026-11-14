@@ -124,6 +124,7 @@ type WrapperrCustomize struct {
 	GetUserRequestStatsTimelineTitle            string `json:"get_user_request_stats_timeline_title"`
 	GetYearStatsRequests                        bool   `json:"get_year_stats_requests"`
 	GetYearStatsRequestsTitle                   string `json:"get_year_stats_requests_title"`
+	GetYearStatsRequestsHeroes                  string `json:"get_year_stats_requests_heroes"`
 	GetYearStatsRequestsTotalTitle              string `json:"get_year_stats_requests_total_title"`
 	GetYearStatsRequestsTimelineTitle           string `json:"get_year_stats_requests_timeline_title"`
 	GetUserRequestStatsFollowers                bool   `json:"get_user_request_stats_followers"`
@@ -151,6 +152,7 @@ type WrapperrCustomize struct {
 	WrapperrSortDuration                        string `json:"wrapperr_sort_duration"`
 	WrapperrSortTitles                          string `json:"wrapperr_sort_titles"`
 	WrapperrSortPercent                         string `json:"wrapperr_sort_percent"`
+	WrapperrSortViewers                         string `json:"wrapperr_sort_viewers"`
 	WrapperrViewer                              string `json:"wrapperr_viewer"`
 	WrapperrViewerPlural                        string `json:"wrapperr_viewer_plural"`
 	WrapperrRequestTopHit                       string `json:"wrapperr_request_top_hit"`

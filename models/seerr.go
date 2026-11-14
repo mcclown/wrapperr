@@ -111,6 +111,7 @@ type WrapperrYearRequests struct {
 		Requesters          []WrapperrRequestUser  `json:"requesters"`
 		TrendsettersTitles  []WrapperrRequestUser  `json:"trendsetters_titles"`
 		TrendsettersPercent []WrapperrRequestUser  `json:"trendsetters_percent"`
+		TrendsettersViewers []WrapperrRequestUser  `json:"trendsetters_viewers"`
 		Timeline            []WrapperrRequestMonth `json:"timeline"`
 	} `json:"data"`
 	Message string `json:"message"`

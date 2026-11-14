@@ -250,6 +250,9 @@ func TestSeerrRequestReach(t *testing.T) {
 	if bob := reach.TrendsettersPercent[0]; bob.Viewers != 1 || bob.TitlesWatchedPercent != 100 || bob.TopRequest.Title != "Movie C" {
 		t.Errorf("unexpected top trendsetter by percent: %+v", bob)
 	}
+	if got := names(reach.TrendsettersViewers); !reflect.DeepEqual(got, []string{"alice", "Bob"}) {
+		t.Errorf("unexpected trendsetters by viewers: %v", got)
+	}
 
 	if got := names(reach.FollowingTitles); !reflect.DeepEqual(got, []string{"Bob"}) {
 		t.Errorf("unexpected following: %v", got)
@@ -272,7 +275,7 @@ func TestSeerrRequestReachHidesLeaderboardNumbers(t *testing.T) {
 
 	reach := SeerrRequestReach([]models.SeerrRequest{request}, nil, []models.WrapperrDay{day}, 200, start, end, 10, false, newOtherUserNamer("friendly_name"))
 
-	for _, list := range [][]models.WrapperrRequestUser{reach.TrendsettersTitles, reach.TrendsettersPercent} {
+	for _, list := range [][]models.WrapperrRequestUser{reach.TrendsettersTitles, reach.TrendsettersPercent, reach.TrendsettersViewers} {
 		if len(list) != 1 || list[0].Viewers != 0 || list[0].TitlesWatched != 0 || list[0].TitlesWatchedPercent != 0 || list[0].TopRequest.Viewers != 0 {
 			t.Errorf("expected trendsetter numbers to be hidden, got %+v", list)
 		}

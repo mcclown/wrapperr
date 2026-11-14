@@ -792,6 +792,11 @@ function loadAdminPage() {
             html += '</div>';
 
             html += '<div class="form-group">';
+            html += '<label for="get_year_stats_requests_heroes" title="A tribute to the requesters, at the top of the server-wide requests.">Tribute to the requesters:<br>';
+            html += '<textarea cols="40" rows="3" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_heroes" name="get_year_stats_requests_heroes" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
             html += '<label for="get_year_stats_requests_total_title" title="Text showing the server-wide request total. Use {server_request_count}.">Server-wide request total:<br>';
             html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_total_title" name="get_year_stats_requests_total_title" value="" autocomplete="off"></textarea></label>';
             html += '</div>';
@@ -1112,6 +1117,11 @@ function loadAdminPage() {
             html += '</div>';
 
             html += '<div class="form-group">';
+            html += '<label for="wrapperr_sort_viewers" title="Text alternative for \'Sort by viewers reached\' button.">\'Sort by viewers reached\' alternative:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_sort_viewers" value="' + wrapperr_sort_viewers + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
             html += '<label for="wrapperr_viewer" title="Word alternative for when \'viewer\' appears.">Alternative for \'viewer\':<br>';
             html += '<input type="text" class="form-control" id="wrapperr_viewer" value="' + wrapperr_viewer + '" autocomplete="off" placeholder="" required /><br>';
             html += '</div>';
@@ -1276,6 +1286,7 @@ function loadAdminPage() {
     document.getElementById("get_user_request_stats_subtitle_none").value = get_user_request_stats_subtitle_none;
     document.getElementById("get_user_request_stats_timeline_title").value = get_user_request_stats_timeline_title;
     document.getElementById("get_year_stats_requests_title").value = get_year_stats_requests_title;
+    document.getElementById("get_year_stats_requests_heroes").value = get_year_stats_requests_heroes;
     document.getElementById("get_year_stats_requests_total_title").value = get_year_stats_requests_total_title;
     document.getElementById("get_year_stats_requests_timeline_title").value = get_year_stats_requests_timeline_title;
     document.getElementById("get_user_request_stats_reach_title").value = get_user_request_stats_reach_title;
@@ -1397,6 +1408,7 @@ function set_wrapperr_customization_call() {
     get_user_request_stats_subtitle_none = document.getElementById('get_user_request_stats_subtitle_none').value;
     get_user_request_stats_timeline_title = document.getElementById('get_user_request_stats_timeline_title').value;
     get_year_stats_requests_title = document.getElementById('get_year_stats_requests_title').value;
+    get_year_stats_requests_heroes = document.getElementById('get_year_stats_requests_heroes').value;
     get_year_stats_requests_total_title = document.getElementById('get_year_stats_requests_total_title').value;
     get_year_stats_requests_timeline_title = document.getElementById('get_year_stats_requests_timeline_title').value;
     get_user_request_stats_followers = document.getElementById('get_user_request_stats_followers').checked;
@@ -1449,6 +1461,7 @@ function set_wrapperr_customization_call() {
     wrapperr_sort_duration = document.getElementById("wrapperr_sort_duration").value;
     wrapperr_sort_titles = document.getElementById("wrapperr_sort_titles").value;
     wrapperr_sort_percent = document.getElementById("wrapperr_sort_percent").value;
+    wrapperr_sort_viewers = document.getElementById("wrapperr_sort_viewers").value;
     wrapperr_viewer = document.getElementById("wrapperr_viewer").value;
     wrapperr_viewer_plural = document.getElementById("wrapperr_viewer_plural").value;
     wrapperr_request_top_hit = document.getElementById("wrapperr_request_top_hit").value;
@@ -1588,6 +1601,7 @@ function set_wrapperr_customization_call() {
             "get_user_request_stats_subtitle_none" : get_user_request_stats_subtitle_none,
             "get_user_request_stats_timeline_title" : get_user_request_stats_timeline_title,
             "get_year_stats_requests_title" : get_year_stats_requests_title,
+            "get_year_stats_requests_heroes" : get_year_stats_requests_heroes,
             "get_year_stats_requests_total_title" : get_year_stats_requests_total_title,
             "get_year_stats_requests_timeline_title" : get_year_stats_requests_timeline_title,
             "get_user_request_stats_followers" : get_user_request_stats_followers,
@@ -1615,6 +1629,7 @@ function set_wrapperr_customization_call() {
             "wrapperr_sort_duration" : wrapperr_sort_duration,
             "wrapperr_sort_titles" : wrapperr_sort_titles,
             "wrapperr_sort_percent" : wrapperr_sort_percent,
+            "wrapperr_sort_viewers" : wrapperr_sort_viewers,
             "wrapperr_viewer" : wrapperr_viewer,
             "wrapperr_viewer_plural" : wrapperr_viewer_plural,
             "wrapperr_request_top_hit" : wrapperr_request_top_hit,

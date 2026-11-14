@@ -1104,6 +1104,10 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 		config.WrapperrCustomize.GetYearStatsRequestsTitle = config_default.WrapperrCustomize.GetYearStatsRequestsTitle
 	}
 
+	if config.WrapperrCustomize.GetYearStatsRequestsHeroes == "" {
+		config.WrapperrCustomize.GetYearStatsRequestsHeroes = config_default.WrapperrCustomize.GetYearStatsRequestsHeroes
+	}
+
 	if config.WrapperrCustomize.GetYearStatsRequestsTotalTitle == "" {
 		config.WrapperrCustomize.GetYearStatsRequestsTotalTitle = config_default.WrapperrCustomize.GetYearStatsRequestsTotalTitle
 	}
@@ -1190,6 +1194,10 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 
 	if config.WrapperrCustomize.WrapperrSortPercent == "" {
 		config.WrapperrCustomize.WrapperrSortPercent = config_default.WrapperrCustomize.WrapperrSortPercent
+	}
+
+	if config.WrapperrCustomize.WrapperrSortViewers == "" {
+		config.WrapperrCustomize.WrapperrSortViewers = config_default.WrapperrCustomize.WrapperrSortViewers
 	}
 
 	if config.WrapperrCustomize.WrapperrViewer == "" {
