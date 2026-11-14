@@ -70,7 +70,9 @@ func WrapperrCompareStatistics(user_id int, config models.WrapperrConfig, wrappe
 	// Everyone's split only goes out with the server-wide movie and show statistics it comes from
 	compare.Data.ServerCompared = config.WrapperrCustomize.GetYearStatsMovies && config.WrapperrCustomize.GetYearStatsShows
 	if !compare.Data.ServerCompared {
-		compare.Data.Server = models.WrapperrCompareYears{}
+		for _, year := range []*models.WrapperrCompareYear{&compare.Data.Server.ThisYear, &compare.Data.Server.LastYear} {
+			year.MovieDuration, year.MoviePlays, year.ShowDuration, year.ShowPlays = 0, 0, 0, 0
+		}
 	}
 	compare.Error = false
 	compare.Message = "Comparison with last year processed."
