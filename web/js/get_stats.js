@@ -1351,9 +1351,11 @@ function load_compare() {
 
     text += "<div class='boks' data-color='mango' style='height: auto !important; width: 100%; padding-bottom: 25em; padding-top: 25em; height:10em; background-color: none;'>";
         text += "<h1>" + ReplaceStandardStrings(functions.get_year_compare_title) + "</h1>";
-        text += "<h2>" + ReplaceStandardStrings(functions.get_year_compare_subtitle.replaceAll('{this_year}', compare.server.this_year.year).replaceAll('{last_year}', compare.server.last_year.year)) + "</h2>";
+        text += "<h2>" + ReplaceStandardStrings(functions.get_year_compare_subtitle.replaceAll('{this_year}', compare.user.this_year.year).replaceAll('{last_year}', compare.user.last_year.year)) + "</h2>";
         text += compare_row(compare.user, functions.get_year_compare_you);
-        text += compare_row(compare.server, functions.get_year_compare_everyone);
+        if(compare.server_compared) {
+            text += compare_row(compare.server, functions.get_year_compare_everyone);
+        }
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;

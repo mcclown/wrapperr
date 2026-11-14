@@ -58,17 +58,50 @@ func WrapperrCompareStatistics(user_id int, config models.WrapperrConfig, wrappe
 		compare.Message = "Failed to load last year's plays."
 		return reply
 	}
-	if len(lastYear) == 0 {
-		compare.Message = "Last year's plays have not been cached."
+	lastConfig := lastYearConfig(config)
+	if !lastYearCached(lastYear, lastConfig) {
+		compare.Message = "Last year's plays have not all been cached."
 		return reply
 	}
 
-	lastConfig := lastYearConfig(config)
 	compare.Data.User.ThisYear, compare.Data.Server.ThisYear = compareYear(wrapperr_data, config, user_id)
 	compare.Data.User.LastYear, compare.Data.Server.LastYear = compareYear(lastYear, lastConfig, user_id)
+
+	// Everyone's split only goes out with the server-wide movie and show statistics it comes from
+	compare.Data.ServerCompared = config.WrapperrCustomize.GetYearStatsMovies && config.WrapperrCustomize.GetYearStatsShows
+	if !compare.Data.ServerCompared {
+		compare.Data.Server = models.WrapperrCompareYears{}
+	}
 	compare.Error = false
 	compare.Message = "Comparison with last year processed."
 	return reply
+}
+
+// Whether every day of last year's period is in its cache, finished, from every Tautulli server. A download
+// stopped part way, or a wrapped period that has moved since (a dynamic one moves every day), leaves it short.
+func lastYearCached(lastYear []models.WrapperrDay, lastConfig models.WrapperrConfig) bool {
+	days := map[string]models.WrapperrDay{}
+	for _, day := range lastYear {
+		days[day.Date] = day
+	}
+
+	end := time.Unix(int64(lastConfig.WrappedEnd), 0)
+	for loop_time := time.Unix(int64(lastConfig.WrappedStart), 0); !loop_time.After(end); loop_time = loop_time.AddDate(0, 0, 1) {
+		day, found := days[loop_time.Format("2006-01-02")]
+		if !found || !day.DataComplete {
+			return false
+		}
+		for _, server := range lastConfig.TautulliConfig {
+			processed := false
+			for _, name := range day.TautulliServers {
+				processed = processed || name == server.TautulliName
+			}
+			if !processed {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // Totals the movies and TV played in a wrapped period, by the user and by everyone
@@ -96,8 +129,8 @@ func compareYear(data []models.WrapperrDay, config models.WrapperrConfig, user_i
 func addComparePlay(year *models.WrapperrCompareYear, entry models.TautulliEntry) {
 	switch entry.MediaType {
 	case "movie":
-		// As the movie statistics, skip anything under five minutes
-		if entry.Duration < 300 {
+		// As the movie statistics, skip anything under five minutes or without a real year
+		if entry.Year < 1750 || entry.Duration < 300 {
 			return
 		}
 		year.MovieDuration += entry.Duration
