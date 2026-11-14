@@ -86,7 +86,7 @@ func GetWrapperStatistics(user_name string, user_friendlyname string, user_id in
 	}
 
 	// Add request statistics from Seerr
-	wrapperrReply = WrapperrSeerrStatistics(user_id, config, namer, wrapperrReply)
+	wrapperrReply = WrapperrSeerrStatistics(user_id, config, wrapperr_data, namer, wrapperrReply)
 
 	return wrapperrReply, cachingComplete, err
 }
@@ -289,6 +289,14 @@ func WrapperrDownloadDays(ID int, wrapperr_data []models.WrapperrDay, loop_inter
 							Year:                  year,
 							OriginallyAvailableAt: *tautulli_data[j].OriginallyAvailableAt,
 							GUID:                  tautulli_data[j].GUID,
+						}
+
+						// An episode's season number
+						if tautulli_data[j].MediaType == "episode" {
+							season, err := strconv.Atoi(fmt.Sprintf("%v", tautulli_data[j].ParentMediaIndex))
+							if err == nil {
+								tautulli_entry.ParentMediaIndex = &season
+							}
 						}
 
 						// Capture Thumb field if available
