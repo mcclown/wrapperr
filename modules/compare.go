@@ -43,8 +43,9 @@ func CacheLastYear(config models.WrapperrConfig, cacheLimit int) (bool, error) {
 	return complete, files.SaveLastYearCache(&lastYear)
 }
 
-// Adds the year compared with last year to the reply. config has its wrapped period set for this year.
-func WrapperrCompareStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, reply models.WrapperrStatisticsReply) models.WrapperrStatisticsReply {
+// Adds the year compared with last year to the reply. config has its wrapped period set for this year. requests
+// and users are those the request statistics loaded, nil if none.
+func WrapperrCompareStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, requests []models.SeerrRequest, users []models.WrapperrUser, reply models.WrapperrStatisticsReply) models.WrapperrStatisticsReply {
 	compare := &reply.YearCompare
 	compare.Error = true
 	if !config.WrapperrCustomize.GetYearCompare {
@@ -74,7 +75,7 @@ func WrapperrCompareStatistics(user_id int, config models.WrapperrConfig, wrappe
 			year.MovieDuration, year.MoviePlays, year.ShowDuration, year.ShowPlays = 0, 0, 0, 0
 		}
 	}
-	compareRequests(user_id, config, lastConfig, wrapperr_data, lastYear, &reply)
+	compareRequests(user_id, config, lastConfig, wrapperr_data, lastYear, requests, users, &reply)
 	compare.Error = false
 	compare.Message = "Comparison with last year processed."
 	return reply

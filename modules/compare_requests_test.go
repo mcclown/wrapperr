@@ -12,14 +12,22 @@ func TestCompareRequestYear(t *testing.T) {
 		request.Media.RatingKey = &key
 		return request
 	}
+	seasonPlay := func(userID int, user string, key int, season int, date string) models.TautulliEntry {
+		play := seerrTestPlay(userID, user, "episode", key, "Show B", date, 1500)
+		play.ParentMediaIndex = &season
+		return play
+	}
+	showRequest := keyed(seerrTestRequest(2, 200, "bob", "tv", "2026-03-01T00:00:00Z"), "20")
+	showRequest.Seasons = []models.SeerrRequestSeason{{SeasonNumber: 3}}
 	requests := []models.SeerrRequest{
 		keyed(seerrTestRequest(1, 100, "alice", "movie", "2026-02-01T00:00:00Z"), "10"),
-		keyed(seerrTestRequest(2, 200, "bob", "tv", "2026-03-01T00:00:00Z"), "20"),
+		showRequest, // season 3 only
 		keyed(seerrTestRequest(1, 100, "alice", "movie", "2025-06-01T00:00:00Z"), "30"), // last year
 	}
 	day := models.WrapperrDay{Data: []models.TautulliEntry{
 		seerrTestPlay(200, "bob", "movie", 10, "Movie A", "2026-02-05T20:00:00Z", 6000),
 		seerrTestPlay(100, "alice", "episode", 20, "Show B", "2026-02-10T20:00:00Z", 1500), // before it was requested
+		seasonPlay(300, "carol", 20, 1, "2026-04-10T20:00:00Z"),                            // a season nobody asked for
 	}}
 	config := models.WrapperrConfig{
 		WrappedStart: int(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC).Unix()),
