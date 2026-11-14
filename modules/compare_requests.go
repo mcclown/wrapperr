@@ -97,20 +97,28 @@ func compareRequestYear(requests []models.SeerrRequest, resolver requesterResolv
 	user.Requests, user.RequestsWatched = len(userTitles), len(userWatched)
 }
 
-// Places requesters by how many requests they made in last year's period, as the top requesters are ranked
+// Places requesters by how many titles they asked for in last year's period, as the top requesters are ranked
 func lastYearRequesterRanks(requests []models.SeerrRequest, users []models.WrapperrUser, lastConfig models.WrapperrConfig) map[int]int {
 	resolver := newRequesterResolver(users)
 	start, end := time.Unix(int64(lastConfig.WrappedStart), 0), time.Unix(int64(lastConfig.WrappedEnd), 0)
 
-	counts := map[int]int{}
+	titles := map[int]map[string]bool{}
 	for _, request := range requests {
 		if request.CreatedAt.Before(start) || request.CreatedAt.After(end) {
 			continue
 		}
 		requester, ignored := resolver.resolve(request.RequestedBy)
-		if !ignored {
-			counts[requester.UserID]++
+		if ignored {
+			continue
 		}
+		if titles[requester.UserID] == nil {
+			titles[requester.UserID] = map[string]bool{}
+		}
+		titles[requester.UserID][requestTitleKey(request)] = true
+	}
+	counts := map[int]int{}
+	for userID, asked := range titles {
+		counts[userID] = len(asked)
 	}
 	return rankUsers(counts)
 }

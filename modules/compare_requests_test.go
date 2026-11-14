@@ -45,11 +45,16 @@ func TestCompareRequestYear(t *testing.T) {
 }
 
 func TestLastYearRequesterRanks(t *testing.T) {
+	carolFirst := seerrTestRequest(3, 300, "carol", "movie", "2025-05-01T00:00:00Z")
+	carolFirst.Media.ID = 30
+	carolAgain := seerrTestRequest(3, 300, "carol", "movie", "2025-06-01T00:00:00Z")
+	carolAgain.Media.ID = 30
 	requests := []models.SeerrRequest{
 		seerrTestRequest(1, 100, "alice", "movie", "2025-02-01T00:00:00Z"),
 		seerrTestRequest(1, 100, "alice", "movie", "2025-03-01T00:00:00Z"),
 		seerrTestRequest(2, 200, "bob", "movie", "2025-04-01T00:00:00Z"),
-		seerrTestRequest(3, 300, "carol", "movie", "2025-05-01T00:00:00Z"),
+		carolFirst,
+		carolAgain, // the same title again: still one
 		seerrTestRequest(2, 200, "bob", "movie", "2026-02-01T00:00:00Z"), // this year
 	}
 	lastConfig := models.WrapperrConfig{
@@ -63,7 +68,7 @@ func TestLastYearRequesterRanks(t *testing.T) {
 	}
 
 	// The top requesters carry them, before other users are named
-	_, year := SeerrRequestStatistics(requests[4:], nil, 100, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC), 10, true, newOtherUserNamer("obfuscate"), ranks)
+	_, year := SeerrRequestStatistics(requests[5:], nil, 100, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC), 10, true, newOtherUserNamer("obfuscate"), ranks)
 	if len(year.Data.Requesters) != 1 || year.Data.Requesters[0].LastRank == nil || *year.Data.Requesters[0].LastRank != 2 {
 		t.Errorf("expected bob's last place 2 on the top requesters, got %+v", year.Data.Requesters)
 	}
