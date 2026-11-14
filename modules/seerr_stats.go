@@ -103,7 +103,14 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 	userTimeline := map[string]int{}
 	requesters := map[int]*models.WrapperrRequestUser{}
 
-	for _, request := range requests {
+	// A title asked for again (another season, in 4K as well as HD, or re-requested automatically) counts once,
+	// for each requester and for everyone, in the month it was first asked for
+	ordered := append([]models.SeerrRequest{}, requests...)
+	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].CreatedAt.Before(ordered[j].CreatedAt) })
+	requestedTitles := map[int]map[string]bool{}
+	serverTitles := map[string]bool{}
+
+	for _, request := range ordered {
 		if request.CreatedAt.Before(start) || request.CreatedAt.After(end) {
 			continue
 		}
@@ -112,6 +119,22 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 		if ignored {
 			continue
 		}
+
+		month := request.CreatedAt.In(time.Local).Format("2006-01")
+		title := requestTitleKey(request)
+		if !serverTitles[title] {
+			serverTitles[title] = true
+			serverTimeline[month]++
+			yearRequests.Data.RequestCount++
+		}
+
+		if requestedTitles[requester.UserID] == nil {
+			requestedTitles[requester.UserID] = map[string]bool{}
+		}
+		if requestedTitles[requester.UserID][title] {
+			continue
+		}
+		requestedTitles[requester.UserID][title] = true
 
 		entry, found := requesters[requester.UserID]
 		if !found {
@@ -126,13 +149,9 @@ func SeerrRequestStatistics(requests []models.SeerrRequest, users []models.Wrapp
 			entry.ShowRequests++
 		}
 
-		month := request.CreatedAt.In(time.Local).Format("2006-01")
-		serverTimeline[month]++
 		if requester.UserID == user_id {
 			userTimeline[month]++
 		}
-
-		yearRequests.Data.RequestCount++
 	}
 
 	ranked := []models.WrapperrRequestUser{}
@@ -457,18 +476,6 @@ func (requested *seerrRequestedKey) creditedFor(entry models.TautulliEntry) map[
 	return credited
 }
 
-// Identifies the title a request is for, so a title requested in both 4K and
-// HD counts once. Falls back to the rating key, then to the request itself.
-func requestTitleKey(request models.SeerrRequest) string {
-	if request.Media.ID != 0 {
-		return "media-" + strconv.Itoa(request.Media.ID)
-	}
-	if request.Media.RatingKey != nil && *request.Media.RatingKey != "" {
-		return "key-" + *request.Media.RatingKey
-	}
-	return "request-" + strconv.Itoa(request.ID)
-}
-
 func setTitlesWatched(entry *models.WrapperrRequestUser, watched int, requested int) {
 	entry.TitlesWatched = watched
 	entry.RequestedTitles = requested
@@ -604,6 +611,18 @@ func requestUser(userID int, userName string, friendlyName string) models.Wrappe
 }
 
 // Lists every month from start to end as "2006-01", in the configured time zone.
+// Identifies the title a request is for, so a title requested in both 4K and
+// HD counts once. Falls back to the rating key, then to the request itself.
+func requestTitleKey(request models.SeerrRequest) string {
+	if request.Media.ID != 0 {
+		return "media-" + strconv.Itoa(request.Media.ID)
+	}
+	if request.Media.RatingKey != nil && *request.Media.RatingKey != "" {
+		return "key-" + *request.Media.RatingKey
+	}
+	return "request-" + strconv.Itoa(request.ID)
+}
+
 func requestMonths(start time.Time, end time.Time) []string {
 	months := []string{}
 	current := time.Date(start.In(time.Local).Year(), start.In(time.Local).Month(), 1, 0, 0, 0, 0, time.Local)
