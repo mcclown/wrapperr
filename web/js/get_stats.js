@@ -1424,7 +1424,8 @@ function top_list_requesters(array, title, div_id, kind) {
     html += "<div class='status' id='" + div_id + "'>";
         html += "<div class='stats'>";
             html += "<div class='status-title'>" + ReplaceStandardStrings(title) + "</div>";
-            html += "<div class='stats-list'>";
+            // Request rows are taller than other lists', so these lists grow to fit rather than scrolling
+            html += "<div class='stats-list" + (kind === 'requests' ? "" : " request-list") + "'>";
             for(var i = 0; i < array.length; i++) {
                 var medal = ['gold', 'silver', 'bronze'][i] || '';
 
