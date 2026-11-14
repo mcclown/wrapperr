@@ -1363,6 +1363,8 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 			wrapperr_reply.YearStats.YearUsers.Data.UsersDuration = append(wrapperr_reply.YearStats.YearUsers.Data.UsersDuration, entry)
 			count += 1
 		}
+		usersDuration := wrapperr_reply.YearStats.YearUsers.Data.UsersDuration
+		lastRanks.place(usersDuration, func(index int) int { return usersDuration[index].Duration })
 
 		// Sort year show array by plays
 		sortutil.DescByField(wrapperr_year_user, "Plays")
@@ -1374,6 +1376,8 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 			wrapperr_reply.YearStats.YearUsers.Data.UsersPlays = append(wrapperr_reply.YearStats.YearUsers.Data.UsersPlays, entry)
 			count += 1
 		}
+		usersPlays := wrapperr_reply.YearStats.YearUsers.Data.UsersPlays
+		lastRanks.place(usersPlays, func(index int) int { return usersPlays[index].Plays })
 
 		wrapperr_reply.YearStats.YearMovies.Message = "All users processed."
 

@@ -1178,7 +1178,7 @@ function top_list_names(array, title, div_id) {
                         html += i+1 + ". ";
                     html += "</div>";
 
-                    html += rank_change(array === results.year_stats.year_users.data.users_plays ? array[i].last_rank_plays : array[i].last_rank_duration, i + 1);
+                    html += rank_change(array === results.year_stats.year_users.data.users_plays ? array[i].last_rank_plays : array[i].last_rank_duration, array[i].rank || i + 1);
  
                     html += "<div class='name'>";
                     
@@ -1439,7 +1439,7 @@ function top_list_requesters(array, title, div_id, kind) {
                 if(kind === 'requests') {
                     html += "<div class='item " + medal + "'>";
                         html += "<div class='number'>" + (i+1) + ". </div>";
-                        html += rank_change(array[i].last_rank, i + 1);
+                        html += rank_change(array[i].last_rank, array[i].rank || i + 1);
                         html += "<div class='name'>";
                             html += array[i].user;
                             // Counts are zeroed when leaderboard numbers are hidden

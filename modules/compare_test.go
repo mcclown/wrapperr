@@ -101,3 +101,13 @@ func TestLastYearLeaderboard(t *testing.T) {
 		t.Error("expected no ranks without last year's plays")
 	}
 }
+
+func TestSharedPlace(t *testing.T) {
+	values := []int{9, 7, 7, 7, 3}
+	want := []int{1, 2, 2, 2, 5}
+	for index := range values {
+		if got := sharedPlace(index, func(i int) int { return values[i] }); got != want[index] {
+			t.Errorf("place of entry %d: got %d, want %d", index, got, want[index])
+		}
+	}
+}
