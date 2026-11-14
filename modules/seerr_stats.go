@@ -68,9 +68,9 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr
 	wantFollowing := wantUser && config.WrapperrCustomize.GetUserRequestStatsFollowing
 	wantTrendsetters := wantYear && config.WrapperrCustomize.GetYearStatsRequestsTrendsetters
 	if wantFollowers || wantFollowing || wantTrendsetters {
-		// The user's followers' and followed requesters' places last year, for their movement since
+		// Places on last year's lists, for the movement since
 		var lastReach *reachRanks
-		if wantFollowers || wantFollowing {
+		if wantFollowers || wantFollowing || wantTrendsetters {
 			lastReach = lastYearReachRanks(requests, users, lastYear, user_id, lastYearConfig(config))
 		}
 		reach := SeerrRequestReach(requests, users, wrapperr_data, user_id, start, end, topListLimit, showNumbers, namer, lastReach)
@@ -249,7 +249,7 @@ func watcherFor(watchers map[int]*requestWatcher, user models.WrapperrRequestUse
 // A play counts towards a request when it is of the requested title (Plex
 // rating key of the movie, or of the show for episodes), happened after the
 // request, and was by someone other than the requester. lastRanks, if not nil,
-// are places on last year's lists, given to the followers and followed.
+// are places on last year's lists, given to each list.
 func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUser, wrapperr_data []models.WrapperrDay, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer, lastRanks *reachRanks) SeerrReach {
 	reach := SeerrReach{}
 	resolver := newRequesterResolver(users)
@@ -362,9 +362,9 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 			reach.TopRequest = top
 		}
 	}
-	reach.TrendsettersTitles = topRequestUsers(sortRequestUsers(trendsetters, byTitles), topListLimit, user_id, namer, !showNumbers, nil)
-	reach.TrendsettersPercent = topRequestUsers(sortRequestUsers(trendsetters, byPercent), topListLimit, user_id, namer, !showNumbers, nil)
-	reach.TrendsettersViewers = topRequestUsers(sortRequestUsers(trendsetters, byViewers), topListLimit, user_id, namer, !showNumbers, nil)
+	reach.TrendsettersTitles = topRequestUsers(sortRequestUsers(trendsetters, byTitles), topListLimit, user_id, namer, !showNumbers, lastRanks.list(func(r *reachRanks) map[int]int { return r.trendsettersTitles }))
+	reach.TrendsettersPercent = topRequestUsers(sortRequestUsers(trendsetters, byPercent), topListLimit, user_id, namer, !showNumbers, lastRanks.list(func(r *reachRanks) map[int]int { return r.trendsettersPercent }))
+	reach.TrendsettersViewers = topRequestUsers(sortRequestUsers(trendsetters, byViewers), topListLimit, user_id, namer, !showNumbers, lastRanks.list(func(r *reachRanks) map[int]int { return r.trendsettersViewers }))
 
 	// Followers of the current user
 	fans := []models.WrapperrRequestUser{}

@@ -109,6 +109,10 @@ func TestLastYearReachRanks(t *testing.T) {
 	if ranks.followingPercent[300] != 1 || ranks.followingPercent[200] != 2 {
 		t.Errorf("following by share %v, want carol 1 and bob 2", ranks.followingPercent)
 	}
+	// alice's requests were watched by two people, bob's and carol's by one
+	if ranks.trendsettersViewers[100] != 1 || ranks.trendsettersViewers[200] == 0 || ranks.trendsettersViewers[300] == 0 {
+		t.Errorf("trendsetters by viewers %v, want alice 1 then bob and carol", ranks.trendsettersViewers)
+	}
 	if lastYearReachRanks(requests, nil, nil, 100, lastConfig) != nil {
 		t.Error("expected no places without last year's plays")
 	}
@@ -122,7 +126,7 @@ func TestLastYearReachRanks(t *testing.T) {
 	if len(reach.Followers) != 2 || reach.Followers[0].LastRank == nil || *reach.Followers[0].LastRank != 2 || reach.Followers[1].LastRank == nil || *reach.Followers[1].LastRank != 0 {
 		t.Errorf("expected carol last 2nd and dave new on the followers, got %+v", reach.Followers)
 	}
-	if reach.TrendsettersTitles[0].LastRank != nil {
-		t.Error("expected no last places on the trendsetters")
+	if len(reach.TrendsettersTitles) != 1 || reach.TrendsettersTitles[0].LastRank == nil || *reach.TrendsettersTitles[0].LastRank != ranks.trendsettersTitles[100] {
+		t.Errorf("expected alice's last place on the trendsetters, got %+v", reach.TrendsettersTitles)
 	}
 }
