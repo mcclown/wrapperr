@@ -413,6 +413,7 @@ func CreateConfigFile() error {
 	config.WrapperrCustomize.GetYearStatsMusic = true
 	config.WrapperrCustomize.GetYearStatsLeaderboard = true
 	config.WrapperrCustomize.GetYearStatsLeaderboardNumbers = false
+	config.WrapperrCustomize.GetYearCompare = true
 
 	// Write straight to disk without touching the cache or lock: this is only
 	// reached from inside the locked loader (which holds the write lock and then
@@ -974,6 +975,38 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 
 	if config.WrapperrCustomize.GetYearStatsMusicTitle == "" {
 		config.WrapperrCustomize.GetYearStatsMusicTitle = config_default.WrapperrCustomize.GetYearStatsMusicTitle
+	}
+
+	if config.WrapperrCustomize.GetYearCompareTitle == "" {
+		config.WrapperrCustomize.GetYearCompareTitle = config_default.WrapperrCustomize.GetYearCompareTitle
+	}
+
+	if config.WrapperrCustomize.GetYearCompareSubtitle == "" {
+		config.WrapperrCustomize.GetYearCompareSubtitle = config_default.WrapperrCustomize.GetYearCompareSubtitle
+	}
+
+	if config.WrapperrCustomize.GetYearCompareYou == "" {
+		config.WrapperrCustomize.GetYearCompareYou = config_default.WrapperrCustomize.GetYearCompareYou
+	}
+
+	if config.WrapperrCustomize.GetYearCompareEveryone == "" {
+		config.WrapperrCustomize.GetYearCompareEveryone = config_default.WrapperrCustomize.GetYearCompareEveryone
+	}
+
+	if config.WrapperrCustomize.GetYearCompareSplitTitle == "" {
+		config.WrapperrCustomize.GetYearCompareSplitTitle = config_default.WrapperrCustomize.GetYearCompareSplitTitle
+	}
+
+	if config.WrapperrCustomize.GetYearCompareMovies == "" {
+		config.WrapperrCustomize.GetYearCompareMovies = config_default.WrapperrCustomize.GetYearCompareMovies
+	}
+
+	if config.WrapperrCustomize.GetYearCompareShows == "" {
+		config.WrapperrCustomize.GetYearCompareShows = config_default.WrapperrCustomize.GetYearCompareShows
+	}
+
+	if config.WrapperrCustomize.GetYearCompareNone == "" {
+		config.WrapperrCustomize.GetYearCompareNone = config_default.WrapperrCustomize.GetYearCompareNone
 	}
 
 	if config.WrapperrCustomize.GetYearStatsLeaderboardTitle == "" {

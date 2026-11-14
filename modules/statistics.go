@@ -40,10 +40,7 @@ func GetWrapperStatistics(user_name string, user_friendlyname string, user_id in
 	log.Println("Cache stage completed for " + user_name + ".")
 
 	// Change wrapped start & end dates if dynamic setting is configured
-	if config.WrappedDynamic {
-		config.WrappedEnd = int(time.Now().Unix())
-		config.WrappedStart = int(time.Now().AddDate(0, 0, -config.WrappedDynamicDays).Unix())
-	}
+	config = currentWrappedPeriod(config)
 
 	// Download/refresh data-set from Tautulli
 	wrapperr_data, wrapperr_data_complete, err := WrapperrDownloadDays(user_id, wrapperr_data, cacheLimit, config)
@@ -76,12 +73,18 @@ func GetWrapperStatistics(user_name string, user_friendlyname string, user_id in
 	wrapperr_reply.Date = time.Now().Format("2006-01-02")
 	wrapperr_reply.Message = "Statistics retrieved."
 
+	// Last year's plays, for the comparison with last year and the leaderboard's movement since
+	lastYear, lastYearMessage := LastYearPlays(config)
+
 	// Loop through Wrapperr data and format reply
-	wrapperrReply, err = WrapperrLoopData(user_id, config, wrapperr_data, wrapperr_reply)
+	wrapperrReply, err = WrapperrLoopData(user_id, config, wrapperr_data, wrapperr_reply, lastYearLeaderboard(config, lastYear))
 	if err != nil {
 		log.Println("Failed to wrap data. Error: " + err.Error())
 		return wrapperrReply, cachingComplete, errors.New("Failed to wrap data.")
 	}
+
+	// Compare the year with last year
+	wrapperrReply = WrapperrCompareStatistics(user_id, config, wrapperr_data, lastYear, lastYearMessage, wrapperrReply)
 
 	return wrapperrReply, cachingComplete, err
 }
@@ -527,7 +530,7 @@ func CalculateShowBirthDecade(episodes []models.TautulliEntry, referenceYear int
 	}
 }
 
-func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, wrapperr_reply models.WrapperrStatisticsReply) (models.WrapperrStatisticsReply, error) {
+func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, wrapperr_reply models.WrapperrStatisticsReply, lastRanks *leaderboardRanks) (models.WrapperrStatisticsReply, error) {
 
 	end_loop_date := time.Unix(int64(config.WrappedEnd), 0)
 	start_loop_date := time.Unix(int64(config.WrappedStart), 0)
@@ -1298,6 +1301,9 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 		for d := 0; d < len(wrapperr_year_user); d++ {
 			wrapperr_year_user[d].Duration = wrapperr_year_user[d].DurationMovies + wrapperr_year_user[d].DurationShows + wrapperr_year_user[d].DurationArtists
 
+			// Last year's places, while the user ID is still there to find them by
+			lastRanks.set(&wrapperr_year_user[d])
+
 			currentUserID := wrapperr_year_user[d].UserID
 
 			// Handle username display based on config setting
@@ -1365,6 +1371,8 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 			wrapperr_reply.YearStats.YearUsers.Data.UsersDuration = append(wrapperr_reply.YearStats.YearUsers.Data.UsersDuration, entry)
 			count += 1
 		}
+		usersDuration := wrapperr_reply.YearStats.YearUsers.Data.UsersDuration
+		lastRanks.place(usersDuration, func(index int) int { return usersDuration[index].Duration })
 
 		// Sort year show array by plays
 		sortutil.DescByField(wrapperr_year_user, "Plays")
@@ -1376,6 +1384,8 @@ func WrapperrLoopData(user_id int, config models.WrapperrConfig, wrapperr_data [
 			wrapperr_reply.YearStats.YearUsers.Data.UsersPlays = append(wrapperr_reply.YearStats.YearUsers.Data.UsersPlays, entry)
 			count += 1
 		}
+		usersPlays := wrapperr_reply.YearStats.YearUsers.Data.UsersPlays
+		lastRanks.place(usersPlays, func(index int) int { return usersPlays[index].Plays })
 
 		wrapperr_reply.YearStats.YearMovies.Message = "All users processed."
 
