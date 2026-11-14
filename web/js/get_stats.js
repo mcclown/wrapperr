@@ -194,6 +194,10 @@ function load_page(data){
         load_users();
     }
 
+    if(show_year_compare()) {
+        load_compare();
+    }
+
     // Load the outro
     load_outro();
 }
@@ -1691,6 +1695,84 @@ function load_users() {
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;
+}
+
+// COMPARED WITH LAST YEAR
+function show_year_compare() {
+    return functions.get_year_compare && results.year_compare && !results.year_compare.error;
+}
+
+function load_compare() {
+    var compare = results.year_compare.data;
+    var text = "";
+
+    text += "<div class='boks' data-color='mango' style='height: auto !important; width: 100%; padding-bottom: 25em; padding-top: 25em; height:10em; background-color: none;'>";
+        text += "<h1>" + ReplaceStandardStrings(functions.get_year_compare_title) + "</h1>";
+        text += "<h2>" + ReplaceStandardStrings(functions.get_year_compare_subtitle.replaceAll('{this_year}', compare.server.this_year.year).replaceAll('{last_year}', compare.server.last_year.year)) + "</h2>";
+        text += compare_row(compare.user, functions.get_year_compare_you);
+        text += compare_row(compare.server, functions.get_year_compare_everyone);
+    text += "</div>";
+
+    document.getElementById("search_results").innerHTML += text;
+}
+
+// The comparison cards for the viewer or for everyone, under a heading
+function compare_row(years, heading) {
+    var text = "<h3 class='compare-heading'>" + ReplaceStandardStrings(heading) + "</h3>";
+    text += "<div class='boks3'>";
+        text += "<div class='boks2'>" + compare_split_card(years) + "</div>";
+    text += "</div>";
+    return text;
+}
+
+// How viewing split between movies and TV in each year, and how much each changed
+function compare_split_card(years) {
+    var html = "<div class='status'>";
+        html += "<div class='stats'>";
+            html += "<div class='compare-title'>" + ReplaceStandardStrings(functions.get_year_compare_split_title) + "</div>";
+            html += compare_split_bar(years.last_year);
+            html += compare_split_bar(years.this_year);
+            html += compare_change(functions.get_year_compare_movies, 'compare-movies', years.last_year.year, years.last_year.movie_duration, years.this_year.movie_duration);
+            html += compare_change(functions.get_year_compare_shows, 'compare-shows', years.last_year.year, years.last_year.show_duration, years.this_year.show_duration);
+        html += "</div>";
+    html += "</div>";
+    return html;
+}
+
+// A year's bar, split into the share of hours spent on movies and on TV
+function compare_split_bar(year) {
+    var total = year.movie_duration + year.show_duration;
+    var html = "<div class='compare-year'>";
+        html += "<div class='compare-year-label'>" + year.year + "</div>";
+        if(total == 0) {
+            html += "<div class='compare-none'>" + ReplaceStandardStrings(functions.get_year_compare_none.replaceAll('{year}', year.year)) + "</div>";
+        } else {
+            var movies = Math.round(year.movie_duration / total * 100);
+            html += "<div class='compare-bar'>";
+                html += "<div class='compare-movies' style='width:" + movies + "%'>" + (movies >= 15 ? movies + "%" : "") + "</div>";
+                html += "<div class='compare-shows' style='width:" + (100 - movies) + "%'>" + (100 - movies >= 15 ? (100 - movies) + "%" : "") + "</div>";
+            html += "</div>";
+        }
+    html += "</div>";
+    return html;
+}
+
+// The hours this year, with the change from last year and last year's hours
+function compare_change(label, key_class, last_year, last, now) {
+    var html = "<div class='compare-change'>";
+        html += "<span class='compare-key " + key_class + "'></span>" + label + ": <b>" + compare_hours(now) + "</b>";
+        if(last > 0) {
+            var change = Math.round((now - last) / last * 100);
+            html += " <span class='" + (change >= 0 ? "compare-up" : "compare-down") + "'>" + (change >= 0 ? "&#9650; " : "&#9660; ") + number_with_spaces(Math.abs(change)) + "%</span>";
+        }
+        html += " <span class='compare-was'>(" + last_year + ": " + compare_hours(last) + ")</span>";
+    html += "</div>";
+    return html;
+}
+
+function compare_hours(seconds) {
+    var hours = Math.round(seconds / 3600);
+    return number_with_spaces(hours) + " " + (hours == 1 ? functions.wrapperr_hour : functions.wrapperr_hour_plural);
 }
 
 //Outro

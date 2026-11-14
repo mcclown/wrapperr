@@ -297,6 +297,15 @@ function get_config(cookie) {
                 get_year_stats_shows_popular_title = result.data.wrapperr_customize.get_year_stats_shows_popular_title;
                 get_year_stats_popular_viewer = result.data.wrapperr_customize.get_year_stats_popular_viewer;
                 get_year_stats_popular_viewer_plural = result.data.wrapperr_customize.get_year_stats_popular_viewer_plural;
+                get_year_compare = result.data.wrapperr_customize.get_year_compare;
+                get_year_compare_title = result.data.wrapperr_customize.get_year_compare_title;
+                get_year_compare_subtitle = result.data.wrapperr_customize.get_year_compare_subtitle;
+                get_year_compare_you = result.data.wrapperr_customize.get_year_compare_you;
+                get_year_compare_everyone = result.data.wrapperr_customize.get_year_compare_everyone;
+                get_year_compare_split_title = result.data.wrapperr_customize.get_year_compare_split_title;
+                get_year_compare_movies = result.data.wrapperr_customize.get_year_compare_movies;
+                get_year_compare_shows = result.data.wrapperr_customize.get_year_compare_shows;
+                get_year_compare_none = result.data.wrapperr_customize.get_year_compare_none;
                 get_year_stats_duration_sum_title = result.data.wrapperr_customize.get_year_stats_duration_sum_title;
                 get_user_request_stats = result.data.wrapperr_customize.get_user_request_stats;
                 get_year_stats_requests = result.data.wrapperr_customize.get_year_stats_requests;
