@@ -114,3 +114,39 @@ func lastYearRequesterRanks(requests []models.SeerrRequest, users []models.Wrapp
 	}
 	return rankUsers(counts)
 }
+
+// Places on last year's lists of the user's followers and of the requesters the user follows, by titles watched
+// and by share watched
+type reachRanks struct {
+	followers        map[int]int
+	followingTitles  map[int]int
+	followingPercent map[int]int
+}
+
+// One of the lists' places, nil without last year's
+func (ranks *reachRanks) list(pick func(*reachRanks) map[int]int) map[int]int {
+	if ranks == nil {
+		return nil
+	}
+	return pick(ranks)
+}
+
+// Ranks the user's followers and followed requesters in last year's period as this year's lists are ranked,
+// from last year's requests and plays. nil without last year's plays.
+func lastYearReachRanks(requests []models.SeerrRequest, users []models.WrapperrUser, lastYear []models.WrapperrDay, user_id int, lastConfig models.WrapperrConfig) *reachRanks {
+	if lastYear == nil {
+		return nil
+	}
+	start, end := time.Unix(int64(lastConfig.WrappedStart), 0), time.Unix(int64(lastConfig.WrappedEnd), 0)
+	// Every place, under Plex usernames so the user IDs are kept
+	reach := SeerrRequestReach(requests, users, lastYear, user_id, start, end, 0, true, newOtherUserNamer("plex_username"), nil)
+
+	places := func(list []models.WrapperrRequestUser) map[int]int {
+		ranks := map[int]int{}
+		for index, entry := range list {
+			ranks[entry.UserID] = index + 1
+		}
+		return ranks
+	}
+	return &reachRanks{followers: places(reach.Followers), followingTitles: places(reach.FollowingTitles), followingPercent: places(reach.FollowingPercent)}
+}

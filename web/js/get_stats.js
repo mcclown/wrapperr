@@ -1453,6 +1453,7 @@ function top_list_requesters(array, title, div_id, kind) {
 
                 html += "<div class='item request-item " + medal + "'>";
                     html += "<div class='number'>" + (i+1) + ". </div>";
+                    html += rank_change(array[i].last_rank, i + 1);
 
                     var top_request = array[i].top_request;
                     if(kind !== 'followers' && has_request_poster(top_request)) {

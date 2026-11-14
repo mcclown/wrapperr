@@ -87,7 +87,7 @@ func GetWrapperStatistics(user_name string, user_friendlyname string, user_id in
 	}
 
 	// Add request statistics from Seerr
-	wrapperrReply, requests, requestUsers := WrapperrSeerrStatistics(user_id, config, wrapperr_data, namer, wrapperrReply)
+	wrapperrReply, requests, requestUsers := WrapperrSeerrStatistics(user_id, config, wrapperr_data, lastYear, namer, wrapperrReply)
 
 	// Compare the year with last year
 	wrapperrReply = WrapperrCompareStatistics(user_id, config, wrapperr_data, lastYear, lastYearMessage, requests, requestUsers, wrapperrReply)

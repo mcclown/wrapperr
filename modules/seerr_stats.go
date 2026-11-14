@@ -16,8 +16,8 @@ import (
 // Adds the Seerr request sections to the reply. Seerr failures are reported in
 // the request sections only, so the rest of the wrapped results still load.
 // Also returns the requests and users it loaded, for the comparison with last
-// year, or nil when it loaded none.
-func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, namer *otherUserNamer, wrapperr_reply models.WrapperrStatisticsReply) (models.WrapperrStatisticsReply, []models.SeerrRequest, []models.WrapperrUser) {
+// year, or nil when it loaded none. lastYear is from LastYearPlays.
+func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr_data []models.WrapperrDay, lastYear []models.WrapperrDay, namer *otherUserNamer, wrapperr_reply models.WrapperrStatisticsReply) (models.WrapperrStatisticsReply, []models.SeerrRequest, []models.WrapperrUser) {
 	userRequests := models.WrapperrUserRequests{}
 	yearRequests := models.WrapperrYearRequests{}
 
@@ -68,7 +68,12 @@ func WrapperrSeerrStatistics(user_id int, config models.WrapperrConfig, wrapperr
 	wantFollowing := wantUser && config.WrapperrCustomize.GetUserRequestStatsFollowing
 	wantTrendsetters := wantYear && config.WrapperrCustomize.GetYearStatsRequestsTrendsetters
 	if wantFollowers || wantFollowing || wantTrendsetters {
-		reach := SeerrRequestReach(requests, users, wrapperr_data, user_id, start, end, topListLimit, showNumbers, namer)
+		// The user's followers' and followed requesters' places last year, for their movement since
+		var lastReach *reachRanks
+		if wantFollowers || wantFollowing {
+			lastReach = lastYearReachRanks(requests, users, lastYear, user_id, lastYearConfig(config))
+		}
+		reach := SeerrRequestReach(requests, users, wrapperr_data, user_id, start, end, topListLimit, showNumbers, namer, lastReach)
 		if wantFollowers {
 			userRequests.Data.Viewers = reach.Viewers
 			userRequests.Data.TopRequest = reach.TopRequest
@@ -243,8 +248,9 @@ func watcherFor(watchers map[int]*requestWatcher, user models.WrapperrRequestUse
 // Joins the requests created within the wrapped period to the plays within it.
 // A play counts towards a request when it is of the requested title (Plex
 // rating key of the movie, or of the show for episodes), happened after the
-// request, and was by someone other than the requester.
-func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUser, wrapperr_data []models.WrapperrDay, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer) SeerrReach {
+// request, and was by someone other than the requester. lastRanks, if not nil,
+// are places on last year's lists, given to the followers and followed.
+func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUser, wrapperr_data []models.WrapperrDay, user_id int, start time.Time, end time.Time, topListLimit int, showNumbers bool, namer *otherUserNamer, lastRanks *reachRanks) SeerrReach {
 	reach := SeerrReach{}
 	resolver := newRequesterResolver(users)
 
@@ -356,9 +362,9 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 			reach.TopRequest = top
 		}
 	}
-	reach.TrendsettersTitles = topRequestUsers(sortRequestUsers(trendsetters, byTitles), topListLimit, user_id, namer, !showNumbers)
-	reach.TrendsettersPercent = topRequestUsers(sortRequestUsers(trendsetters, byPercent), topListLimit, user_id, namer, !showNumbers)
-	reach.TrendsettersViewers = topRequestUsers(sortRequestUsers(trendsetters, byViewers), topListLimit, user_id, namer, !showNumbers)
+	reach.TrendsettersTitles = topRequestUsers(sortRequestUsers(trendsetters, byTitles), topListLimit, user_id, namer, !showNumbers, nil)
+	reach.TrendsettersPercent = topRequestUsers(sortRequestUsers(trendsetters, byPercent), topListLimit, user_id, namer, !showNumbers, nil)
+	reach.TrendsettersViewers = topRequestUsers(sortRequestUsers(trendsetters, byViewers), topListLimit, user_id, namer, !showNumbers, nil)
 
 	// Followers of the current user
 	fans := []models.WrapperrRequestUser{}
@@ -368,7 +374,7 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 		setTitlesWatched(&entry, len(fan.titles), len(requestedTitles[user_id]))
 		fans = append(fans, entry)
 	}
-	reach.Followers = topRequestUsers(sortRequestUsers(fans, byTitles), topListLimit, user_id, namer, false)
+	reach.Followers = topRequestUsers(sortRequestUsers(fans, byTitles), topListLimit, user_id, namer, false, lastRanks.list(func(r *reachRanks) map[int]int { return r.followers }))
 
 	// Requesters the current user follows, with the request the user spent the most time on
 	idols := []models.WrapperrRequestUser{}
@@ -385,8 +391,8 @@ func SeerrRequestReach(requests []models.SeerrRequest, users []models.WrapperrUs
 		}
 		idols = append(idols, entry)
 	}
-	reach.FollowingTitles = topRequestUsers(sortRequestUsers(idols, byTitles), topListLimit, user_id, namer, false)
-	reach.FollowingPercent = topRequestUsers(sortRequestUsers(idols, byPercent), topListLimit, user_id, namer, false)
+	reach.FollowingTitles = topRequestUsers(sortRequestUsers(idols, byTitles), topListLimit, user_id, namer, false, lastRanks.list(func(r *reachRanks) map[int]int { return r.followingTitles }))
+	reach.FollowingPercent = topRequestUsers(sortRequestUsers(idols, byPercent), topListLimit, user_id, namer, false, lastRanks.list(func(r *reachRanks) map[int]int { return r.followingPercent }))
 
 	return reach
 }
@@ -531,12 +537,17 @@ func sortRequestUsers(list []models.WrapperrRequestUser, order requestOrder) []m
 }
 
 // Cuts a ranked list to the top list length and names other users. Counts are
-// zeroed when leaderboard numbers are hidden.
-func topRequestUsers(ranked []models.WrapperrRequestUser, topListLimit int, user_id int, namer *otherUserNamer, hideNumbers bool) []models.WrapperrRequestUser {
+// zeroed when leaderboard numbers are hidden. lastRanks, if not nil, are places
+// on last year's list, given before naming while the user IDs are still there.
+func topRequestUsers(ranked []models.WrapperrRequestUser, topListLimit int, user_id int, namer *otherUserNamer, hideNumbers bool, lastRanks map[int]int) []models.WrapperrRequestUser {
 	top := []models.WrapperrRequestUser{}
 	for index, entry := range ranked {
 		if topListLimit != 0 && index >= topListLimit {
 			break
+		}
+		if lastRanks != nil {
+			lastRank := lastRanks[entry.UserID]
+			entry.LastRank = &lastRank
 		}
 		nameOtherUser(&entry, user_id, namer)
 		if hideNumbers {
