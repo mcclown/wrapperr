@@ -66,6 +66,7 @@ func WrapperrCompareStatistics(user_id int, config models.WrapperrConfig, wrappe
 	lastConfig := lastYearConfig(config)
 	compare.Data.User.ThisYear, compare.Data.Server.ThisYear = compareYear(wrapperr_data, config, user_id)
 	compare.Data.User.LastYear, compare.Data.Server.LastYear = compareYear(lastYear, lastConfig, user_id)
+	compareRequests(user_id, config, lastConfig, wrapperr_data, lastYear, &reply)
 	compare.Error = false
 	compare.Message = "Comparison with last year processed."
 	return reply

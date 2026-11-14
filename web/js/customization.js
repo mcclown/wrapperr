@@ -1011,6 +1011,16 @@ function loadAdminPage() {
             html += '<label for="get_year_compare_none" title="Shown for a year with nothing watched. Use {year}.">Comparison, nothing watched:<br>';
             html += '<input type="text" class="form-control" id="get_year_compare_none" value="' + get_year_compare_none + '" autocomplete="off" placeholder="" required /><br>';
             html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_requests_title" title="Title of the card comparing requests.">Comparison, requests card title:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_requests_title" value="' + get_year_compare_requests_title + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_compare_requests_line" title="The requests of a year. Use {requests} and {watched}.">Comparison, requests line:<br>';
+            html += '<input type="text" class="form-control" id="get_year_compare_requests_line" value="' + get_year_compare_requests_line + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
         
         html += '</div>';
 
@@ -1500,6 +1510,8 @@ function set_wrapperr_customization_call() {
     get_year_compare_movies = document.getElementById('get_year_compare_movies').value;
     get_year_compare_shows = document.getElementById('get_year_compare_shows').value;
     get_year_compare_none = document.getElementById('get_year_compare_none').value;
+    get_year_compare_requests_title = document.getElementById('get_year_compare_requests_title').value;
+    get_year_compare_requests_line = document.getElementById('get_year_compare_requests_line').value;
     get_year_stats_duration_sum_title = document.getElementById('get_year_stats_duration_sum_title').value;
     clear_cache = document.getElementById('clear_cache').checked;
     clear_poster_cache = document.getElementById('clear_poster_cache').checked;
@@ -1659,6 +1671,8 @@ function set_wrapperr_customization_call() {
             "get_year_compare_movies" : get_year_compare_movies,
             "get_year_compare_shows" : get_year_compare_shows,
             "get_year_compare_none" : get_year_compare_none,
+            "get_year_compare_requests_title" : get_year_compare_requests_title,
+            "get_year_compare_requests_line" : get_year_compare_requests_line,
             "get_year_stats_duration_sum_title" : get_year_stats_duration_sum_title,
             "get_user_request_stats" : get_user_request_stats,
             "get_year_stats_requests" : get_year_stats_requests,

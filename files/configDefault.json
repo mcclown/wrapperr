@@ -113,6 +113,8 @@
         "get_year_compare_movies":"Movies",
         "get_year_compare_shows":"TV",
         "get_year_compare_none":"Nothing watched in {year}",
+        "get_year_compare_requests_title":"Requests",
+        "get_year_compare_requests_line":"{requests} requested, {watched} watched",
         "get_year_stats_leaderboard_number":false,
         "get_year_stats_leaderboard_title":"Top users",
         "get_year_stats_popular":true,

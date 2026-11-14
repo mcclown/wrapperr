@@ -1093,6 +1093,14 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 		config.WrapperrCustomize.GetYearCompareNone = config_default.WrapperrCustomize.GetYearCompareNone
 	}
 
+	if config.WrapperrCustomize.GetYearCompareRequestsTitle == "" {
+		config.WrapperrCustomize.GetYearCompareRequestsTitle = config_default.WrapperrCustomize.GetYearCompareRequestsTitle
+	}
+
+	if config.WrapperrCustomize.GetYearCompareRequestsLine == "" {
+		config.WrapperrCustomize.GetYearCompareRequestsLine = config_default.WrapperrCustomize.GetYearCompareRequestsLine
+	}
+
 	if config.WrapperrCustomize.GetYearStatsLeaderboardTitle == "" {
 		config.WrapperrCustomize.GetYearStatsLeaderboardTitle = config_default.WrapperrCustomize.GetYearStatsLeaderboardTitle
 	}

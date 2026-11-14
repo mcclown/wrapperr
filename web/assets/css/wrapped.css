@@ -787,6 +787,11 @@ hr {
     font-weight: bold;
 }
 
+.compare-requests {
+    flex: 1;
+    text-align: left;
+}
+
 .compare-none {
     flex: 1;
     text-align: left;
