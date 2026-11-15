@@ -122,7 +122,7 @@ func SetVoyageMusicUpload(extension string, upload io.Reader) (string, error) {
 	config, err := GetConfig()
 	if err == nil {
 		config.VoyageMusic = name
-		err = SaveConfig(config)
+		err = SaveConfigWithVoyageMusic(config)
 	}
 	if err != nil {
 		done(false)
@@ -136,16 +136,12 @@ func SetVoyageMusicUpload(extension string, upload io.Reader) (string, error) {
 // SaveSettings saves settings an admin changed, with the voyage's music as it is now unless they set it, so an
 // upload or removal between reading the settings and saving them isn't undone.
 func SaveSettings(config models.WrapperrConfig, musicSet bool) error {
+	if !musicSet {
+		return SaveConfig(config)
+	}
 	voyageMusicMu.Lock()
 	defer voyageMusicMu.Unlock()
-	if !musicSet {
-		current, err := GetConfig()
-		if err != nil {
-			return err
-		}
-		config.VoyageMusic = current.VoyageMusic
-	}
-	return SaveConfig(config)
+	return SaveConfigWithVoyageMusic(config)
 }
 
 // ClearVoyageMusic turns the voyage's music off and deletes uploaded music (a file put in config/voyage/ by hand
@@ -158,7 +154,7 @@ func ClearVoyageMusic() error {
 		return err
 	}
 	config.VoyageMusic = ""
-	if err := SaveConfig(config); err != nil {
+	if err := SaveConfigWithVoyageMusic(config); err != nil {
 		return err
 	}
 	RemoveVoyageMusicUploads("")
