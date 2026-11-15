@@ -39,6 +39,7 @@ Rules:
 | V1 | Server-wide most popular movies and shows | `fork/view-popular` | #11 | main | in develop, PR open | yes | 2026-11-11: code and security review (1 medium privacy fix to the existing year lists, 1 low: both fixed) |
 | V2 | Compared with last year: movies and TV, last year's cache | `fork/view-compare` | #12 | main | in develop, PR open | yes | 2026-11-14: code review high with security (6 fixed here, 1 skipped by design), medium re-review (1 low left: cache race shared with the main cache) |
 | V3 | Compared with last year: requests | `fork/view-compare-requests` | #13 | A2 + V2 | in develop, PR open | with A | 2026-11-14: code review high with security (3 fixed), medium re-review (1 low fixed) |
+| V4 | The statistics page as a treasure map (setting `get_log_map`, off by default) | `fork/view-log-map` | #14 | develop (uses the voyage's fonts) | PR open into develop | separately, if ever | 2026-11-15: security review (clean), code review high (3 low fixed), medium (2 fixed), medium (clean) |
 
 Household splitting (split by device) was dropped on 2026-11-06 as too inaccurate, and theme B
 (fuller play records for it) went with it: every calculation is per Plex account.
