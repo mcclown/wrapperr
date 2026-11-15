@@ -436,8 +436,7 @@ function set_wrapperr_settings_call() {
             "trusted_proxies" : trusted_proxies,
             "client_ip_header" : client_ip_header,
             "admin_networks" : admin_networks,
-            "voyage_enabled" : voyage_enabled,
-            "voyage_music" : voyage_music
+            "voyage_enabled" : voyage_enabled
         }
     };
 
