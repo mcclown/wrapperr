@@ -89,16 +89,23 @@ func installVoyageMusic(temp string, name string) (done func(keep bool), err err
 		return nil, err
 	}
 	return func(keep bool) {
+		var err error
 		switch {
 		case keep && replaced:
-			os.Remove(aside)
+			err = os.Remove(aside)
 		case !keep && replaced:
-			os.Rename(aside, final)
+			err = os.Rename(aside, final)
 		case !keep:
-			os.Remove(final)
+			err = os.Remove(final)
+		}
+		if err != nil {
+			log.Println("Failed to tidy up after a voyage music upload. Error: " + err.Error())
 		}
 	}, nil
 }
+
+// ErrVoyageMusicMissing is a voyage music setting naming no audio file in config/voyage/
+var ErrVoyageMusicMissing = errors.New("no such voyage music file")
 
 // voyageMusicMu takes music uploads and removals one at a time, so two can't delete each other's file
 var voyageMusicMu sync.Mutex
@@ -141,6 +148,22 @@ func SaveSettings(config models.WrapperrConfig, musicSet bool) error {
 	}
 	voyageMusicMu.Lock()
 	defer voyageMusicMu.Unlock()
+	// A changed name must name a file, checked under the lock so an upload or removal can't delete it first
+	if config.VoyageMusic != "" {
+		current, err := GetConfig()
+		if err != nil {
+			return err
+		}
+		if config.VoyageMusic != current.VoyageMusic {
+			path, ok := VoyageMusicPath(config.VoyageMusic)
+			if !ok {
+				return ErrVoyageMusicMissing
+			}
+			if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+				return ErrVoyageMusicMissing
+			}
+		}
+	}
 	return SaveConfigWithVoyageMusic(config)
 }
 
