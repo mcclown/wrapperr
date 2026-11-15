@@ -287,7 +287,13 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 
 	// Static endpoint for homepage
 	router.GET(root+"/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "frontpage.html", nil)
+		// The treasure-map look is on the page from its first paint, not only once the statistics load
+		logMap := false
+		if current, err := files.GetConfig(); err == nil {
+			logMap = current.WrapperrCustomize.GetLogMap
+		}
+		// Landing: the sign-in page rather than a share link, which opens on the night sea
+		c.HTML(http.StatusOK, "frontpage.html", gin.H{"LogMap": logMap, "Landing": c.Query("hash") == ""})
 	})
 
 	if !config.DisableAdminPage {

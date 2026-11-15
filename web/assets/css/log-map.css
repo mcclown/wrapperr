@@ -1,0 +1,697 @@
+/* The statistics page drawn as a treasure map (get_log_map): see web/js/log-map.js. Everything here applies only
+   under body.log-map, so the page is unchanged with the setting off. */
+
+body.log-map {
+    background-color: #e3cf9f !important;
+    color: #2b1d0e;
+    font-family: 'IM Fell English', Georgia, serif;
+}
+
+/* While the page loads: parchment rather than the classic colours and snow */
+body.log-map #background_image,
+body.log-map .snowflakes {
+    display: none !important;
+}
+
+body.log-map #loading {
+    background-color: #e3cf9f;
+}
+
+/* The loading text sets its white inline (and !important), so its fill colour is what turns it to ink */
+body.log-map #results_error_loading_screen {
+    -webkit-text-fill-color: #2b1d0e;
+    font-family: 'IM Fell English', Georgia, serif;
+}
+
+/* The sign-in page's introduction, in ink on parchment */
+body.log-map #intro_text p {
+    color: #2b1d0e;
+    text-shadow: none;
+    font-family: 'IM Fell English', Georgia, serif;
+}
+
+/* A stretch of chart between two sections, in layers that drift at different speeds as it scrolls past */
+.log-map-leg {
+    position: relative;
+    height: 760px;
+    overflow: hidden;
+    view-timeline-name: --log-map-leg;
+}
+
+.log-map-layer {
+    position: absolute;
+    left: 0;
+    display: block;
+    /* Sketches near the chart's edge carry on past it, cut only by the screen's edge */
+    overflow: visible;
+}
+
+.log-map-far {
+    top: -120px;
+    height: 1000px;
+}
+
+.log-map-mid,
+.log-map-trail {
+    top: 0;
+    height: 760px;
+}
+
+.log-map-near {
+    top: -160px;
+    height: 1080px;
+}
+
+.log-map-trail {
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path 0.25s linear;
+}
+
+@supports (animation-timeline: view()) {
+    .log-map-far {
+        animation: log-map-far linear both;
+        animation-timeline: --log-map-leg;
+    }
+
+    .log-map-near {
+        animation: log-map-near linear both;
+        animation-timeline: --log-map-leg;
+    }
+}
+
+@keyframes log-map-far {
+    from { transform: translateY(-100px); }
+    to { transform: translateY(100px); }
+}
+
+@keyframes log-map-near {
+    from { transform: translateY(150px); }
+    to { transform: translateY(-150px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .log-map-far,
+    .log-map-near {
+        animation: none;
+    }
+
+    .log-map-trail {
+        transition: none;
+    }
+}
+
+.log-map-dots {
+    fill: none;
+    stroke: #9b2c22;
+    stroke-width: 3.4;
+    stroke-dasharray: 1 11;
+    stroke-linecap: round;
+}
+
+.log-map-x {
+    stroke: #9b2c22;
+    stroke-width: 7;
+    stroke-linecap: round;
+}
+
+.log-map-label,
+.log-map-north {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-style: italic;
+    fill: #5a4327;
+}
+
+.log-map-north {
+    font-style: normal;
+    font-size: 15px;
+    fill: #7a5a35;
+}
+
+/* Each section is a sheet of parchment laid on the chart, with torn edges and a wax seal */
+body.log-map #search_results > .boks.log-map-sheet {
+    position: relative;
+    box-sizing: border-box;
+    width: auto !important;
+    max-width: 1180px;
+    margin: 0 auto !important;
+    padding: 3.5em 1.5em 2.5em !important;
+    background-color: #f1e2c0 !important;
+    filter: drop-shadow(0 6px 10px rgba(43, 29, 14, 0.28));
+}
+
+body.log-map #search_results > .boks.log-map-sheet[data-chapter='intro'] {
+    margin-top: 3em !important;
+    padding-top: 2em !important;
+}
+
+body.log-map #search_results > .boks.log-map-sheet[data-chapter='outro'] {
+    margin-bottom: 4em !important;
+}
+
+@media (max-width: 999px) {
+    body.log-map #search_results > .boks.log-map-sheet {
+        margin: 0 10px !important;
+        padding: 3.5em 0.6em 2em !important;
+    }
+}
+
+.log-map-edge {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 22px;
+    pointer-events: none;
+}
+
+.log-map-edge path {
+    fill: #f1e2c0;
+}
+
+.log-map-edge-top {
+    top: -21px;
+}
+
+.log-map-edge-bottom {
+    bottom: -21px;
+}
+
+.log-map-seal {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    z-index: 1;
+    width: 62px;
+    height: 62px;
+    margin-left: -31px;
+    border-radius: 50%;
+    background-color: #9b2c22;
+    color: #f6ead0;
+    font-family: 'Pirata One', Georgia, serif;
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 4px #f1e2c0, 0 0 0 5px #9b2c22;
+}
+
+/* The sections' own text and cards, in ink on parchment */
+body.log-map #search_results h1,
+body.log-map #search_results h2,
+body.log-map #search_results h3 {
+    color: #2b1d0e;
+}
+
+body.log-map #search_results h1 {
+    font-family: 'Pirata One', Georgia, serif;
+    font-weight: normal;
+}
+
+body.log-map #search_results h1,
+body.log-map #search_results h2,
+body.log-map #search_results h3,
+body.log-map #search_results h4,
+body.log-map #search_results p {
+    text-shadow: none;
+}
+
+body.log-map #search_results h2,
+body.log-map #search_results h3,
+body.log-map #search_results h4,
+body.log-map #search_results p {
+    color: #3d2b16;
+    font-family: 'IM Fell English', Georgia, serif;
+}
+
+body.log-map #search_results .status {
+    background-color: #f8eed6;
+    color: #2b1d0e;
+    border: 1px solid #c9a96b;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(43, 29, 14, 0.18);
+    font-family: 'IM Fell English', Georgia, serif;
+}
+
+body.log-map #search_results .status-title {
+    font-family: 'Pirata One', Georgia, serif;
+    font-size: 1.5em;
+}
+
+body.log-map #search_results .stats-list .item {
+    border-top: 1px solid #e3d0a4;
+    border-radius: 0;
+}
+
+body.log-map #search_results .stats-list .item:hover {
+    background-color: rgba(43, 29, 14, 0.06) !important;
+    margin: 0 !important;
+}
+
+body.log-map #search_results .gold,
+body.log-map #search_results .silver,
+body.log-map #search_results .bronze {
+    background-color: transparent;
+}
+
+/* Places as coins: gold, silver and bronze for the first three */
+body.log-map #search_results .stats-list .item .number {
+    font-family: 'Pirata One', Georgia, serif;
+    font-size: 1.1em;
+    min-width: 1.9em;
+    height: 1.9em;
+    line-height: 1.9em;
+    text-align: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+body.log-map #search_results .gold .number {
+    background-color: #d8b425;
+    box-shadow: inset 0 0 0 2px #8a5a14;
+}
+
+body.log-map #search_results .silver .number {
+    background-color: #cfd3d6;
+    box-shadow: inset 0 0 0 2px #6f7579;
+}
+
+body.log-map #search_results .bronze .number {
+    background-color: #cd8a4a;
+    box-shadow: inset 0 0 0 2px #6e3f12;
+}
+
+body.log-map #search_results .poster-thumbnail img,
+body.log-map #search_results .special-poster {
+    border: 1px solid #2b1d0e;
+    border-radius: 3px;
+    box-shadow: none;
+}
+
+body.log-map #search_results .btn,
+body.log-map #search_results .form_button {
+    background-color: transparent;
+    color: #2b1d0e;
+    border: 1px solid #2b1d0e;
+    border-radius: 999px;
+    box-shadow: none;
+    font-family: 'IM Fell English', Georgia, serif;
+}
+
+body.log-map #search_results .btn p2 {
+    color: #2b1d0e;
+}
+
+/* Movement since last year, readable on parchment */
+body.log-map #search_results .rank-change,
+body.log-map #search_results .gold .rank-change,
+body.log-map #search_results .silver .rank-change,
+body.log-map #search_results .bronze .rank-change {
+    background-color: transparent;
+    padding: 0;
+}
+
+body.log-map #search_results .rank-up,
+body.log-map #search_results .compare-up {
+    color: #2f6b3a;
+}
+
+body.log-map #search_results .rank-down,
+body.log-map #search_results .compare-down {
+    color: #9b2c22;
+}
+
+body.log-map #search_results .rank-same,
+body.log-map #search_results .gold .rank-same,
+body.log-map #search_results .silver .rank-same,
+body.log-map #search_results .bronze .rank-same {
+    color: #7d6a4f;
+    opacity: 1;
+}
+
+body.log-map #search_results .rank-new {
+    color: #8a5a14;
+}
+
+body.log-map #search_results .request-bar {
+    background-color: #e3d0a4;
+}
+
+body.log-map #search_results .request-bar div {
+    background-color: #2b1d0e;
+}
+
+body.log-map #search_results .request-label,
+body.log-map #search_results .request-line,
+body.log-map #search_results .compare-was {
+    color: #5a4327;
+    opacity: 1;
+}
+
+body.log-map #search_results .request-heroes {
+    background-color: #2b1d0e;
+    color: #f6ead0;
+    border-color: #2b1d0e;
+}
+
+body.log-map #search_results .request-heroes,
+body.log-map #search_results .request-heroes p {
+    color: #f6ead0;
+}
+
+body.log-map #search_results .compare-movies {
+    background-color: #2a4fa3;
+    color: #f6ead0;
+}
+
+body.log-map #search_results .compare-shows {
+    background-color: #c8963e;
+    color: #2b1d0e;
+}
+
+/* The introduction and farewell show a sketch from the chart instead of their illustrations */
+.log-map-sketch {
+    display: block;
+    width: 100%;
+    max-width: 22em;
+    margin: auto;
+}
+
+@media (max-width: 999px) {
+    body.log-map #search_results .boks2 {
+        padding: 0.8em 0.2em;
+    }
+
+    body.log-map #search_results .stats-list .item .name,
+    body.log-map #search_results .stats-list .item .movie_name {
+        flex: 1;
+        text-align: left;
+        padding-left: 0.6em;
+    }
+}
+
+/* The time-travel and request charts draw their own panels inline: on the chart they sit on the parchment */
+body.log-map #search_results .status div[style*="rgba(0,0,0,0.2)"] {
+    background: transparent !important;
+    border-bottom: 2px solid #2b1d0e;
+    border-radius: 0 !important;
+}
+
+body.log-map #search_results .status span[style*="rgba(255, 200, 50"] {
+    color: #8a5a14 !important;
+}
+
+/* The time-travel chart's peak year, in the same gold as its key, hovered or not */
+body.log-map #search_results .status div[style*="255, 200, 50"]:not(.tooltip) {
+    background: #8a5a14 !important;
+}
+
+/* THE SIGN-IN PAGE: the night sea, with the sign-in on a parchment card and, once signed in, the voyage and
+   the log as two cards to choose between */
+
+body.log-map.log-map-landing #loading {
+    background-color: #0c1620;
+}
+
+body.log-map.log-map-landing #results_error_loading_screen {
+    -webkit-text-fill-color: #f6ead0;
+}
+
+.log-map-night-scene {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background-color: #0c1620;
+}
+
+body.log-map #login_content > .boks {
+    position: relative;
+    z-index: 1;
+}
+
+/* The gift illustration gives way to the night sea */
+body.log-map #login_content > .boks > .boks3:first-child {
+    display: none;
+}
+
+body.log-map #search_input > .boks2 {
+    width: 100%;
+    max-width: 1040px;
+    padding: 0 16px;
+}
+
+body.log-map #stats {
+    display: block;
+    box-sizing: border-box;
+    max-width: 540px;
+    margin: 10vh auto 2em;
+    padding: 34px 36px 28px;
+    background-color: #f1e2c0;
+    color: #2b1d0e;
+    border: 1px solid #c9a96b;
+    border-radius: 6px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    font-family: 'IM Fell English', Georgia, serif;
+}
+
+.log-map-kicker {
+    display: block;
+    font-family: 'IM Fell English', Georgia, serif;
+    font-variant: small-caps;
+    text-transform: lowercase;
+    letter-spacing: 0.2em;
+    font-size: 1.05em;
+    color: #5a4327;
+}
+
+body.log-map #application_name,
+.log-map-choose-title {
+    font-family: 'Pirata One', Georgia, serif;
+    font-weight: normal;
+    font-size: 3.4em;
+    line-height: 1;
+    color: #2b1d0e;
+    text-shadow: none;
+    margin: 0.15em 0 0.2em;
+    padding: 0;
+}
+
+body.log-map #stats #intro_text {
+    float: none;
+    display: block;
+    height: auto;
+    padding: 0;
+    margin: 0 0 1.2em;
+}
+
+body.log-map #stats #intro_text p {
+    font-style: italic;
+    color: #5a4327;
+    font-size: 1.2em;
+}
+
+body.log-map #stats #intro_text br {
+    display: none;
+}
+
+/* The classic form groups float, which would leave the card short of its button */
+body.log-map #stats .form-group {
+    float: none;
+}
+
+body.log-map #plex_login_button {
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    margin: 0.4em auto 0;
+    padding: 0.45em 1.6em;
+    min-height: 52px;
+    background-color: #2b1d0e;
+    border: 0;
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+body.log-map #plex_login_button p2 {
+    font-family: 'Pirata One', Georgia, serif;
+    font-size: 1.6em;
+    color: #f1e2c0;
+}
+
+body.log-map #plex_login_button .btn_logo {
+    filter: invert(1);
+}
+
+/* Signed in with Plex: the card steps back and the two choices take its place on the night sea. Keyed on the
+   choice cards, so a server without Plex sign-in keeps its username search on the card. */
+.log-map-choose-only {
+    display: none;
+}
+
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) {
+    max-width: 1040px;
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-choose-only {
+    display: block;
+}
+
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-signin-only,
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) #application_name,
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) #intro_text {
+    display: none;
+}
+
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-kicker {
+    color: #cdbd99;
+}
+
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-choose-title {
+    color: #f6ead0;
+    margin-bottom: 0.6em;
+}
+
+body.log-map #search_wrapped_form[style*="block"]:has(.log-map-choice) {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 28px;
+    justify-content: center;
+}
+
+body.log-map #search_wrapped_form > .form-group {
+    flex: 1 1 300px;
+    margin: 0;
+}
+
+body.log-map #search_wrapped_form > #sign_out_div {
+    flex-basis: 100%;
+}
+
+body.log-map .log-map-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    padding: 26px 28px 24px;
+    text-align: left;
+    white-space: normal;
+    background-color: #f1e2c0;
+    color: #2b1d0e;
+    border: 1px solid #c9a96b;
+    border-radius: 6px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    font-family: 'IM Fell English', Georgia, serif;
+    cursor: pointer;
+}
+
+body.log-map .log-map-choice:hover:not(:disabled) {
+    background-color: #f6ead0;
+}
+
+body.log-map .log-map-choice .btn_logo {
+    display: none;
+}
+
+.log-map-choice-picture {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.log-map-choice-sea {
+    background-color: #12283a;
+}
+
+.log-map-choice-chart {
+    background-color: #e8d3a4;
+    border: 1px solid #c9a96b;
+}
+
+body.log-map .log-map-choice .log-map-kicker,
+.log-map-choice-heading {
+    text-align: left;
+}
+
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-choice .log-map-kicker {
+    color: #5a4327;
+}
+
+.log-map-choice-heading {
+    font-family: 'Pirata One', Georgia, serif;
+    font-size: 2.3em;
+    line-height: 1;
+}
+
+.log-map-choice-text {
+    font-size: 1.15em;
+    line-height: 1.4;
+    color: #5a4327;
+}
+
+body.log-map .log-map-choice p2 {
+    align-self: flex-start;
+    margin-top: 6px;
+    padding: 6px 24px;
+    border-radius: 6px;
+    background-color: #2b1d0e;
+    color: #f1e2c0;
+    font-family: 'Pirata One', Georgia, serif;
+    font-size: 1.5em;
+}
+
+body.log-map #plex_signout_button {
+    width: auto;
+    margin: 0 auto;
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+body.log-map #plex_signout_button p2 {
+    color: #f2c76b;
+    text-decoration: underline;
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 1.1em;
+}
+
+body.log-map #plex_signout_button .btn_logo {
+    display: none;
+}
+
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) #share_wrapped_title_div h3 {
+    color: #f6ead0;
+    text-shadow: none;
+}
+
+@media (max-width: 600px) {
+    body.log-map #stats {
+        margin-top: 6vh;
+        padding: 26px 20px 22px;
+    }
+
+    body.log-map #application_name,
+    .log-map-choose-title {
+        font-size: 2.6em;
+    }
+
+    body.log-map #plex_login_button {
+        padding: 0.45em 1em;
+    }
+
+    body.log-map #plex_login_button p2 {
+        font-size: 1.35em;
+        white-space: nowrap;
+    }
+}

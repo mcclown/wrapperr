@@ -9,6 +9,8 @@
 
         <!-- Bootstrap 4 CSS and custom CSS -->
         <link rel="stylesheet" type="text/css" href="./assets/css/wrapped.css" />
+        <link rel="stylesheet" type="text/css" href="./assets/css/log-map.css" />
+        <link rel="stylesheet" type="text/css" href="./voyage/fonts/fonts.css" />
         <link rel="shortcut icon" href="./assets/img/favicons/favicon.ico" />
         <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
         <link rel="manifest" href="./manifest.json" />
@@ -17,10 +19,11 @@
         <script src="./js/functions.js"></script>
         <script src="./js/index.js"></script>
         <script src="./js/get_stats.js"></script>
+        <script src="./js/log-map.js"></script>
         <script src="./js/get_functions.js"></script>
 
     </head>
-<body id='body'>
+<body id='body'{{if .LogMap}} class='log-map{{if .Landing}} log-map-landing{{end}}'{{end}}>
 
 <div id="loading">
     <img id="loading-image" style="border-radius: 25px; background-color: var(--white); padding: 1em;width: 4em; height: 4em;" src="./assets/loading.gif" alt="Loading..." />

@@ -61,6 +61,15 @@ function loadAdminPage() {
     html += '</div>';
 
     html += '<div class="form-group">';
+    html += '<label for="get_log_map" title="Draws the statistics page as a sketched treasure map, in the style of the voyage: a trail that draws itself down the page as you scroll, past islands and sea creatures, to each section laid on the map like a sheet of parchment.">Draw the statistics as a treasure map:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_log_map" ';
+    if(get_log_map) {
+        html += 'checked="' + get_log_map + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
     html += '<label for="poster_cache_max_age_days" title="Maximum age in days before posters are re-downloaded. Default: 30 days.">Poster Cache Age (days):<br>';
     html += '<input type="number" class="form-control" id="poster_cache_max_age_days" value="' + poster_cache_max_age_days + '" min="1" max="365" autocomplete="off" placeholder="30" required /><br>';
     html += '</div>';
@@ -1372,6 +1381,7 @@ function set_wrapperr_customization_call() {
     stats_order_by_duration = document.getElementById('stats_order_by_duration').checked;
     stats_top_list_length = parseInt(document.getElementById("stats_top_list_length").value);
     enable_posters = document.getElementById('enable_posters').checked;
+    get_log_map = document.getElementById('get_log_map').checked;
     poster_cache_max_age_days = parseInt(document.getElementById("poster_cache_max_age_days").value) || 30;
     obfuscate_other_users = document.getElementById('obfuscate_other_users').value;
 
@@ -1559,6 +1569,7 @@ function set_wrapperr_customization_call() {
             "stats_order_by_duration" : stats_order_by_duration,
             "stats_top_list_length" : stats_top_list_length,
             "enable_posters" : enable_posters,
+            "get_log_map" : get_log_map,
             "poster_cache_max_age_days" : poster_cache_max_age_days,
             "obfuscate_other_users": obfuscate_other_users,
             "get_user_movie_stats" : get_user_movie_stats,

@@ -12,6 +12,7 @@
         "stats_top_list_length": 10,
         "enable_posters": false,
         "poster_cache_max_age_days": 30,
+        "get_log_map": false,
         "obfuscate_other_users": "obfuscate",
         "get_user_movie_stats":true,
         "get_user_movie_stats_title":"Movies!",
