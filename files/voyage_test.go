@@ -26,33 +26,50 @@ func TestVoyageMusicPath(t *testing.T) {
 	}
 }
 
-func TestSaveVoyageMusic(t *testing.T) {
+func TestInstallVoyageMusic(t *testing.T) {
 	original := voyageMusicDir
 	voyageMusicDir = t.TempDir()
 	defer func() { voyageMusicDir = original }()
+	read := func(name string) string {
+		body, _ := os.ReadFile(voyageMusicDir + "/" + name)
+		return string(body)
+	}
 
 	// An admin's own file stays through uploads and removal
 	if err := os.WriteFile(voyageMusicDir+"/theme.m4a", []byte("own"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	name, err := SaveVoyageMusic(".mp3", strings.NewReader("first"))
-	if err != nil || name != "voyage-music.mp3" {
-		t.Fatalf("got %q, %v", name, err)
+	temp, err := writeVoyageMusic(".mp3", strings.NewReader("first"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	// Another upload replaces it, whatever its type, once the earlier ones are cleared away
-	name, err = SaveVoyageMusic(".ogg", strings.NewReader("second"))
-	if err != nil || name != "voyage-music.ogg" {
-		t.Fatalf("got %q, %v", name, err)
+	done, err := installVoyageMusic(temp, "voyage-music.mp3")
+	if err != nil {
+		t.Fatal(err)
 	}
-	RemoveVoyageMusicUploads(name)
+	done(true)
+
+	// The same type again, but the settings fail to save: the first is put back
+	temp, _ = writeVoyageMusic(".mp3", strings.NewReader("second"))
+	done, _ = installVoyageMusic(temp, "voyage-music.mp3")
+	if read("voyage-music.mp3") != "second" {
+		t.Errorf("expected the new upload in place, got %q", read("voyage-music.mp3"))
+	}
+	done(false)
+	if read("voyage-music.mp3") != "first" {
+		t.Errorf("expected the first upload put back, got %q", read("voyage-music.mp3"))
+	}
+
+	// Another type replaces it once the earlier ones are cleared away
+	temp, _ = writeVoyageMusic(".ogg", strings.NewReader("third"))
+	done, _ = installVoyageMusic(temp, "voyage-music.ogg")
+	done(true)
+	RemoveVoyageMusicUploads("voyage-music.ogg")
 	if _, err := os.Stat(voyageMusicDir + "/voyage-music.mp3"); !os.IsNotExist(err) {
 		t.Errorf("expected the earlier upload gone, got %v", err)
 	}
-	if got, _ := os.ReadFile(voyageMusicDir + "/voyage-music.ogg"); string(got) != "second" {
-		t.Errorf("expected the new upload, got %q", got)
-	}
-	if _, err := SaveVoyageMusic(".html", strings.NewReader("<p>")); err == nil {
+	if _, err := writeVoyageMusic(".html", strings.NewReader("<p>")); err == nil {
 		t.Error("expected a page refused")
 	}
 
