@@ -86,7 +86,7 @@ func ApiSetConfig(context *gin.Context) {
 	if config_payload.DataType == "tautulli_config" {
 		config.TautulliConfig = config_payload.TautulliConfig
 
-		err = files.SaveConfig(config)
+		err = files.SaveSettings(config, false)
 		if err != nil {
 			log.Println("Failed to save new Wrapperr configuration. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new Wrapperr configuration."})
@@ -96,7 +96,7 @@ func ApiSetConfig(context *gin.Context) {
 	} else if config_payload.DataType == "wrapperr_customize" {
 		config.WrapperrCustomize = config_payload.WrapperrCustomize
 
-		err = files.SaveConfig(config)
+		err = files.SaveSettings(config, false)
 		if err != nil {
 			log.Println("Failed to save new Wrapperr configuration. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new Wrapperr configuration."})
@@ -186,7 +186,7 @@ func ApiSetConfig(context *gin.Context) {
 			config.VoyageMusic = *music
 		}
 
-		err = files.SaveConfig(config)
+		err = files.SaveSettings(config, config_payload.WrapperrData.VoyageMusic != nil)
 		if err != nil {
 			log.Println("Failed to save new Wrapperr configuration. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new Wrapperr configuration."})
