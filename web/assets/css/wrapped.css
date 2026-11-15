@@ -753,3 +753,130 @@ hr {
 .request-line {
     font-size: 0.9em;
 }
+
+/* Movement on a ranking since last year, beside each place */
+.rank-change {
+    min-width: 2.2em;
+    margin-right: 0.4em;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.rank-up {
+    color: var(--pistach);
+}
+
+.rank-down {
+    color: var(--red);
+}
+
+.rank-same {
+    opacity: 0.6;
+}
+
+.rank-new {
+    color: var(--yellow);
+    font-size: 1em;
+    /* The same width as the arrows, at its larger size */
+    min-width: 1.76em;
+}
+
+/* A solid dark backing on the medal rows, where the colours are hard to read */
+.gold .rank-change, .silver .rank-change, .bronze .rank-change {
+    background-color: var(--black);
+    border-radius: 0.4em;
+    padding: 0.15em 0;
+}
+
+.gold .rank-same, .silver .rank-same, .bronze .rank-same {
+    opacity: 1;
+    color: #a0a0a0;
+}
+
+/* Compared with last year */
+.compare-heading {
+    margin: 1.5em 0 0.5em 0;
+}
+
+.compare-title {
+    font-size: 1.3em;
+    margin-bottom: 0.75em;
+}
+
+.compare-year {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    margin: 0.5em 0;
+}
+
+.compare-year-label {
+    width: 3em;
+    text-align: left;
+    font-weight: bold;
+}
+
+.compare-bar {
+    flex: 1;
+    display: flex;
+    height: 1.6em;
+    border-radius: 0.4em;
+    overflow: hidden;
+}
+
+.compare-bar div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.compare-requests {
+    flex: 1;
+    text-align: left;
+}
+
+.compare-none {
+    flex: 1;
+    text-align: left;
+    opacity: 0.8;
+}
+
+.compare-movies {
+    background-color: var(--orangeyellow);
+}
+
+.compare-shows {
+    background-color: var(--cadetblue);
+}
+
+.compare-change {
+    text-align: left;
+    margin-top: 0.6em;
+}
+
+.compare-key {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 0.2em;
+    margin-right: 0.4em;
+}
+
+.compare-up {
+    color: var(--pistach);
+    font-weight: bold;
+}
+
+.compare-down {
+    color: var(--red);
+    font-weight: bold;
+}
+
+.compare-was {
+    opacity: 0.8;
+    white-space: nowrap;
+}
