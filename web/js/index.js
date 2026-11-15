@@ -67,9 +67,13 @@ function sign_out() {
 
 }
 
+// Whether the voyage is offered, so the end of the log can lead on to it too
+var voyage_on = false;
+
 // The voyage entry, offered next to the classic page when the voyage is on (it needs Plex Auth). The setting
 // voyage_front_page picks which of the two comes first.
 function voyage_entry(first) {
+    voyage_on = true;
     document.getElementById('set_sail_div').style.display = 'block';
     document.getElementById('search_wrapped_button_text').textContent = 'Read the log';
     if(first !== 'log') {
