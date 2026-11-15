@@ -19,6 +19,8 @@ body.log-map {
     position: absolute;
     left: 0;
     display: block;
+    /* Sketches near the chart's edge carry on past it, cut only by the screen's edge */
+    overflow: visible;
 }
 
 .log-map-far {
