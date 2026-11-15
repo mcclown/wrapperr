@@ -583,7 +583,8 @@ body.log-map .log-map-choice {
     margin: 0;
     box-sizing: border-box;
     padding: 26px 28px 24px;
-    text-align: left;
+    align-items: center;
+    text-align: center;
     white-space: normal;
     background-color: #f1e2c0;
     color: #2b1d0e;
@@ -619,11 +620,6 @@ body.log-map .log-map-choice .btn_logo {
     border: 1px solid #c9a96b;
 }
 
-body.log-map .log-map-choice .log-map-kicker,
-.log-map-choice-heading {
-    text-align: left;
-}
-
 body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-choice .log-map-kicker {
     color: #5a4327;
 }
@@ -641,7 +637,7 @@ body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .l
 }
 
 body.log-map .log-map-choice p2 {
-    align-self: flex-start;
+    align-self: center;
     margin-top: 6px;
     padding: 6px 24px;
     border-radius: 6px;
