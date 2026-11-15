@@ -3,6 +3,7 @@ package routes
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"image/png"
 	"log"
 	"net/http"
@@ -187,6 +188,11 @@ func ApiSetConfig(context *gin.Context) {
 		}
 
 		err = files.SaveSettings(config, config_payload.WrapperrData.VoyageMusic != nil)
+		if errors.Is(err, files.ErrVoyageMusicMissing) {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "There is no file called " + config.VoyageMusic + " in config/voyage/ (names are case-sensitive)."})
+			context.Abort()
+			return
+		}
 		if err != nil {
 			log.Println("Failed to save new Wrapperr configuration. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new Wrapperr configuration."})
