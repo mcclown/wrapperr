@@ -446,7 +446,6 @@ function set_wrapperr_settings_call() {
             "client_ip_header" : client_ip_header,
             "admin_networks" : admin_networks,
             "voyage_enabled" : voyage_enabled,
-            "voyage_music" : voyage_music,
             "voyage_front_page" : voyage_front_page
         }
     };

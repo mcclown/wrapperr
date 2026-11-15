@@ -43,9 +43,8 @@ func VoyageMusicExtension(name string) (string, bool) {
 	return extension, ok
 }
 
-// SaveVoyageMusic writes an uploaded music file to config/voyage/ as voyage-music with its extension, replacing an
-// earlier upload, and returns the name it was saved under. It writes to a temporary file first, so a failed
-// upload leaves the music as it was.
+// SaveVoyageMusic writes an uploaded music file to config/voyage/ as voyage-music with its extension and returns
+// the name it was saved under. It writes to a temporary file first, so a failed upload leaves the music as it was.
 func SaveVoyageMusic(extension string, upload io.Reader) (string, error) {
 	if _, ok := voyageMusicTypes[extension]; !ok {
 		return "", errors.New("not a voyage music file type")
@@ -71,8 +70,52 @@ func SaveVoyageMusic(extension string, upload io.Reader) (string, error) {
 		os.Remove(file.Name())
 		return "", err
 	}
+	return name, nil
+}
+
+// voyageMusicMu takes music uploads and removals one at a time, so two can't delete each other's file
+var voyageMusicMu sync.Mutex
+
+// SetVoyageMusicUpload saves an uploaded music file and makes it the voyage's music. The settings name the new
+// file before earlier uploads are deleted, so if they can't be saved the music stays as it was.
+func SetVoyageMusicUpload(extension string, upload io.Reader) (string, error) {
+	voyageMusicMu.Lock()
+	defer voyageMusicMu.Unlock()
+	config, err := GetConfig()
+	if err != nil {
+		return "", err
+	}
+	name, err := SaveVoyageMusic(extension, upload)
+	if err != nil {
+		return "", err
+	}
+	previous := config.VoyageMusic
+	config.VoyageMusic = name
+	if err := SaveConfig(config); err != nil {
+		if name != previous {
+			os.Remove(filepath.Join(voyageMusicDir, name))
+		}
+		return "", err
+	}
 	RemoveVoyageMusicUploads(name)
 	return name, nil
+}
+
+// ClearVoyageMusic turns the voyage's music off and deletes uploaded music (a file put in config/voyage/ by hand
+// stays).
+func ClearVoyageMusic() error {
+	voyageMusicMu.Lock()
+	defer voyageMusicMu.Unlock()
+	config, err := GetConfig()
+	if err != nil {
+		return err
+	}
+	config.VoyageMusic = ""
+	if err := SaveConfig(config); err != nil {
+		return err
+	}
+	RemoveVoyageMusicUploads("")
+	return nil
 }
 
 // RemoveVoyageMusicUploads deletes uploaded music files other than keep (all of them when keep is ""). Files an
