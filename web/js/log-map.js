@@ -242,6 +242,9 @@ function log_map_sketch(section, kind) {
 // Draws the chart into the loaded page: the stretches between the sections, the sheets and their seals
 function log_map_draw() {
     if(!log_map_on()) {
+        // The page is served in the map's look when the setting is on; a share link made before it was keeps
+        // the classic one
+        document.body.classList.remove('log-map');
         return;
     }
     document.body.classList.add('log-map');

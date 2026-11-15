@@ -7,6 +7,29 @@ body.log-map {
     font-family: 'IM Fell English', Georgia, serif;
 }
 
+/* While the page loads: parchment rather than the classic colours and snow */
+body.log-map #background_image,
+body.log-map .snowflakes {
+    display: none !important;
+}
+
+body.log-map #loading {
+    background-color: #e3cf9f;
+}
+
+/* The loading text sets its white inline (and !important), so its fill colour is what turns it to ink */
+body.log-map #results_error_loading_screen {
+    -webkit-text-fill-color: #2b1d0e;
+    font-family: 'IM Fell English', Georgia, serif;
+}
+
+/* The sign-in page's introduction, in ink on parchment */
+body.log-map #intro_text p {
+    color: #2b1d0e;
+    text-shadow: none;
+    font-family: 'IM Fell English', Georgia, serif;
+}
+
 /* A stretch of chart between two sections, in layers that drift at different speeds as it scrolls past */
 .log-map-leg {
     position: relative;
