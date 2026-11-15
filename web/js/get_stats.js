@@ -1907,6 +1907,16 @@ function load_outro() {
                     text += "</div>";
                 }
 
+                // Signed in, the end of the log leads on to the voyage too
+                if(!link_mode && voyage_on) {
+                    text += "<div class='form-group' id='voyage_div' style=''>";
+                        text += "<button class='form-control btn' name='voyage_button' id='voyage_button' onclick='set_sail()'>";
+                            text += "<img src='assets/external-link.svg' class='btn_logo'>";
+                            text += "<p2 id='voyage_text'>Set sail</p2>";
+                        text += "</button>";
+                    text += "</div>";
+                }
+
                 var url_home = window.location.href.split('?')[0];
 
                 text += "<div class='form-group' id='return_home_div' style=''>";
