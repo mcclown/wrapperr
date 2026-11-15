@@ -1,8 +1,10 @@
 package middlewares
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -207,6 +209,28 @@ func TestSecurityHeaders(t *testing.T) {
 	for _, h := range []string{"Content-Security-Policy", "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy"} {
 		if rec.Header().Get(h) == "" {
 			t.Fatalf("missing %s", h)
+		}
+	}
+}
+
+func TestBodyLimitExcept(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.Use(BodyLimit(4, "/upload"))
+	read := func(ctx *gin.Context) {
+		if _, err := io.ReadAll(ctx.Request.Body); err != nil {
+			ctx.Status(http.StatusRequestEntityTooLarge)
+			return
+		}
+		ctx.Status(http.StatusOK)
+	}
+	engine.POST("/upload", read)
+	engine.POST("/other", read)
+	for path, want := range map[string]int{"/upload": http.StatusOK, "/other": http.StatusRequestEntityTooLarge} {
+		rec := httptest.NewRecorder()
+		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, strings.NewReader("more than four bytes")))
+		if rec.Code != want {
+			t.Errorf("%s: got %d, want %d", path, rec.Code, want)
 		}
 	}
 }

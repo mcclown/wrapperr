@@ -1,14 +1,17 @@
 package routes
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/aunefyren/wrapperr/files"
 	"github.com/aunefyren/wrapperr/middlewares"
@@ -190,7 +193,75 @@ func ApiVoyageMusic(context *gin.Context) {
 		return
 	}
 	context.Header("Content-Type", files.VoyageMusicType(config.VoyageMusic))
+	// Checked each time, so music an admin replaces plays at once
+	context.Header("Cache-Control", "no-cache")
 	context.File(path)
+}
+
+// VoyageMusicLimit is the largest music file an admin can upload
+const VoyageMusicLimit = 50 << 20
+
+// ApiUploadVoyageMusic takes an admin's music file for the voyage (form field "music"), saves it in config/voyage/
+// and makes it the voyage's music. It answers with the name it was saved under.
+func ApiUploadVoyageMusic(context *gin.Context) {
+	context.Request.Body = http.MaxBytesReader(context.Writer, context.Request.Body, VoyageMusicLimit+1<<20)
+	upload, header, err := context.Request.FormFile("music")
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Choose a music file of at most 50 MB."})
+		return
+	}
+	defer upload.Close()
+	extension, ok := files.VoyageMusicExtension(header.Filename)
+	if !ok || header.Size > VoyageMusicLimit {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "The music must be an audio file (.m4a, .mp3, .ogg, .opus, .wav or .aac) of at most 50 MB."})
+		return
+	}
+	// Not a page or a script under an audio name
+	sniff := make([]byte, 512)
+	read, _ := io.ReadFull(upload, sniff)
+	if kind := http.DetectContentType(sniff[:read]); strings.HasPrefix(kind, "text/") {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "That file is not audio."})
+		return
+	}
+
+	name, err := files.SaveVoyageMusic(extension, io.MultiReader(bytes.NewReader(sniff[:read]), upload))
+	if err != nil {
+		log.Println("Failed to save the voyage music. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save the music."})
+		return
+	}
+	config, err := files.GetConfig()
+	if err == nil {
+		config.VoyageMusic = name
+		err = files.SaveConfig(config)
+	}
+	if err != nil {
+		log.Println("Failed to set the voyage music. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "The music was saved but could not be set."})
+		return
+	}
+
+	log.Println("Voyage music uploaded." + utilities.GetOriginIPString(context))
+	context.JSON(http.StatusOK, gin.H{"message": "Music saved.", "error": false, "data": name})
+}
+
+// ApiDeleteVoyageMusic turns the voyage's music off and deletes an uploaded music file (one put in config/voyage/
+// by hand stays).
+func ApiDeleteVoyageMusic(context *gin.Context) {
+	config, err := files.GetConfig()
+	if err == nil {
+		config.VoyageMusic = ""
+		err = files.SaveConfig(config)
+	}
+	if err != nil {
+		log.Println("Failed to turn off the voyage music. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove the music."})
+		return
+	}
+	files.RemoveVoyageMusicUploads("")
+
+	log.Println("Voyage music removed." + utilities.GetOriginIPString(context))
+	context.JSON(http.StatusOK, gin.H{"message": "Music removed.", "error": false})
 }
 
 // ApiGetUserVoyage answers an admin with any user's voyage, whether or not the voyage is enabled for users yet.

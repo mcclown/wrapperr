@@ -182,7 +182,8 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 	}
 
 	router.Use(middlewares.SecurityHeaders())
-	router.Use(middlewares.BodyLimit(1 << 20))
+	// The voyage's music is the one larger upload; it sets its own limit
+	router.Use(middlewares.BodyLimit(1<<20, root+"/api/upload/voyage-music"))
 
 	router.LoadHTMLGlob("web/html/*.html")
 
@@ -233,6 +234,8 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 			admin.POST("/get/tautulli-connection", routes.ApiGetTautulliConncection)
 			admin.POST("/get/config", routes.ApiGetConfig)
 			admin.POST("/set/config", routes.ApiSetConfig)
+			admin.POST("/upload/voyage-music", routes.ApiUploadVoyageMusic)
+			admin.POST("/delete/voyage-music", routes.ApiDeleteVoyageMusic)
 			admin.POST("/update/admin", routes.ApiUpdateAdmin)
 			admin.POST("/mfa/enroll", routes.ApiEnrollMFA)
 			admin.POST("/mfa/activate", routes.ApiActivateMFA)
