@@ -4,7 +4,8 @@
 // chart's layers drift at different speeds as it scrolls (CSS scroll-driven animations, where the browser has
 // them). Nothing here changes what the page says, only how it looks.
 
-var log_map_layout = null;
+// The screen width the chart was last drawn for, once it is drawn
+var log_map_width = null;
 
 function log_map_on() {
     return typeof functions !== 'undefined' && functions && functions.get_log_map === true;
@@ -82,37 +83,60 @@ function log_map_use(symbol, transform) {
     return '<use href="#log-map-' + symbol + '" transform="' + transform + '"></use>';
 }
 
-// The chart's far layer: paper grain, lines of latitude, a coast down one side and a compass rose
-function log_map_far(layout, base, flip) {
-    var width = layout.width;
-    var html = '<svg class="log-map-layer log-map-far" viewBox="0 0 ' + width + ' 1000" style="width: ' + width + 'px; margin-left: calc(50% - ' + (width / 2) + 'px)">';
-    html += '<rect width="' + width + '" height="1000" filter="url(#log-map-paper)"></rect>';
-    html += '<path d="M0 220H' + width + 'M0 520H' + width + 'M0 820H' + width + '" stroke="#7a5a35" fill="none" stroke-width="0.7" stroke-dasharray="2 6" opacity="0.4"></path>';
+// How the chart fits the screen: the layout for its width, scaled down to fit a desktop window narrower than the
+// wide chart, and how far in the chart's strip sits on a screen wider than it (in the chart's own units)
+function log_map_fit() {
+    var width = document.documentElement.clientWidth;
+    var layout = width >= 1000 ? log_map_layouts.wide : log_map_layouts.narrow;
+    var scale = Math.min(1, width / layout.width);
+    var units = width / scale;
+    return { width: width, layout: layout, scale: scale, units: units, inset: (units - layout.width) / 2 };
+}
+
+// A layer in the centred strip the chart is drawn in, scaled to fit
+function log_map_layer(fit, kind, height, top) {
+    var width = fit.layout.width * fit.scale;
+    return '<svg class="log-map-layer log-map-' + kind + '" viewBox="0 0 ' + fit.layout.width + ' ' + height + '" style="width: ' + width + 'px; height: ' +
+        (height * fit.scale) + 'px; top: ' + (top * fit.scale) + 'px; margin-left: calc(50% - ' + (width / 2) + 'px)">';
+}
+
+// The chart's far layer, across the whole screen: paper grain, lines of latitude, a coast down one edge and a
+// compass rose
+function log_map_far(fit, base, flip) {
+    var layout = fit.layout;
+    var units = fit.units;
+    var html = '<svg class="log-map-layer log-map-far" viewBox="0 0 ' + units + ' 1000" style="width: 100%; height: ' + (1000 * fit.scale) + 'px; top: ' + (-120 * fit.scale) + 'px">';
+    html += '<rect width="' + units + '" height="1000" filter="url(#log-map-paper)"></rect>';
+    html += '<path d="M0 220H' + units + 'M0 520H' + units + 'M0 820H' + units + '" stroke="#7a5a35" fill="none" stroke-width="0.7" stroke-dasharray="2 6" opacity="0.4"></path>';
     if(base) {
-        var flipT = flip ? 'translate(' + width + ' 0) scale(-1 1)' : '';
-        html += '<g transform="' + flipT + '">';
-        html += '<g transform="' + (base.coastLeft ? layout.coast.left : layout.coast.right) + '" filter="url(#log-map-sketch)">' + log_map_use('coast', '') + '</g>';
-        html += '<g filter="url(#log-map-sketch)">' + log_map_use('compass', log_map_at(base.compass, layout.scale.compass)) + '</g>';
-        html += '</g>';
-        var north = flip ? width - base.compass[0] : base.compass[0];
-        html += '<text x="' + north + '" y="' + (base.compass[1] - 46 * layout.scale.compass) + '" text-anchor="middle" class="log-map-north">N</text>';
+        // The coast at the screen's own edge, on the side the leg puts it
+        var left = base.coastLeft !== flip;
+        var coast = left ? layout.coast.left : 'translate(' + (units - layout.width) + ' 0) ' + (layout.coast.right || '');
+        html += '<g transform="' + coast + '" filter="url(#log-map-sketch)">' + log_map_use('coast', '') + '</g>';
+        var x = fit.inset + (flip ? layout.width - base.compass[0] : base.compass[0]);
+        html += '<g filter="url(#log-map-sketch)">' + log_map_use('compass', log_map_at([x, base.compass[1]], layout.scale.compass)) + '</g>';
+        html += '<text x="' + x + '" y="' + (base.compass[1] - 46 * layout.scale.compass) + '" text-anchor="middle" class="log-map-north">N</text>';
     }
     return html + '</svg>';
 }
 
+function log_map_leg_open(fit, extra) {
+    return '<div class="log-map-leg' + (extra || '') + '" aria-hidden="true" style="height: ' + (760 * fit.scale) + 'px">';
+}
+
 // One stretch of chart before a chapter
-function log_map_leg(layout, index, stop) {
+function log_map_leg(fit, index, stop) {
+    var layout = fit.layout;
     var base = layout.bases[index % layout.bases.length];
     var flip = index >= layout.bases.length;
     var width = layout.width;
     var flipT = flip ? 'translate(' + width + ' 0) scale(-1 1)' : '';
-    var place = 'style="width: ' + width + 'px; margin-left: calc(50% - ' + (width / 2) + 'px)"';
     var scale = layout.scale;
 
-    var html = '<div class="log-map-leg" aria-hidden="true">';
-    html += log_map_far(layout, base, flip);
+    var html = log_map_leg_open(fit);
+    html += log_map_far(fit, base, flip);
 
-    html += '<svg class="log-map-layer log-map-mid" viewBox="0 0 ' + width + ' 760" ' + place + '>';
+    html += log_map_layer(fit, 'mid', 760, 0);
     html += '<g transform="' + flipT + '" filter="url(#log-map-sketch)">';
     base.waves.forEach(function(wave) {
         html += log_map_use('waves', log_map_at(wave, scale.wave));
@@ -129,12 +153,12 @@ function log_map_leg(layout, index, stop) {
     html += '<text x="' + labelX + '" y="' + base.label[1] + '" text-anchor="middle" class="log-map-label" style="font-size: ' + scale.label + 'px">' + stop.label + '</text>';
     html += '</svg>';
 
-    html += '<svg class="log-map-layer log-map-near" viewBox="0 0 ' + width + ' 1080" ' + place + '>';
+    html += log_map_layer(fit, 'near', 1080, -160);
     html += '<g transform="' + flipT + '" opacity="0.5" filter="url(#log-map-sketch)">';
     html += log_map_use(stop.near, log_map_at(base.near, layout.near[stop.near] || 1));
     html += '</g></svg>';
 
-    html += '<svg class="log-map-layer log-map-trail" viewBox="0 0 ' + width + ' 760" ' + place + '>';
+    html += log_map_layer(fit, 'trail', 760, 0);
     html += '<g transform="' + flipT + '"><path class="log-map-dots" d="' + base.path + '"></path></g>';
     html += '</svg>';
 
@@ -142,15 +166,14 @@ function log_map_leg(layout, index, stop) {
 }
 
 // The last stretch, to the treasure and the X, before the farewell
-function log_map_last_leg(layout) {
+function log_map_last_leg(fit) {
+    var layout = fit.layout;
     var last = layout.last;
-    var width = layout.width;
-    var place = 'style="width: ' + width + 'px; margin-left: calc(50% - ' + (width / 2) + 'px)"';
 
-    var html = '<div class="log-map-leg log-map-leg-last" aria-hidden="true">';
-    html += log_map_far(layout, null, false);
+    var html = log_map_leg_open(fit, ' log-map-leg-last');
+    html += log_map_far(fit, null, false);
 
-    html += '<svg class="log-map-layer log-map-mid" viewBox="0 0 ' + width + ' 760" ' + place + '>';
+    html += log_map_layer(fit, 'mid', 760, 0);
     html += '<g filter="url(#log-map-sketch)">';
     last.waves.forEach(function(wave) {
         html += log_map_use('waves', log_map_at(wave, layout.scale.wave));
@@ -162,7 +185,7 @@ function log_map_last_leg(layout) {
     html += '<text x="' + last.label[0] + '" y="' + last.label[1] + '" text-anchor="middle" class="log-map-label" style="font-size: ' + layout.scale.label + 'px">X marks the spot</text>';
     html += '</svg>';
 
-    html += '<svg class="log-map-layer log-map-near" viewBox="0 0 ' + width + ' 1080" ' + place + '>';
+    html += log_map_layer(fit, 'near', 1080, -160);
     html += '<g opacity="0.5" filter="url(#log-map-sketch)">';
     last.tentacles.forEach(function(tentacle) {
         html += log_map_use('tentacle', log_map_at([tentacle[0], tentacle[1]], tentacle[2]));
@@ -170,7 +193,7 @@ function log_map_last_leg(layout) {
     html += '</g></svg>';
 
     var size = 18 * last.islandScale;
-    html += '<svg class="log-map-layer log-map-trail" viewBox="0 0 ' + width + ' 760" ' + place + '>';
+    html += log_map_layer(fit, 'trail', 760, 0);
     html += '<path class="log-map-dots" d="' + last.path + '"></path>';
     html += '<path class="log-map-x" d="M' + (last.x[0] - size) + ' ' + (last.x[1] - size) + 'L' + (last.x[0] + size) + ' ' + (last.x[1] + size) +
             'M' + (last.x[0] + size) + ' ' + (last.x[1] - size) + 'L' + (last.x[0] - size) + ' ' + (last.x[1] + size) + '"></path>';
@@ -225,8 +248,8 @@ function log_map_draw() {
         document.body.insertAdjacentHTML('afterbegin', log_map_symbols);
     }
 
-    var layout = window.innerWidth >= 1000 ? log_map_layouts.wide : log_map_layouts.narrow;
-    log_map_layout = layout;
+    var fit = log_map_fit();
+    log_map_width = fit.width;
 
     document.querySelectorAll('.log-map-leg').forEach(function(leg) {
         leg.remove();
@@ -247,12 +270,12 @@ function log_map_draw() {
             return;
         }
         if(kind === 'outro') {
-            section.insertAdjacentHTML('beforebegin', log_map_last_leg(layout));
+            section.insertAdjacentHTML('beforebegin', log_map_last_leg(fit));
             return;
         }
 
         var stop = log_map_stops[kind] || log_map_stops.movies;
-        section.insertAdjacentHTML('beforebegin', log_map_leg(layout, chapter, stop));
+        section.insertAdjacentHTML('beforebegin', log_map_leg(fit, chapter, stop));
         if(!section.querySelector('.log-map-seal')) {
             section.querySelector('.log-map-edge-top').insertAdjacentHTML('afterend', '<div class="log-map-seal" aria-hidden="true">' + (log_map_numerals[chapter] || chapter + 1) + '</div>');
         }
@@ -285,7 +308,7 @@ function log_map_track() {
 
 var log_map_frame = false;
 window.addEventListener('scroll', function() {
-    if(!log_map_layout || log_map_frame) {
+    if(log_map_width === null || log_map_frame) {
         return;
     }
     log_map_frame = true;
@@ -295,15 +318,18 @@ window.addEventListener('scroll', function() {
     });
 }, { passive: true });
 
-// Redraws the chart at the other width when the screen crosses between phone and desktop
+// Redraws the chart to fit when the screen's width changes (a phone turned on its side, a window resized)
+var log_map_resize = null;
 window.addEventListener('resize', function() {
-    if(!log_map_layout) {
+    if(log_map_width === null) {
         return;
     }
-    var wanted = window.innerWidth >= 1000 ? log_map_layouts.wide : log_map_layouts.narrow;
-    if(wanted !== log_map_layout) {
-        log_map_draw();
-    }
+    clearTimeout(log_map_resize);
+    log_map_resize = setTimeout(function() {
+        if(document.documentElement.clientWidth !== log_map_width) {
+            log_map_draw();
+        }
+    }, 150);
 });
 
 // The sketches the chart is drawn from, in the voyage's ink, with a wobble filter for a hand-drawn line
