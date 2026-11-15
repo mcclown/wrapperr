@@ -33,6 +33,62 @@ func VoyageMusicPath(name string) (string, bool) {
 	return filepath.Join(voyageMusicDir, name), true
 }
 
+// voyageMusicUpload is the name an uploaded music file is saved under, with its own extension
+const voyageMusicUpload = "voyage-music"
+
+// VoyageMusicExtension is the extension of a voyage music file name in lower case, if it is one the voyage can play
+func VoyageMusicExtension(name string) (string, bool) {
+	extension := strings.ToLower(filepath.Ext(name))
+	_, ok := voyageMusicTypes[extension]
+	return extension, ok
+}
+
+// SaveVoyageMusic writes an uploaded music file to config/voyage/ as voyage-music with its extension, replacing an
+// earlier upload, and returns the name it was saved under. It writes to a temporary file first, so a failed
+// upload leaves the music as it was.
+func SaveVoyageMusic(extension string, upload io.Reader) (string, error) {
+	if _, ok := voyageMusicTypes[extension]; !ok {
+		return "", errors.New("not a voyage music file type")
+	}
+	if err := os.MkdirAll(voyageMusicDir, 0755); err != nil {
+		return "", err
+	}
+	file, err := os.CreateTemp(voyageMusicDir, ".upload-*")
+	if err != nil {
+		return "", err
+	}
+	if _, err := io.Copy(file, upload); err != nil {
+		file.Close()
+		os.Remove(file.Name())
+		return "", err
+	}
+	if err := file.Close(); err != nil {
+		os.Remove(file.Name())
+		return "", err
+	}
+	name := voyageMusicUpload + extension
+	if err := os.Rename(file.Name(), filepath.Join(voyageMusicDir, name)); err != nil {
+		os.Remove(file.Name())
+		return "", err
+	}
+	RemoveVoyageMusicUploads(name)
+	return name, nil
+}
+
+// RemoveVoyageMusicUploads deletes uploaded music files other than keep (all of them when keep is ""). Files an
+// admin put in config/voyage/ by hand are left alone.
+func RemoveVoyageMusicUploads(keep string) {
+	for extension := range voyageMusicTypes {
+		name := voyageMusicUpload + extension
+		if name == keep {
+			continue
+		}
+		if err := os.Remove(filepath.Join(voyageMusicDir, name)); err != nil && !errors.Is(err, os.ErrNotExist) {
+			log.Println("Failed to remove an earlier voyage music upload. Error: " + err.Error())
+		}
+	}
+}
+
 // VoyageMusicType is the content type of a voyage music file.
 func VoyageMusicType(name string) string {
 	return voyageMusicTypes[strings.ToLower(filepath.Ext(name))]
