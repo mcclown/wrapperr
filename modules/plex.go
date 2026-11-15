@@ -2,6 +2,7 @@ package modules
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -132,11 +133,30 @@ func PlexAuthValidateToken(PlexAuth string, ClientKey string, WrapperrVersion st
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 
-	var body_reply models.PlexGetUserReply
-	json.Unmarshal(body, &body_reply)
 	if err != nil {
 		return nil, err
 	}
+	// Plex answers a token it doesn't know with an error status; read as a user, that was user 0
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New("Plex refused the token (status " + strconv.Itoa(res.StatusCode) + ").")
+	}
+
+	// Who the token belongs to is read on its own: the full reply has fields Plex sends in other shapes (its
+	// subscription date isn't RFC 3339), which are left empty as before rather than failing the login
+	var identity struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+		Email    string `json:"email"`
+	}
+	if err := json.Unmarshal(body, &identity); err != nil {
+		return nil, err
+	}
+	if identity.ID == 0 {
+		return nil, errors.New("Plex sent no user for the token.")
+	}
+	var body_reply models.PlexGetUserReply
+	json.Unmarshal(body, &body_reply)
+	body_reply.ID, body_reply.Username, body_reply.Email = identity.ID, identity.Username, identity.Email
 
 	return &body_reply, nil
 }
