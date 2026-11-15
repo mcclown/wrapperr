@@ -4,7 +4,8 @@
 // chart's layers drift at different speeds as it scrolls (CSS scroll-driven animations, where the browser has
 // them). Nothing here changes what the page says, only how it looks.
 
-// The screen width the chart was last drawn for, once it is drawn
+// The screen width the chart was last drawn for, once it is drawn
+
 var log_map_width = null;
 
 function log_map_on() {
@@ -244,9 +245,11 @@ function log_map_draw() {
     if(!log_map_on()) {
         // The page is served in the map's look when the setting is on; a share link made before it was keeps
         // the classic one
-        document.body.classList.remove('log-map');
+        document.body.classList.remove('log-map', 'log-map-landing');
         return;
     }
+    // The statistics are on parchment, not the sign-in page's night sea
+    document.body.classList.remove('log-map-landing');
     document.body.classList.add('log-map');
     if(!document.getElementById('log-map-symbols')) {
         document.body.insertAdjacentHTML('afterbegin', log_map_symbols);
@@ -382,3 +385,81 @@ var log_map_symbols = `<svg id="log-map-symbols" width="0" height="0" style="pos
 <g id="log-map-albatross"><path d="M0 0C-24 -10 -70 -14 -110 0C-72 -4 -34 4 -8 8Z" fill="#f1e2c0" stroke="#5a4327" stroke-width="2"></path><path d="M0 0C24 -10 70 -14 110 0C72 -4 34 4 8 8Z" fill="#f1e2c0" stroke="#5a4327" stroke-width="2"></path><path d="M-110 0C-98 -4 -88 -4 -78 -2L-82 2Z M110 0C98 -4 88 -4 78 -2L82 2Z" fill="#5a4327"></path><ellipse cx="0" cy="4" rx="14" ry="7" fill="#f1e2c0" stroke="#5a4327" stroke-width="1.8"></ellipse><circle cx="15" cy="0" r="5" fill="#f1e2c0" stroke="#5a4327" stroke-width="1.6"></circle><path d="M19 -1L30 2L19 4Z" fill="#c8963e" stroke="#5a4327" stroke-width="0.8"></path><path d="M-14 4L-26 8L-14 10Z" fill="#f1e2c0" stroke="#5a4327" stroke-width="1.4"></path></g>
 <g id="log-map-treasure"><ellipse rx="96" ry="34" fill="url(#log-map-hatch)" stroke="#5a4327" stroke-width="1.8"></ellipse><ellipse rx="112" ry="44" fill="none" stroke="#7a5a35" stroke-width="0.8" opacity="0.5"></ellipse><use href="#log-map-tree" transform="translate(-60 -10) scale(0.9)"></use><g transform="translate(62 -6)"><path d="M-24 -10H24V12H-24Z" fill="#8a5a14" stroke="#2b1d0e" stroke-width="1.5"></path><path d="M-24 -10C-24 -26 24 -26 24 -10Z" fill="#a8732a" stroke="#2b1d0e" stroke-width="1.5"></path><path d="M-24 -2H24M-11 -22V12M11 -22V12" stroke="#d8b425" stroke-width="2.4"></path></g></g>
 </defs></svg>`;
+
+// THE SIGN-IN PAGE
+
+// The night sea behind the sign-in page: chart lines, a compass rose, the moon, the swell and a ship
+var log_map_night = '<svg class="log-map-night-scene" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+    '<g stroke="#1d3346" stroke-width="1" fill="none"><path d="M0 150H1440M0 300H1440M0 450H1440M0 600H1440M0 750H1440"></path>' +
+    '<path d="M180 0V900M360 0V900M540 0V900M720 0V900M900 0V900M1080 0V900M1260 0V900"></path></g>' +
+    '<g transform="translate(1180 210)" stroke="#2a4a63" fill="none" stroke-width="1.5"><circle r="120"></circle><circle r="96"></circle>' +
+    '<path d="M0 -150L14 -14L150 0L14 14L0 150L-14 14L-150 0L-14 -14Z"></path><path d="M-90 -90L90 90M90 -90L-90 90"></path></g>' +
+    '<circle cx="260" cy="170" r="46" fill="#f6ead0" opacity="0.9"></circle><circle cx="282" cy="158" r="44" fill="#0c1620"></circle>' +
+    '<path d="M0 760C160 740 300 780 460 760S760 735 920 760S1240 785 1440 755V900H0Z" fill="#12283a"></path>' +
+    '<path d="M0 810C200 795 380 830 600 812S1000 790 1200 815S1360 825 1440 808V900H0Z" fill="#0f2131"></path>' +
+    '<g transform="translate(1040 640)" fill="#081018"><path d="M-120 110H140L110 150H-90Z"></path>' +
+    '<path d="M8 -150V110M8 -140L100 -20H8ZM8 -10L120 90H8ZM0 -120L-90 0H0ZM0 10L-110 95H0Z"></path>' +
+    '<path d="M8 -170L46 -158L8 -146Z" fill="#c8302c"></path></g></svg>';
+
+// The pictures on the two choices once signed in: the voyage at sea by night, and the log as a chart
+var log_map_choices = {
+    set_sail_button: {
+        picture: '<svg class="log-map-choice-picture log-map-choice-sea" viewBox="0 0 400 170" aria-hidden="true">' +
+            '<circle cx="320" cy="48" r="22" fill="#f2c76b"></circle>' +
+            '<path d="M0 120C60 112 110 128 170 118S280 108 340 120S390 126 400 118V170H0Z" fill="#1d4a6a"></path>' +
+            '<g transform="translate(150 70)" fill="#f1e2c0"><path d="M-50 48H62L48 66H-38Z" fill="#2b1d0e"></path>' +
+            '<path d="M4 -46V48M4 -40L50 0H4ZM4 6L56 44H4ZM0 -30L-40 10H0Z"></path><path d="M4 -54L22 -48L4 -42Z" fill="#c8302c"></path></g>' +
+            '<path d="M40 140c30-8 50 6 80-2" stroke="#a8d8f0" stroke-width="2" fill="none" opacity="0.6"></path></svg>',
+        kicker: 'The voyage',
+        heading: 'Sail through your year',
+        text: 'Week by week across the sea: the shows you charted, the creatures you met and the shipmates who sailed the same waters.'
+    },
+    search_wrapped_button: {
+        picture: '<svg class="log-map-choice-picture log-map-choice-chart" viewBox="0 0 400 170" aria-hidden="true">' +
+            '<g filter="url(#log-map-sketch)">' + log_map_use('palm', 'translate(90 92) scale(0.8)') + log_map_use('waves', 'translate(210 40) scale(1.2)') +
+            log_map_use('waves', 'translate(40 140) scale(1.2)') + log_map_use('compass', 'translate(340 52) scale(0.55)') + '</g>' +
+            '<path class="log-map-dots" d="M130 70C190 40 240 130 300 118"></path>' +
+            '<path class="log-map-x" d="M300 106L320 126M320 106L300 126" style="stroke-width: 5"></path></svg>',
+        kicker: 'The log',
+        heading: 'Read the captain’s log',
+        text: 'Every number in one ledger: your top films and shows, the ship’s company, the requesters, and how this year compares with the last.'
+    }
+};
+
+// Dresses the sign-in page as the night sea with a parchment card, when the page is served in the map's look.
+// It only adds to the page and moves the introduction into the card: every control keeps its id and handler.
+function log_map_landing() {
+    var login = document.getElementById('login_content');
+    var card = document.getElementById('stats');
+    if(!document.body.classList.contains('log-map') || !login || !card || login.querySelector('.log-map-night-scene')) {
+        return;
+    }
+    if(!document.getElementById('log-map-symbols')) {
+        document.body.insertAdjacentHTML('afterbegin', log_map_symbols);
+    }
+    login.insertAdjacentHTML('afterbegin', log_map_night);
+
+    var title = document.getElementById('application_name');
+    if(title) {
+        title.insertAdjacentHTML('beforebegin', '<div class="log-map-kicker log-map-signin-only">Ahoy, shipmate</div>' +
+            '<div class="log-map-kicker log-map-choose-only">Welcome aboard</div>');
+        title.insertAdjacentHTML('afterend', '<h1 class="log-map-choose-only log-map-choose-title">How will you see your year?</h1>');
+        var intro = document.getElementById('intro_text');
+        if(intro) {
+            title.nextElementSibling.after(intro);
+        }
+    }
+
+    Object.keys(log_map_choices).forEach(function(id) {
+        var button = document.getElementById(id);
+        var choice = log_map_choices[id];
+        if(!button) {
+            return;
+        }
+        button.classList.add('log-map-choice');
+        button.insertAdjacentHTML('afterbegin', choice.picture + '<span class="log-map-kicker">' + choice.kicker + '</span>' +
+            '<span class="log-map-choice-heading">' + choice.heading + '</span><span class="log-map-choice-text">' + choice.text + '</span>');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', log_map_landing);

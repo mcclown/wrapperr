@@ -292,7 +292,8 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 		if current, err := files.GetConfig(); err == nil {
 			logMap = current.WrapperrCustomize.GetLogMap
 		}
-		c.HTML(http.StatusOK, "frontpage.html", gin.H{"LogMap": logMap})
+		// Landing: the sign-in page rather than a share link, which opens on the night sea
+		c.HTML(http.StatusOK, "frontpage.html", gin.H{"LogMap": logMap, "Landing": c.Query("hash") == ""})
 	})
 
 	if !config.DisableAdminPage {
