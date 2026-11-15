@@ -233,7 +233,6 @@ func requestUser(userID int, userName string, friendlyName string) models.Wrappe
 	return models.WrapperrRequestUser{UserID: userID, User: userName, FriendlyName: friendlyName}
 }
 
-// Lists every month from start to end as "2006-01", in the configured time zone.
 // Identifies the title a request is for, so a title requested in both 4K and
 // HD counts once. Falls back to the rating key, then to the request itself.
 func requestTitleKey(request models.SeerrRequest) string {
@@ -246,6 +245,7 @@ func requestTitleKey(request models.SeerrRequest) string {
 	return "request-" + strconv.Itoa(request.ID)
 }
 
+// Lists every month from start to end as "2006-01", in the configured time zone.
 func requestMonths(start time.Time, end time.Time) []string {
 	months := []string{}
 	current := time.Date(start.In(time.Local).Year(), start.In(time.Local).Month(), 1, 0, 0, 0, 0, time.Local)
