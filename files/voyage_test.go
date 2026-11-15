@@ -40,11 +40,12 @@ func TestSaveVoyageMusic(t *testing.T) {
 	if err != nil || name != "voyage-music.mp3" {
 		t.Fatalf("got %q, %v", name, err)
 	}
-	// Another upload replaces it, whatever its type
+	// Another upload replaces it, whatever its type, once the earlier ones are cleared away
 	name, err = SaveVoyageMusic(".ogg", strings.NewReader("second"))
 	if err != nil || name != "voyage-music.ogg" {
 		t.Fatalf("got %q, %v", name, err)
 	}
+	RemoveVoyageMusicUploads(name)
 	if _, err := os.Stat(voyageMusicDir + "/voyage-music.mp3"); !os.IsNotExist(err) {
 		t.Errorf("expected the earlier upload gone, got %v", err)
 	}

@@ -293,6 +293,10 @@ const VoyageMusicLimit = 50 << 20
 // ApiUploadVoyageMusic takes an admin's music file for the voyage (form field "music"), saves it in config/voyage/
 // and makes it the voyage's music. It answers with the name it was saved under.
 func ApiUploadVoyageMusic(context *gin.Context) {
+	// Longer than the server's usual 30 seconds to read a request, for a large file over a slow connection
+	if err := http.NewResponseController(context.Writer).SetReadDeadline(time.Now().Add(15 * time.Minute)); err != nil {
+		log.Println("Failed to extend the time to read a voyage music upload. Error: " + err.Error())
+	}
 	context.Request.Body = http.MaxBytesReader(context.Writer, context.Request.Body, VoyageMusicLimit+1<<20)
 	upload, header, err := context.Request.FormFile("music")
 	if err != nil {
@@ -313,20 +317,10 @@ func ApiUploadVoyageMusic(context *gin.Context) {
 		return
 	}
 
-	name, err := files.SaveVoyageMusic(extension, io.MultiReader(bytes.NewReader(sniff[:read]), upload))
+	name, err := files.SetVoyageMusicUpload(extension, io.MultiReader(bytes.NewReader(sniff[:read]), upload))
 	if err != nil {
 		log.Println("Failed to save the voyage music. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save the music."})
-		return
-	}
-	config, err := files.GetConfig()
-	if err == nil {
-		config.VoyageMusic = name
-		err = files.SaveConfig(config)
-	}
-	if err != nil {
-		log.Println("Failed to set the voyage music. Error: " + err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "The music was saved but could not be set."})
 		return
 	}
 
@@ -337,17 +331,11 @@ func ApiUploadVoyageMusic(context *gin.Context) {
 // ApiDeleteVoyageMusic turns the voyage's music off and deletes an uploaded music file (one put in config/voyage/
 // by hand stays).
 func ApiDeleteVoyageMusic(context *gin.Context) {
-	config, err := files.GetConfig()
-	if err == nil {
-		config.VoyageMusic = ""
-		err = files.SaveConfig(config)
-	}
-	if err != nil {
+	if err := files.ClearVoyageMusic(); err != nil {
 		log.Println("Failed to turn off the voyage music. Error: " + err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove the music."})
 		return
 	}
-	files.RemoveVoyageMusicUploads("")
 
 	log.Println("Voyage music removed." + utilities.GetOriginIPString(context))
 	context.JSON(http.StatusOK, gin.H{"message": "Music removed.", "error": false})
