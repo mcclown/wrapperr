@@ -149,6 +149,7 @@ function get_config(cookie) {
                 location.reload();
             } else {
                 tautulli = result.data.tautulli_config;
+                seerr = result.data.seerr_config;
 
                 timezone = result.data.timezone;
                 create_share_links = result.data.create_share_links;
@@ -286,6 +287,16 @@ function get_config(cookie) {
                 get_year_stats_leaderboard_numbers = result.data.wrapperr_customize.get_year_stats_leaderboard_numbers;
                 get_year_stats_leaderboard_title = result.data.wrapperr_customize.get_year_stats_leaderboard_title;
                 get_year_stats_duration_sum_title = result.data.wrapperr_customize.get_year_stats_duration_sum_title;
+                get_user_request_stats = result.data.wrapperr_customize.get_user_request_stats;
+                get_year_stats_requests = result.data.wrapperr_customize.get_year_stats_requests;
+                get_user_request_stats_title = result.data.wrapperr_customize.get_user_request_stats_title;
+                get_user_request_stats_subtitle = result.data.wrapperr_customize.get_user_request_stats_subtitle;
+                get_user_request_stats_subtitle_one = result.data.wrapperr_customize.get_user_request_stats_subtitle_one;
+                get_user_request_stats_subtitle_none = result.data.wrapperr_customize.get_user_request_stats_subtitle_none;
+                get_user_request_stats_timeline_title = result.data.wrapperr_customize.get_user_request_stats_timeline_title;
+                get_year_stats_requests_title = result.data.wrapperr_customize.get_year_stats_requests_title;
+                get_year_stats_requests_total_title = result.data.wrapperr_customize.get_year_stats_requests_total_title;
+                get_year_stats_requests_timeline_title = result.data.wrapperr_customize.get_year_stats_requests_timeline_title;
                 
                 wrapperr_and = result.data.wrapperr_customize.wrapperr_and;
                 wrapperr_play = result.data.wrapperr_customize.wrapperr_play;
@@ -341,6 +352,10 @@ function AdminPageRedirect() {
 function TautulliPageRedirect() {
     console.log(root)
     window.location.href = root+"/admin/tautulli";
+}
+
+function SeerrPageRedirect() {
+    window.location.href = root+"/admin/seerr";
 }
 
 function SettingsPageRedirect() {

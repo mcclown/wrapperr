@@ -51,6 +51,7 @@ var migrations = []struct {
 	{"", migrateV0toV3_1_0},
 	{"v3.0.4", migrateV0toV3_1_0},
 	{"v3.3.0", migrateV3_2_0toV3_3_0},
+	{"v3.4.0", migrateV3_3_0toV3_4_0},
 }
 
 // migrateConfig walks the migration chain, applying each applicable step in order
@@ -213,6 +214,39 @@ func migrateV3_2_0toV3_3_0(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	raw["wrapperr_customize"] = newCustomize
+
+	raw["wrapperr_version"], _ = json.Marshal(newVersion)
+	return json.Marshal(raw)
+}
+
+// enables the new Seerr request statistics toggles, they only take effect once Seerr is configured
+func migrateV3_3_0toV3_4_0(data []byte) ([]byte, error) {
+	newVersion := "v3.4.0"
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+
+	if customizeRaw, exists := raw["wrapperr_customize"]; exists {
+		var customize map[string]json.RawMessage
+		if err := json.Unmarshal(customizeRaw, &customize); err != nil {
+			return nil, err
+		}
+
+		for _, key := range []string{"get_user_request_stats", "get_year_stats_requests"} {
+			if _, exists := customize[key]; !exists {
+				customize[key], _ = json.Marshal(true)
+				log.Printf("Migrated %s to true (%s).", key, newVersion)
+			}
+		}
+
+		newCustomize, err := json.Marshal(customize)
+		if err != nil {
+			return nil, err
+		}
+		raw["wrapperr_customize"] = newCustomize
+	}
 
 	raw["wrapperr_version"], _ = json.Marshal(newVersion)
 	return json.Marshal(raw)
@@ -395,6 +429,11 @@ func CreateConfigFile() error {
 	}
 	config.TautulliConfig = append(config.TautulliConfig, tautulli_config)
 
+	config.SeerrConfig = models.SeerrConfig{
+		SeerrEnabled: false,
+		SeerrPort:    5055,
+	}
+
 	config.CreateShareLinks = true
 	config.WinterTheme = true
 	config.BasicAuth = false
@@ -413,6 +452,8 @@ func CreateConfigFile() error {
 	config.WrapperrCustomize.GetYearStatsMusic = true
 	config.WrapperrCustomize.GetYearStatsLeaderboard = true
 	config.WrapperrCustomize.GetYearStatsLeaderboardNumbers = false
+	config.WrapperrCustomize.GetUserRequestStats = true
+	config.WrapperrCustomize.GetYearStatsRequests = true
 
 	// Write straight to disk without touching the cache or lock: this is only
 	// reached from inside the locked loader (which holds the write lock and then
@@ -592,6 +633,11 @@ func loadConfigFromDisk() (config models.WrapperrConfig, err error) {
 	if config.TautulliConfig[0].TautulliPort == 0 {
 		log.Println("Tautulli port on server number 1 is 0, replacing with 80.")
 		config.TautulliConfig[0].TautulliPort = config_default.TautulliConfig[0].TautulliPort
+	}
+
+	// Set Seerr port to the Seerr default if zero is set
+	if config.SeerrConfig.SeerrPort == 0 {
+		config.SeerrConfig.SeerrPort = config_default.SeerrConfig.SeerrPort
 	}
 
 	config, err = VerifyNonEmptyCustomValues(config, config_default)
@@ -994,6 +1040,38 @@ func VerifyNonEmptyCustomValues(config models.WrapperrConfig, config_default mod
 
 	if config.WrapperrCustomize.GetYearStatsDurationSumTitle == "" {
 		config.WrapperrCustomize.GetYearStatsDurationSumTitle = config_default.WrapperrCustomize.GetYearStatsDurationSumTitle
+	}
+
+	if config.WrapperrCustomize.GetUserRequestStatsTitle == "" {
+		config.WrapperrCustomize.GetUserRequestStatsTitle = config_default.WrapperrCustomize.GetUserRequestStatsTitle
+	}
+
+	if config.WrapperrCustomize.GetUserRequestStatsSubtitle == "" {
+		config.WrapperrCustomize.GetUserRequestStatsSubtitle = config_default.WrapperrCustomize.GetUserRequestStatsSubtitle
+	}
+
+	if config.WrapperrCustomize.GetUserRequestStatsSubtitleOne == "" {
+		config.WrapperrCustomize.GetUserRequestStatsSubtitleOne = config_default.WrapperrCustomize.GetUserRequestStatsSubtitleOne
+	}
+
+	if config.WrapperrCustomize.GetUserRequestStatsSubtitleNone == "" {
+		config.WrapperrCustomize.GetUserRequestStatsSubtitleNone = config_default.WrapperrCustomize.GetUserRequestStatsSubtitleNone
+	}
+
+	if config.WrapperrCustomize.GetUserRequestStatsTimelineTitle == "" {
+		config.WrapperrCustomize.GetUserRequestStatsTimelineTitle = config_default.WrapperrCustomize.GetUserRequestStatsTimelineTitle
+	}
+
+	if config.WrapperrCustomize.GetYearStatsRequestsTitle == "" {
+		config.WrapperrCustomize.GetYearStatsRequestsTitle = config_default.WrapperrCustomize.GetYearStatsRequestsTitle
+	}
+
+	if config.WrapperrCustomize.GetYearStatsRequestsTotalTitle == "" {
+		config.WrapperrCustomize.GetYearStatsRequestsTotalTitle = config_default.WrapperrCustomize.GetYearStatsRequestsTotalTitle
+	}
+
+	if config.WrapperrCustomize.GetYearStatsRequestsTimelineTitle == "" {
+		config.WrapperrCustomize.GetYearStatsRequestsTimelineTitle = config_default.WrapperrCustomize.GetYearStatsRequestsTimelineTitle
 	}
 
 	if config.WrapperrCustomize.WrapperrAnd == "" {

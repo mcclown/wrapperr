@@ -518,6 +518,10 @@ function loadAdminPage() {
     html += `</div>`;
 
     html += `<div class="form-group newline">`;
+    html += `<button class="form-control btn" onclick="SeerrPageRedirect();" id="set_seerr_settings"><img src="${root}/assets/config.svg" class="btn_logo"><p2>Seerr settings</p2></button>`;
+    html += `</div>`;
+
+    html += `<div class="form-group newline">`;
     html += `<button class="form-control btn" onclick="SettingsPageRedirect();" id="set_wrapperr_settings"><img src="${root}/assets/config.svg" class="btn_logo"><p2>Wrapperr settings</p2></button>`;
     html += `</div>`;
 

@@ -688,6 +688,87 @@ function loadAdminPage() {
     html += '</div>';
 
     html += '<div class="form-group">';
+    html += '<label for="get_user_request_stats" title="Includes Seerr request statistics for the user in your wrapped period. Requires Seerr to be enabled.">Get user request statistics:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_user_request_stats" ';
+    if(get_user_request_stats) {
+        html += 'checked="' + get_user_request_stats + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
+    html += '<label for="get_year_stats_requests" title="Includes the top requesters and server-wide Seerr request statistics in your wrapped period. Requires Seerr to be enabled.">Get server-wide request statistics:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_year_stats_requests" ';
+    if(get_year_stats_requests) {
+        html += 'checked="' + get_year_stats_requests + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
+    html += '<div class="form-group newline">';
+    html += '</div>';
+
+    html += '<div class="form_hidden" id="get_request_stats_custom">';
+
+        html += '<div class="form_block">';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_title" title="Title on top of the requests section. Requires Seerr to be enabled.">Requests title:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_title" name="get_user_request_stats_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_subtitle" title="Subtitle when the user made several requests. Use {request_count}, {request_rank} and {requester_count}.">Requests subtitle:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_subtitle" name="get_user_request_stats_subtitle" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_subtitle_one" title="Subtitle when the user made one request.">Requests subtitle (one):<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_subtitle_one" name="get_user_request_stats_subtitle_one" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_subtitle_none" title="Subtitle when the user made no requests.">Requests subtitle (none):<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_subtitle_none" name="get_user_request_stats_subtitle_none" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_timeline_title" title="Title above the chart of requests per month made by the user.">Title of user request timeline:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_timeline_title" name="get_user_request_stats_timeline_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+        html += '</div>';
+
+        html += '<div class="form_block">';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_stats_requests_title" title="Custom title of the list of top requesters.">Title of top requesters list:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_title" name="get_year_stats_requests_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_stats_requests_total_title" title="Text showing the server-wide request total. Use {server_request_count}.">Server-wide request total:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_total_title" name="get_year_stats_requests_total_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_stats_requests_timeline_title" title="Title above the chart of all requests per month.">Title of server-wide request timeline:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_timeline_title" name="get_year_stats_requests_timeline_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+        html += '</div>';
+
+    html += '</div>';
+
+    html += '<div class="form-group newline">';
+    html += `<button class="form-control btn" name="get_request_stats_custom_button" id="get_request_stats_custom_button" onclick="toggle_hidden_form(\'get_request_stats_custom\')"><img src="${root}/assets/tweak.svg" class="btn_logo"></img><p2 id="get_request_stats_custom_button_text">Custom text</p2></button>`;
+    html += '</div>';
+
+    html += '<div class="form-group newline">';
+    html += '<hr>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
     html += '<label for="get_year_stats_movies" title="Includes server-wide movie statistics in your wrapped period.">Get server-wide movie statistics:<br>';
     html += '<input type="checkbox" class="form-control" id="get_year_stats_movies" ';
     if(get_year_stats_movies) {
@@ -1040,6 +1121,15 @@ function loadAdminPage() {
     document.getElementById("get_year_stats_music_duration_title").value = get_year_stats_music_duration_title;
     document.getElementById("get_year_stats_duration_sum_title").value = get_year_stats_duration_sum_title;
 
+    document.getElementById("get_user_request_stats_title").value = get_user_request_stats_title;
+    document.getElementById("get_user_request_stats_subtitle").value = get_user_request_stats_subtitle;
+    document.getElementById("get_user_request_stats_subtitle_one").value = get_user_request_stats_subtitle_one;
+    document.getElementById("get_user_request_stats_subtitle_none").value = get_user_request_stats_subtitle_none;
+    document.getElementById("get_user_request_stats_timeline_title").value = get_user_request_stats_timeline_title;
+    document.getElementById("get_year_stats_requests_title").value = get_year_stats_requests_title;
+    document.getElementById("get_year_stats_requests_total_title").value = get_year_stats_requests_total_title;
+    document.getElementById("get_year_stats_requests_timeline_title").value = get_year_stats_requests_timeline_title;
+
 }
 
 function set_wrapperr_customization_call() {
@@ -1144,6 +1234,17 @@ function set_wrapperr_customization_call() {
     get_user_music_stats_spent_subtitle = document.getElementById('get_user_music_stats_spent_subtitle').value;
     get_user_music_stats_oldest_album_title = document.getElementById('get_user_music_stats_oldest_album_title').value;
     get_user_music_stats_oldest_album_subtitle = document.getElementById('get_user_music_stats_oldest_album_subtitle').value;
+
+    get_user_request_stats = document.getElementById('get_user_request_stats').checked;
+    get_year_stats_requests = document.getElementById('get_year_stats_requests').checked;
+    get_user_request_stats_title = document.getElementById('get_user_request_stats_title').value;
+    get_user_request_stats_subtitle = document.getElementById('get_user_request_stats_subtitle').value;
+    get_user_request_stats_subtitle_one = document.getElementById('get_user_request_stats_subtitle_one').value;
+    get_user_request_stats_subtitle_none = document.getElementById('get_user_request_stats_subtitle_none').value;
+    get_user_request_stats_timeline_title = document.getElementById('get_user_request_stats_timeline_title').value;
+    get_year_stats_requests_title = document.getElementById('get_year_stats_requests_title').value;
+    get_year_stats_requests_total_title = document.getElementById('get_year_stats_requests_total_title').value;
+    get_year_stats_requests_timeline_title = document.getElementById('get_year_stats_requests_timeline_title').value;
 
     get_year_stats_title = document.getElementById('get_year_stats_title').value;
     get_year_stats_subtitle = document.getElementById('get_year_stats_subtitle').value;
@@ -1295,6 +1396,16 @@ function set_wrapperr_customization_call() {
             "get_year_stats_leaderboard_numbers" : get_year_stats_leaderboard_numbers,
             "get_year_stats_leaderboard_title" : get_year_stats_leaderboard_title,
             "get_year_stats_duration_sum_title" : get_year_stats_duration_sum_title,
+            "get_user_request_stats" : get_user_request_stats,
+            "get_year_stats_requests" : get_year_stats_requests,
+            "get_user_request_stats_title" : get_user_request_stats_title,
+            "get_user_request_stats_subtitle" : get_user_request_stats_subtitle,
+            "get_user_request_stats_subtitle_one" : get_user_request_stats_subtitle_one,
+            "get_user_request_stats_subtitle_none" : get_user_request_stats_subtitle_none,
+            "get_user_request_stats_timeline_title" : get_user_request_stats_timeline_title,
+            "get_year_stats_requests_title" : get_year_stats_requests_title,
+            "get_year_stats_requests_total_title" : get_year_stats_requests_total_title,
+            "get_year_stats_requests_timeline_title" : get_year_stats_requests_timeline_title,
             "wrapperr_and" : wrapperr_and,
             "wrapperr_play" : wrapperr_play,
             "wrapperr_play_plural" : wrapperr_play_plural,

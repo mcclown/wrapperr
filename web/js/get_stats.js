@@ -185,6 +185,8 @@ function load_page(data){
         load_music();
     }
 
+    load_requests();
+
     if(!results.year_stats.error && (functions.get_year_stats_movies || functions.get_year_stats_shows || functions.get_year_stats_music)) {
         load_users();
     }
@@ -1208,6 +1210,153 @@ function top_list_names_sort_by(array, title, div_id, button_id, functions_data)
     }
 }
 
+//REQUESTS
+function load_requests() {
+    var user_requests = results.user.user_requests;
+    var year_requests = results.year_stats.year_requests;
+
+    // Shared links created before request statistics existed have no request data
+    var show_user = functions.get_user_request_stats && user_requests && !user_requests.error;
+    var show_year = functions.get_year_stats_requests && year_requests && !year_requests.error && year_requests.data.request_count > 0;
+
+    if(!show_user && !show_year) {
+        return;
+    }
+
+    var text = "";
+
+    text += "<div class='boks' data-color='mango' style='height: auto !important; width: 100%; padding-bottom: 25em; padding-top: 25em; height:10em; background-color: none;'>";
+
+        text += "<div class='boks3'>";
+            text += "<h1>" + ReplaceStandardStrings(functions.get_user_request_stats_title) + "</h1>";
+        text += "</div>";
+
+        if(show_user) {
+            var subtitle = functions.get_user_request_stats_subtitle;
+            if(user_requests.data.request_count == 0) {
+                subtitle = functions.get_user_request_stats_subtitle_none;
+            } else if(user_requests.data.request_count == 1) {
+                subtitle = functions.get_user_request_stats_subtitle_one;
+            }
+
+            text += "<div class='boks3'>";
+                text += "<h2>" + ReplaceStandardStrings(subtitle) + "</h2>";
+            text += "</div>";
+        }
+
+        text += "<div class='boks3'>";
+
+            if(show_user && user_requests.data.request_count > 0) {
+                text += "<div class='boks2'>";
+                    text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
+                        text += "<div class='stats'>";
+                            text += request_timeline_chart(user_requests.data.timeline, ReplaceStandardStrings(functions.get_user_request_stats_timeline_title));
+                        text += "</div>";
+                    text += "</div>";
+                text += "</div>";
+            }
+
+            if(show_year) {
+                text += "<div class='boks2'>";
+                    text += top_list_requesters(year_requests.data.requesters, functions.get_year_stats_requests_title, 'year_stats_year_requests');
+                text += "</div>";
+
+                text += "<div class='boks2'>";
+                    text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
+                        text += "<div class='stats'>";
+                            text += ReplaceStandardStrings(functions.get_year_stats_requests_total_title.replaceAll('{server_request_count}', '<b>' + number_with_spaces(year_requests.data.request_count) + '</b>'));
+                            text += "<br><br>";
+                            text += request_timeline_chart(year_requests.data.timeline, ReplaceStandardStrings(functions.get_year_stats_requests_timeline_title));
+                        text += "</div>";
+                    text += "</div>";
+                text += "</div>";
+            }
+
+        text += "</div>";
+    text += "</div>";
+
+    document.getElementById("search_results").innerHTML += text;
+}
+
+function top_list_requesters(array, title, div_id) {
+    var html = "";
+
+    html += "<div class='status' id='" + div_id + "'>";
+        html += "<div class='stats'>";
+            html += "<div class='status-title'>" + ReplaceStandardStrings(title) + "</div>";
+            html += "<div class='stats-list'>";
+            for(var i = 0; i < array.length; i++) {
+                if(i == 0) {
+                    html += "<div class='item gold'>";
+                } else if(i == 1) {
+                    html += "<div class='item silver'>";
+                } else if(i == 2) {
+                    html += "<div class='item bronze'>";
+                } else {
+                    html += "<div class='item'>";
+                }
+                    html += "<div class='number'>";
+                        html += i+1 + ". ";
+                    html += "</div>";
+
+                    html += "<div class='name'>";
+                        html += array[i].user;
+
+                        // Counts are zeroed when leaderboard numbers are hidden
+                        if(array[i].requests !== 0) {
+                            html += "<br>" + number_with_spaces(array[i].requests);
+                        }
+                    html += "</div>";
+
+                html += "</div>";
+            }
+            html += "</div>";
+        html += "</div>";
+    html += "</div>";
+
+    return html;
+}
+
+function request_timeline_chart(timeline, chart_title) {
+    if(!timeline || timeline.length === 0) {
+        return "";
+    }
+
+    var max_requests = Math.max.apply(Math, timeline.map(function(month) { return month.requests; }));
+    var html = "";
+
+    html += '<div style="text-align: center; margin-bottom: 0.5em; font-size: 0.9em; opacity: 0.8;">' + chart_title + '</div>';
+    html += '<div style="background: rgba(0,0,0,0.2); padding: 1em; border-radius: 8px;">';
+        html += '<div style="display: flex; align-items: flex-end; height: 120px; gap: 3px;">';
+
+        for(var i = 0; i < timeline.length; i++) {
+            var requests = timeline[i].requests;
+            var bar_height = (requests === 0 || max_requests === 0) ? 2 : Math.max(4, (requests / max_requests) * 100);
+            var bar_color = requests === 0 ? 'rgba(80, 80, 80, 0.3)' : 'rgba(100, 150, 200, 0.8)';
+
+            html += '<div title="' + request_month_label(timeline[i].month, true) + ': ' + requests + '" style="flex: 1; height: ' + bar_height + '%; background: ' + bar_color + '; border-radius: 2px 2px 0 0;"></div>';
+        }
+
+        html += '</div>';
+
+        html += '<div style="display: flex; gap: 3px; margin-top: 6px; font-size: 0.65em; opacity: 0.7;">';
+        for(var i = 0; i < timeline.length; i++) {
+            html += '<div style="flex: 1; text-align: center; overflow: hidden;">' + request_month_label(timeline[i].month, false) + '</div>';
+        }
+        html += '</div>';
+    html += '</div>';
+
+    return html;
+}
+
+// Turns "2026-03" into a short month name, optionally with the year
+function request_month_label(month, with_year) {
+    var parts = month.split('-');
+    var date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
+    var options = with_year ? { month: 'short', year: 'numeric' } : { month: 'narrow' };
+    return date.toLocaleDateString(undefined, options);
+}
+
 //TOP USERS
 function load_users() {
     var text = "";
@@ -1606,6 +1755,14 @@ $(window).scroll(function() {
         string = string.replaceAll('{user_id}', results.user.id)
     } catch (e) {
         console.log('{user_id} replace failed')
+    }
+
+    try {
+        string = string.replaceAll('{request_count}', number_with_spaces(results.user.user_requests.data.request_count))
+        string = string.replaceAll('{request_rank}', results.user.user_requests.data.request_rank)
+        string = string.replaceAll('{requester_count}', number_with_spaces(results.user.user_requests.data.requester_count))
+    } catch (e) {
+        console.log('{request_count} replace failed')
     }
 
     try {
