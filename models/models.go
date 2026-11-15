@@ -13,6 +13,7 @@ type WrapperrCustomize struct {
 	StatsTopListLength                          int    `json:"stats_top_list_length"`
 	EnablePosters                               bool   `json:"enable_posters"`
 	PosterCacheMaxAgeDays                       int    `json:"poster_cache_max_age_days"`
+	GetLogMap                                   bool   `json:"get_log_map"`
 	ObfuscateOtherUsers                         string `json:"obfuscate_other_users"`
 	GetUserMovieStats                           bool   `json:"get_user_movie_stats"`
 	GetUserMovieStatsTitle                      string `json:"get_user_movie_stats_title"`

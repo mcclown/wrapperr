@@ -174,32 +174,43 @@ function load_page(data){
 
     // Load the introduction
     load_introduction();
+    log_map_mark('intro');
 
     // Load the segments based on configuration
     if(!results.user.user_movies.error && functions.get_user_movie_stats) {
         load_movies();
+        log_map_mark('movies');
     }
 	
     if(!results.user.user_shows.error && functions.get_user_show_stats) {
         load_shows();
+        log_map_mark('shows');
     }
 	
 	if(!results.user.user_music.error && functions.get_user_music_stats) {
         load_music();
+        log_map_mark('music');
     }
 
     load_requests();
+    log_map_mark('requests');
 
     if(!results.year_stats.error && (functions.get_year_stats_movies || functions.get_year_stats_shows || functions.get_year_stats_music || show_year_requests())) {
         load_users();
+        log_map_mark('users');
     }
 
     if(show_year_compare()) {
         load_compare();
+        log_map_mark('compare');
     }
 
     // Load the outro
     load_outro();
+    log_map_mark('outro');
+
+    // Draw the page as a treasure map, when that is turned on
+    log_map_draw();
 }
 
 //INTRODUCTION
