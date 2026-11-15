@@ -252,7 +252,7 @@ function show_voyage_music() {
     }
     // The music's own address, checked fresh each time so a replaced file plays at once
     var music_url = api_url.replace(/api\/$/, 'voyage/audio/music') + '?v=' + Date.now();
-    current.innerHTML = '<p2>Playing: ' + escapeAttribute(voyage_music) + '</p2><br>' +
+    current.innerHTML = '<p2>Current music: ' + escapeAttribute(voyage_music) + '</p2><br>' +
         '<audio controls preload="none" src="' + escapeAttribute(music_url) + '" style="width: 100%; max-width: 22em; margin: 0.5em 0;"></audio>';
 }
 
