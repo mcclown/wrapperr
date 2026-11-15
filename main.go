@@ -182,6 +182,7 @@ func initRouter(config models.WrapperrConfig) *gin.Engine {
 	}
 
 	router.Use(middlewares.SecurityHeaders())
+	router.Use(middlewares.RevalidateAssets())
 	router.Use(middlewares.BodyLimit(1 << 20))
 
 	router.LoadHTMLGlob("web/html/*.html")

@@ -37,6 +37,19 @@ func SecurityHeaders() gin.HandlerFunc {
 	}
 }
 
+// RevalidateAssets asks browsers to check the page's scripts and styles with the server before using a copy they
+// keep, so an update reaches everyone at once: an unchanged file is answered 304 from its Last-Modified. Without
+// it a browser may go on running an old script against a new page.
+func RevalidateAssets() gin.HandlerFunc {
+	return func(context *gin.Context) {
+		path := context.Request.URL.Path
+		if strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".css") {
+			context.Writer.Header().Set("Cache-Control", "no-cache")
+		}
+		context.Next()
+	}
+}
+
 // BodyLimit caps the size of a request body. A larger body fails to read, which the handlers already answer with
 // a bad request.
 func BodyLimit(maxBytes int64) gin.HandlerFunc {
