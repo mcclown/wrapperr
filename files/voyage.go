@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/aunefyren/wrapperr/models"
 )
 
 var voyageEventsPath, _ = filepath.Abs("./config/voyage_events.json")
@@ -43,9 +45,8 @@ func VoyageMusicExtension(name string) (string, bool) {
 	return extension, ok
 }
 
-// SaveVoyageMusic writes an uploaded music file to config/voyage/ as voyage-music with its extension and returns
-// the name it was saved under. It writes to a temporary file first, so a failed upload leaves the music as it was.
-func SaveVoyageMusic(extension string, upload io.Reader) (string, error) {
+// writeVoyageMusic writes an uploaded music file to a temporary file in config/voyage/ and returns its path
+func writeVoyageMusic(extension string, upload io.Reader) (string, error) {
 	if _, ok := voyageMusicTypes[extension]; !ok {
 		return "", errors.New("not a voyage music file type")
 	}
@@ -65,40 +66,86 @@ func SaveVoyageMusic(extension string, upload io.Reader) (string, error) {
 		os.Remove(file.Name())
 		return "", err
 	}
-	name := voyageMusicUpload + extension
-	if err := os.Rename(file.Name(), filepath.Join(voyageMusicDir, name)); err != nil {
-		os.Remove(file.Name())
-		return "", err
+	return file.Name(), nil
+}
+
+// installVoyageMusic moves a written upload into place as name, keeping a file it replaces aside. done(true) keeps
+// the new file; done(false) puts back what was there.
+func installVoyageMusic(temp string, name string) (done func(keep bool), err error) {
+	final := filepath.Join(voyageMusicDir, name)
+	aside := final + ".previous"
+	replaced := false
+	if err := os.Rename(final, aside); err == nil {
+		replaced = true
+	} else if !errors.Is(err, os.ErrNotExist) {
+		os.Remove(temp)
+		return nil, err
 	}
-	return name, nil
+	if err := os.Rename(temp, final); err != nil {
+		os.Remove(temp)
+		if replaced {
+			os.Rename(aside, final)
+		}
+		return nil, err
+	}
+	return func(keep bool) {
+		switch {
+		case keep && replaced:
+			os.Remove(aside)
+		case !keep && replaced:
+			os.Rename(aside, final)
+		case !keep:
+			os.Remove(final)
+		}
+	}, nil
 }
 
 // voyageMusicMu takes music uploads and removals one at a time, so two can't delete each other's file
 var voyageMusicMu sync.Mutex
 
-// SetVoyageMusicUpload saves an uploaded music file and makes it the voyage's music. The settings name the new
-// file before earlier uploads are deleted, so if they can't be saved the music stays as it was.
+// SetVoyageMusicUpload saves an uploaded music file as voyage-music with its extension and makes it the voyage's
+// music. The settings name the new file before anything it replaces is deleted, so if they can't be saved the
+// music stays as it was.
 func SetVoyageMusicUpload(extension string, upload io.Reader) (string, error) {
+	temp, err := writeVoyageMusic(extension, upload)
+	if err != nil {
+		return "", err
+	}
+
 	voyageMusicMu.Lock()
 	defer voyageMusicMu.Unlock()
+	name := voyageMusicUpload + extension
+	done, err := installVoyageMusic(temp, name)
+	if err != nil {
+		return "", err
+	}
 	config, err := GetConfig()
+	if err == nil {
+		config.VoyageMusic = name
+		err = SaveConfig(config)
+	}
 	if err != nil {
+		done(false)
 		return "", err
 	}
-	name, err := SaveVoyageMusic(extension, upload)
-	if err != nil {
-		return "", err
-	}
-	previous := config.VoyageMusic
-	config.VoyageMusic = name
-	if err := SaveConfig(config); err != nil {
-		if name != previous {
-			os.Remove(filepath.Join(voyageMusicDir, name))
-		}
-		return "", err
-	}
+	done(true)
 	RemoveVoyageMusicUploads(name)
 	return name, nil
+}
+
+// SaveSettings saves settings an admin changed, with the voyage's music as it is now unless they set it, so an
+// upload or removal between reading the settings and saving them isn't undone.
+func SaveSettings(config models.WrapperrConfig, musicSet bool) error {
+	voyageMusicMu.Lock()
+	defer voyageMusicMu.Unlock()
+	if !musicSet {
+		current, err := GetConfig()
+		if err != nil {
+			return err
+		}
+		config.VoyageMusic = current.VoyageMusic
+	}
+	return SaveConfig(config)
 }
 
 // ClearVoyageMusic turns the voyage's music off and deletes uploaded music (a file put in config/voyage/ by hand
