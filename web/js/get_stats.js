@@ -187,7 +187,7 @@ function load_page(data){
 
     load_requests();
 
-    if(!results.year_stats.error && (functions.get_year_stats_movies || functions.get_year_stats_shows || functions.get_year_stats_music)) {
+    if(!results.year_stats.error && (functions.get_year_stats_movies || functions.get_year_stats_shows || functions.get_year_stats_music || show_year_requests())) {
         load_users();
     }
 
@@ -1211,15 +1211,14 @@ function top_list_names_sort_by(array, title, div_id, button_id, functions_data)
 }
 
 //REQUESTS
+// The viewer's own requests; the server's are in the server-wide section
 function load_requests() {
     var user_requests = results.user.user_requests;
-    var year_requests = results.year_stats.year_requests;
 
     // Shared links created before request statistics existed have no request data
     var show_user = functions.get_user_request_stats && user_requests && !user_requests.error;
-    var show_year = functions.get_year_stats_requests && year_requests && !year_requests.error && year_requests.data.request_count > 0;
 
-    if(!show_user && !show_year) {
+    if(!show_user) {
         return;
     }
 
@@ -1231,22 +1230,19 @@ function load_requests() {
             text += "<h1>" + ReplaceStandardStrings(functions.get_user_request_stats_title) + "</h1>";
         text += "</div>";
 
-        if(show_user) {
-            var subtitle = functions.get_user_request_stats_subtitle;
-            if(user_requests.data.request_count == 0) {
-                subtitle = functions.get_user_request_stats_subtitle_none;
-            } else if(user_requests.data.request_count == 1) {
-                subtitle = functions.get_user_request_stats_subtitle_one;
-            }
-
-            text += "<div class='boks3'>";
-                text += "<h2>" + ReplaceStandardStrings(subtitle) + "</h2>";
-            text += "</div>";
+        var subtitle = functions.get_user_request_stats_subtitle;
+        if(user_requests.data.request_count == 0) {
+            subtitle = functions.get_user_request_stats_subtitle_none;
+        } else if(user_requests.data.request_count == 1) {
+            subtitle = functions.get_user_request_stats_subtitle_one;
         }
 
         text += "<div class='boks3'>";
+            text += "<h2>" + ReplaceStandardStrings(subtitle) + "</h2>";
+        text += "</div>";
 
-            if(show_user && user_requests.data.request_count > 0) {
+        if(user_requests.data.request_count > 0) {
+            text += "<div class='boks3'>";
                 text += "<div class='boks2'>";
                     text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
                         text += "<div class='stats'>";
@@ -1254,57 +1250,230 @@ function load_requests() {
                         text += "</div>";
                     text += "</div>";
                 text += "</div>";
-            }
+            text += "</div>";
+        }
 
-            if(show_year) {
-                text += "<div class='boks2'>";
-                    text += top_list_requesters(year_requests.data.requesters, functions.get_year_stats_requests_title, 'year_stats_year_requests');
-                text += "</div>";
+        var show_reach = functions.get_user_request_stats_followers && user_requests.data.request_count > 0;
+        var show_followers = show_reach && user_requests.data.followers && user_requests.data.followers.length > 0;
+        var show_following = functions.get_user_request_stats_following && user_requests.data.following_titles && user_requests.data.following_titles.length > 0;
 
-                text += "<div class='boks2'>";
-                    text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
-                        text += "<div class='stats'>";
-                            text += ReplaceStandardStrings(functions.get_year_stats_requests_total_title.replaceAll('{server_request_count}', '<b>' + number_with_spaces(year_requests.data.request_count) + '</b>'));
-                            text += "<br><br>";
-                            text += request_timeline_chart(year_requests.data.timeline, ReplaceStandardStrings(functions.get_year_stats_requests_timeline_title));
+        if(show_reach || show_following) {
+            text += "<div class='boks3'>";
+
+                if(show_reach) {
+                    var reach_title = functions.get_user_request_stats_reach_title_none;
+                    if(user_requests.data.viewers > 0) {
+                        reach_title = functions.get_user_request_stats_reach_title.replaceAll('{top_request_title}', '<b>' + request_title(user_requests.data.top_request) + '</b>');
+                    }
+
+                    var top_request = user_requests.data.top_request;
+
+                    text += "<div class='boks2'>";
+                        text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
+                            text += "<div class='stats'>";
+                                text += ReplaceStandardStrings(reach_title);
+                                text += '<br>';
+                                if(user_requests.data.viewers > 0 && has_request_poster(top_request)) {
+                                    text += posterImgTag(top_request.tautulli_server_hash, top_request.rating_key, top_request.thumb, {
+                                        className: "special-poster", alt: "Poster",
+                                        style: "margin: 1em auto; display: block;", fallback: "assets/img/social-event.svg"
+                                    });
+                                } else {
+                                    text += '<img src="assets/img/social-event.svg" style="margin: auto; display: block; width: 15em;">';
+                                }
+                            text += "</div>";
                         text += "</div>";
                     text += "</div>";
-                text += "</div>";
-            }
+                }
 
-        text += "</div>";
+                if(show_followers) {
+                    text += "<div class='boks2'>";
+                        text += top_list_requesters(user_requests.data.followers, functions.get_user_request_stats_followers_title, 'user_requests_followers', 'followers');
+                    text += "</div>";
+                }
+
+                if(show_following) {
+                    text += "<div class='boks2 boks2-wide'>";
+                        text += top_list_requesters_sortable(user_requests.data.following_titles, user_requests.data.following_percent, functions.get_user_request_stats_following_title, 'user_requests_following', 'following');
+                    text += "</div>";
+                }
+
+            text += "</div>";
+        }
+
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;
 }
 
-function top_list_requesters(array, title, div_id) {
+// Whether the server-wide section has requests to show
+function show_year_requests() {
+    var year_requests = results.year_stats.year_requests;
+    return functions.get_year_stats_requests && year_requests && !year_requests.error && year_requests.data.request_count > 0;
+}
+
+// The server's requests, for the server-wide section: the top requesters, the totals and the trendsetters
+function year_requests_html() {
+    if(!show_year_requests()) {
+        return "";
+    }
+
+    var year_requests = results.year_stats.year_requests;
+    var text = "";
+
+    if(functions.get_year_stats_requests_heroes) {
+        text += "<div class='boks3'>";
+            text += "<div class='status request-heroes'>";
+                text += "<div class='stats'>" + ReplaceStandardStrings(functions.get_year_stats_requests_heroes) + "</div>";
+            text += "</div>";
+        text += "</div>";
+    }
+
+    text += "<div class='boks3'>";
+        text += "<div class='boks2'>";
+            text += top_list_requesters(year_requests.data.requesters, functions.get_year_stats_requests_title, 'year_stats_year_requests', 'requests');
+        text += "</div>";
+
+        text += "<div class='boks2'>";
+            text += "<div class='status' id='list3' style='padding:1em;min-width:15em;'>";
+                text += "<div class='stats'>";
+                    text += ReplaceStandardStrings(functions.get_year_stats_requests_total_title.replaceAll('{server_request_count}', '<b>' + number_with_spaces(year_requests.data.request_count) + '</b>'));
+                    text += "<br><br>";
+                    text += request_timeline_chart(year_requests.data.timeline, ReplaceStandardStrings(functions.get_year_stats_requests_timeline_title));
+                text += "</div>";
+            text += "</div>";
+        text += "</div>";
+
+        if(functions.get_year_stats_requests_trendsetters && year_requests.data.trendsetters_titles && year_requests.data.trendsetters_titles.length > 0) {
+            text += "<div class='boks2 boks2-wide'>";
+                text += top_list_requesters_sortable(year_requests.data.trendsetters_titles, year_requests.data.trendsetters_percent, functions.get_year_stats_requests_trendsetters_title, 'year_stats_year_trendsetters', 'trendsetters', year_requests.data.trendsetters_viewers);
+            text += "</div>";
+        }
+    text += "</div>";
+
+    return text;
+}
+
+// Formats a requested title, with the year for movies
+function request_title(title) {
+    if(title.year) {
+        return title.title + ' (' + title.year + ')';
+    }
+    return title.title;
+}
+
+// Whether a requested title has what is needed to show its poster
+function has_request_poster(title) {
+    return functions.enable_posters && title && title.thumb && title.rating_key && title.tautulli_server_hash;
+}
+
+// Requester lists that can be reordered, by list ID
+var request_lists = {};
+
+// The button text for switching a requester list to an order
+function request_sort_label(order) {
+    return {titles: functions.wrapperr_sort_titles, percent: functions.wrapperr_sort_percent, viewers: functions.wrapperr_sort_viewers || 'Sort by viewers reached'}[order];
+}
+
+// A requester list with a button that steps through its orders: by titles watched, by percentage watched and,
+// for trendsetters, by viewers reached
+function top_list_requesters_sortable(array_titles, array_percent, title, div_id, kind, array_viewers) {
+    var orders = [];
+    if(functions.stats_order_requests_by_titles !== false) {
+        orders.push('titles');
+    }
+    if(functions.stats_order_requests_by_percent !== false && array_percent) {
+        orders.push('percent');
+    }
+    if(array_viewers && array_viewers.length > 0) {
+        orders.push('viewers');
+    }
+    if(orders.length == 0) {
+        orders.push('titles');
+    }
+    var list = {titles: array_titles, percent: array_percent, viewers: array_viewers, title: title, kind: kind, orders: orders, order: 0};
+    request_lists[div_id] = list;
+
+    var html = "";
+    if(orders.length > 1) {
+        html += '<button class="form-control btn" style="margin: 0.5em auto; width: fit-content;" name="' + div_id + '_button" id="' + div_id + '_button" onclick="top_list_requesters_sort_by(\'' + div_id + '\');"><img src="assets/tweak.svg" class="btn_logo"><p2 id="' + div_id + '_button_text">' + request_sort_label(orders[1]) + '</p2></button>';
+    }
+    html += top_list_requesters(list[orders[0]], title, div_id, kind);
+    return html;
+}
+
+// Switch a requester list to its next order
+function top_list_requesters_sort_by(div_id) {
+    var list = request_lists[div_id];
+    list.order = (list.order + 1) % list.orders.length;
+    document.getElementById(div_id).outerHTML = top_list_requesters(list[list.orders[list.order]], list.title, div_id, list.kind);
+    document.getElementById(div_id + '_button_text').innerHTML = request_sort_label(list.orders[(list.order + 1) % list.orders.length]);
+}
+
+// Lists requesters or viewers. kind is 'requests' (a request count), or 'trendsetters', 'following' or
+// 'followers', whose rows say what each number is; trendsetters and following also show the top request
+function top_list_requesters(array, title, div_id, kind) {
     var html = "";
 
     html += "<div class='status' id='" + div_id + "'>";
         html += "<div class='stats'>";
             html += "<div class='status-title'>" + ReplaceStandardStrings(title) + "</div>";
-            html += "<div class='stats-list'>";
+            // Request rows are taller than other lists', so these lists grow to fit rather than scrolling
+            html += "<div class='stats-list" + (kind === 'requests' ? "" : " request-list") + "'>";
             for(var i = 0; i < array.length; i++) {
-                if(i == 0) {
-                    html += "<div class='item gold'>";
-                } else if(i == 1) {
-                    html += "<div class='item silver'>";
-                } else if(i == 2) {
-                    html += "<div class='item bronze'>";
-                } else {
-                    html += "<div class='item'>";
-                }
-                    html += "<div class='number'>";
-                        html += i+1 + ". ";
-                    html += "</div>";
+                var medal = ['gold', 'silver', 'bronze'][i] || '';
 
-                    html += "<div class='name'>";
-                        html += array[i].user;
+                if(kind === 'requests') {
+                    html += "<div class='item " + medal + "'>";
+                        html += "<div class='number'>" + (i+1) + ". </div>";
+                        html += "<div class='name'>";
+                            html += array[i].user;
+                            // Counts are zeroed when leaderboard numbers are hidden
+                            if(array[i].requests !== 0) {
+                                html += "<br>" + number_with_spaces(array[i].requests);
+                            }
+                        html += "</div>";
+                    html += "</div>";
+                    continue;
+                }
+
+                html += "<div class='item request-item " + medal + "'>";
+                    html += "<div class='number'>" + (i+1) + ". </div>";
+
+                    var top_request = array[i].top_request;
+                    if(kind !== 'followers' && has_request_poster(top_request)) {
+                        html += "<div class='poster-thumbnail'>";
+                            html += posterImgTag(top_request.tautulli_server_hash, top_request.rating_key, top_request.thumb, {
+                                alt: "Poster", fallback: "hide-parent"
+                            });
+                        html += "</div>";
+                    }
+
+                    html += "<div class='request-details'>";
+                        html += "<div class='request-user'>" + array[i].user + "</div>";
+
+                        if(kind !== 'followers' && top_request && top_request.title) {
+                            var label = request_text(kind === 'trendsetters' ? 'wrapperr_request_top_hit' : 'wrapperr_request_top_watched');
+                            html += "<div class='request-label'>" + label + "</div>";
+                            html += "<div class='request-title'><i>" + request_title(top_request) + "</i>";
+                                if(kind === 'trendsetters' && top_request.viewers) {
+                                    html += " &middot; " + viewer_count(top_request.viewers);
+                                }
+                            html += "</div>";
+                        }
 
                         // Counts are zeroed when leaderboard numbers are hidden
-                        if(array[i].requests !== 0) {
-                            html += "<br>" + number_with_spaces(array[i].requests);
+                        if(array[i].titles_watched) {
+                            var line = request_text({trendsetters: 'wrapperr_request_trend_line', following: 'wrapperr_request_following_line', followers: 'wrapperr_request_followers_line'}[kind]);
+                            line = line.replaceAll('{titles_watched}', '<b>' + number_with_spaces(array[i].titles_watched) + '</b>').replaceAll('{requested_titles}', number_with_spaces(array[i].requested_titles));
+                            html += "<div class='request-share'>";
+                                html += "<div class='request-bar'><div style='width: " + Math.min(100, array[i].titles_watched_percent) + "%;'></div></div>";
+                                html += "<b>" + array[i].titles_watched_percent + "%</b>";
+                            html += "</div>";
+                            html += "<div class='request-line'>" + line + "</div>";
+                        }
+                        if(kind === 'trendsetters' && array[i].viewers) {
+                            html += "<div class='request-line'>" + request_text('wrapperr_request_reach_line').replaceAll('{viewers}', '<b>' + viewer_count(array[i].viewers) + '</b>') + "</div>";
                         }
                     html += "</div>";
 
@@ -1315,6 +1484,24 @@ function top_list_requesters(array, title, div_id) {
     html += "</div>";
 
     return html;
+}
+
+// Request list wording, falling back to the defaults for share links made before it existed
+var request_text_defaults = {
+    wrapperr_request_top_hit: "Biggest hit",
+    wrapperr_request_top_watched: "You watched the most of",
+    wrapperr_request_trend_line: "{titles_watched} of their {requested_titles} requests watched by others",
+    wrapperr_request_reach_line: "Their requests reached {viewers}",
+    wrapperr_request_following_line: "You watched {titles_watched} of their {requested_titles} requests",
+    wrapperr_request_followers_line: "Watched {titles_watched} of your {requested_titles} requests"
+};
+function request_text(key) {
+    return functions[key] || request_text_defaults[key];
+}
+
+// A number of viewers, with the word for one or several
+function viewer_count(viewers) {
+    return number_with_spaces(viewers) + " " + (viewers == 1 ? functions.wrapperr_viewer : functions.wrapperr_viewer_plural);
 }
 
 function request_timeline_chart(timeline, chart_title) {
@@ -1368,7 +1555,8 @@ function load_users() {
 
         text += "<div class='boks3'>";
 
-            if(functions.get_year_stats_leaderboard) {
+            // The leaderboard and the totals come from the movie, show and music statistics
+            if(functions.get_year_stats_leaderboard && (functions.get_year_stats_movies || functions.get_year_stats_shows || functions.get_year_stats_music)) {
 
                 text += "<div class='boks2'>";
 
@@ -1480,6 +1668,8 @@ function load_users() {
             }
 
         text += "</div>";
+
+        text += year_requests_html();
     text += "</div>";
 
     document.getElementById("search_results").innerHTML += text;
@@ -1761,6 +1951,9 @@ $(window).scroll(function() {
         string = string.replaceAll('{request_count}', number_with_spaces(results.user.user_requests.data.request_count))
         string = string.replaceAll('{request_rank}', results.user.user_requests.data.request_rank)
         string = string.replaceAll('{requester_count}', number_with_spaces(results.user.user_requests.data.requester_count))
+        string = string.replaceAll('{request_viewers}', number_with_spaces(results.user.user_requests.data.viewers))
+        string = string.replaceAll('{top_request_title}', request_title(results.user.user_requests.data.top_request))
+        string = string.replaceAll('{top_request_viewers}', number_with_spaces(results.user.user_requests.data.top_request.viewers))
     } catch (e) {
         console.log('{request_count} replace failed')
     }

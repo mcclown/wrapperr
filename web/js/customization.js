@@ -705,6 +705,51 @@ function loadAdminPage() {
     html += '/><br>';
     html += '</div>';
 
+    html += '<div class="form-group">';
+    html += '<label for="get_user_request_stats_followers" title="Shows how many other people watched what the user requested, their most watched request and the people who watched the most of their requests.">Get user request followers:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_user_request_stats_followers" ';
+    if(get_user_request_stats_followers) {
+        html += 'checked="' + get_user_request_stats_followers + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
+    html += '<label for="get_year_stats_requests_trendsetters" title="Ranks requesters by how many of their requested titles other people watched.">Get server-wide trendsetters:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_year_stats_requests_trendsetters" ';
+    if(get_year_stats_requests_trendsetters) {
+        html += 'checked="' + get_year_stats_requests_trendsetters + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
+    html += '<label for="get_user_request_stats_following" title="Shows whose requests the user watched the most.">Get user request following:<br>';
+    html += '<input type="checkbox" class="form-control" id="get_user_request_stats_following" ';
+    if(get_user_request_stats_following) {
+        html += 'checked="' + get_user_request_stats_following + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
+    html += '<label for="stats_order_requests_by_titles" title="Whether trendsetters and following can be ordered by number of requested titles watched. Automatically enabled if neither ordering is enabled.">Order request lists by titles watched:<br>';
+    html += '<input type="checkbox" class="form-control" id="stats_order_requests_by_titles" ';
+    if(stats_order_requests_by_titles) {
+        html += 'checked="' + stats_order_requests_by_titles + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
+    html += '<div class="form-group">';
+    html += '<label for="stats_order_requests_by_percent" title="Whether trendsetters and following can be ordered by the percentage of requested titles watched.">Order request lists by percentage watched:<br>';
+    html += '<input type="checkbox" class="form-control" id="stats_order_requests_by_percent" ';
+    if(stats_order_requests_by_percent) {
+        html += 'checked="' + stats_order_requests_by_percent + '" ';
+    }
+    html += '/><br>';
+    html += '</div>';
+
     html += '<div class="form-group newline">';
     html += '</div>';
 
@@ -747,6 +792,11 @@ function loadAdminPage() {
             html += '</div>';
 
             html += '<div class="form-group">';
+            html += '<label for="get_year_stats_requests_heroes" title="A tribute to the requesters, at the top of the server-wide requests.">Tribute to the requesters:<br>';
+            html += '<textarea cols="40" rows="3" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_heroes" name="get_year_stats_requests_heroes" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
             html += '<label for="get_year_stats_requests_total_title" title="Text showing the server-wide request total. Use {server_request_count}.">Server-wide request total:<br>';
             html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_total_title" name="get_year_stats_requests_total_title" value="" autocomplete="off"></textarea></label>';
             html += '</div>';
@@ -754,6 +804,31 @@ function loadAdminPage() {
             html += '<div class="form-group">';
             html += '<label for="get_year_stats_requests_timeline_title" title="Title above the chart of all requests per month.">Title of server-wide request timeline:<br>';
             html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_timeline_title" name="get_year_stats_requests_timeline_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_reach_title" title="Text about who watched the requests of the user. Use {request_viewers}, {top_request_title} and {top_request_viewers}.">Requests reach text:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_reach_title" name="get_user_request_stats_reach_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_reach_title_none" title="Text when nobody else watched the requests of the user.">Requests reach text (none):<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_reach_title_none" name="get_user_request_stats_reach_title_none" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_followers_title" title="Custom title of the list of people who watched the most of the requests of the user.">Title of followers list:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_followers_title" name="get_user_request_stats_followers_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_year_stats_requests_trendsetters_title" title="Custom title of the list of top trendsetters.">Title of trendsetters list:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_year_stats_requests_trendsetters_title" name="get_year_stats_requests_trendsetters_title" value="" autocomplete="off"></textarea></label>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="get_user_request_stats_following_title" title="Custom title of the list of requesters whose requests the user watched the most.">Title of following list:<br>';
+            html += '<textarea cols="40" rows="2" class="form-control" style="overflow-x: hidden;resize:vertical;min-height: 2em;" id="get_user_request_stats_following_title" name="get_user_request_stats_following_title" value="" autocomplete="off"></textarea></label>';
             html += '</div>';
 
         html += '</div>';
@@ -1001,6 +1076,61 @@ function loadAdminPage() {
             html += '<label for="wrapperr_sort_duration" title="Text alternative for \'Sort by duration\' button.">\'Sort by duration\' alternative:<br>';
             html += '<input type="text" class="form-control" id="wrapperr_sort_duration" value="' + wrapperr_sort_duration + '" autocomplete="off" placeholder="" required /><br>';
             html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_sort_titles" title="Text alternative for \'Sort by titles watched\' button.">\'Sort by titles watched\' alternative:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_sort_titles" value="' + wrapperr_sort_titles + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_sort_percent" title="Text alternative for \'Sort by percentage watched\' button.">\'Sort by percentage watched\' alternative:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_sort_percent" value="' + wrapperr_sort_percent + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_sort_viewers" title="Text alternative for \'Sort by viewers reached\' button.">\'Sort by viewers reached\' alternative:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_sort_viewers" value="' + wrapperr_sort_viewers + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_viewer" title="Word alternative for when \'viewer\' appears.">Alternative for \'viewer\':<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_viewer" value="' + wrapperr_viewer + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_viewer_plural" title="Word alternative for when \'viewers\' appears.">Alternative for \'viewers\':<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_viewer_plural" value="' + wrapperr_viewer_plural + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_top_hit" title="Trendsetters: the label above the most watched request of each requester.">Trendsetters, biggest hit label:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_top_hit" value="' + wrapperr_request_top_hit + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_top_watched" title="Whose requests you watch: the label above the request you spent the most time on.">Whose requests you watch, top request label:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_top_watched" value="' + wrapperr_request_top_watched + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_trend_line" title="Trendsetters: how many of the requests of a requester others watched. Use {titles_watched} and {requested_titles}.">Trendsetters, requests watched line:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_trend_line" value="' + wrapperr_request_trend_line + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_reach_line" title="Trendsetters: how many people watched the requests of a requester. Use {viewers}.">Trendsetters, viewers line:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_reach_line" value="' + wrapperr_request_reach_line + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_following_line" title="Whose requests you watch: how many of the requests of a requester you watched. Use {titles_watched} and {requested_titles}.">Whose requests you watch, line:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_following_line" value="' + wrapperr_request_following_line + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
+
+            html += '<div class="form-group">';
+            html += '<label for="wrapperr_request_followers_line" title="Your followers: how many of your requests a follower watched. Use {titles_watched} and {requested_titles}.">Your followers, line:<br>';
+            html += '<input type="text" class="form-control" id="wrapperr_request_followers_line" value="' + wrapperr_request_followers_line + '" autocomplete="off" placeholder="" required /><br>';
+            html += '</div>';
         
         html += '</div>';
 
@@ -1127,8 +1257,14 @@ function loadAdminPage() {
     document.getElementById("get_user_request_stats_subtitle_none").value = get_user_request_stats_subtitle_none;
     document.getElementById("get_user_request_stats_timeline_title").value = get_user_request_stats_timeline_title;
     document.getElementById("get_year_stats_requests_title").value = get_year_stats_requests_title;
+    document.getElementById("get_year_stats_requests_heroes").value = get_year_stats_requests_heroes;
     document.getElementById("get_year_stats_requests_total_title").value = get_year_stats_requests_total_title;
     document.getElementById("get_year_stats_requests_timeline_title").value = get_year_stats_requests_timeline_title;
+    document.getElementById("get_user_request_stats_reach_title").value = get_user_request_stats_reach_title;
+    document.getElementById("get_user_request_stats_reach_title_none").value = get_user_request_stats_reach_title_none;
+    document.getElementById("get_user_request_stats_followers_title").value = get_user_request_stats_followers_title;
+    document.getElementById("get_year_stats_requests_trendsetters_title").value = get_year_stats_requests_trendsetters_title;
+    document.getElementById("get_user_request_stats_following_title").value = get_user_request_stats_following_title;
 
 }
 
@@ -1243,8 +1379,19 @@ function set_wrapperr_customization_call() {
     get_user_request_stats_subtitle_none = document.getElementById('get_user_request_stats_subtitle_none').value;
     get_user_request_stats_timeline_title = document.getElementById('get_user_request_stats_timeline_title').value;
     get_year_stats_requests_title = document.getElementById('get_year_stats_requests_title').value;
+    get_year_stats_requests_heroes = document.getElementById('get_year_stats_requests_heroes').value;
     get_year_stats_requests_total_title = document.getElementById('get_year_stats_requests_total_title').value;
     get_year_stats_requests_timeline_title = document.getElementById('get_year_stats_requests_timeline_title').value;
+    get_user_request_stats_followers = document.getElementById('get_user_request_stats_followers').checked;
+    get_year_stats_requests_trendsetters = document.getElementById('get_year_stats_requests_trendsetters').checked;
+    get_user_request_stats_reach_title = document.getElementById('get_user_request_stats_reach_title').value;
+    get_user_request_stats_reach_title_none = document.getElementById('get_user_request_stats_reach_title_none').value;
+    get_user_request_stats_followers_title = document.getElementById('get_user_request_stats_followers_title').value;
+    get_year_stats_requests_trendsetters_title = document.getElementById('get_year_stats_requests_trendsetters_title').value;
+    get_user_request_stats_following = document.getElementById('get_user_request_stats_following').checked;
+    stats_order_requests_by_titles = document.getElementById('stats_order_requests_by_titles').checked;
+    stats_order_requests_by_percent = document.getElementById('stats_order_requests_by_percent').checked;
+    get_user_request_stats_following_title = document.getElementById('get_user_request_stats_following_title').value;
 
     get_year_stats_title = document.getElementById('get_year_stats_title').value;
     get_year_stats_subtitle = document.getElementById('get_year_stats_subtitle').value;
@@ -1278,6 +1425,17 @@ function set_wrapperr_customization_call() {
     wrapperr_second_plural = document.getElementById("wrapperr_second_plural").value;
     wrapperr_sort_plays = document.getElementById("wrapperr_sort_plays").value;
     wrapperr_sort_duration = document.getElementById("wrapperr_sort_duration").value;
+    wrapperr_sort_titles = document.getElementById("wrapperr_sort_titles").value;
+    wrapperr_sort_percent = document.getElementById("wrapperr_sort_percent").value;
+    wrapperr_sort_viewers = document.getElementById("wrapperr_sort_viewers").value;
+    wrapperr_viewer = document.getElementById("wrapperr_viewer").value;
+    wrapperr_viewer_plural = document.getElementById("wrapperr_viewer_plural").value;
+    wrapperr_request_top_hit = document.getElementById("wrapperr_request_top_hit").value;
+    wrapperr_request_top_watched = document.getElementById("wrapperr_request_top_watched").value;
+    wrapperr_request_trend_line = document.getElementById("wrapperr_request_trend_line").value;
+    wrapperr_request_reach_line = document.getElementById("wrapperr_request_reach_line").value;
+    wrapperr_request_following_line = document.getElementById("wrapperr_request_following_line").value;
+    wrapperr_request_followers_line = document.getElementById("wrapperr_request_followers_line").value;
     
     wrapperr_customization_form = {
         "clear_cache" : clear_cache,
@@ -1404,8 +1562,19 @@ function set_wrapperr_customization_call() {
             "get_user_request_stats_subtitle_none" : get_user_request_stats_subtitle_none,
             "get_user_request_stats_timeline_title" : get_user_request_stats_timeline_title,
             "get_year_stats_requests_title" : get_year_stats_requests_title,
+            "get_year_stats_requests_heroes" : get_year_stats_requests_heroes,
             "get_year_stats_requests_total_title" : get_year_stats_requests_total_title,
             "get_year_stats_requests_timeline_title" : get_year_stats_requests_timeline_title,
+            "get_user_request_stats_followers" : get_user_request_stats_followers,
+            "get_year_stats_requests_trendsetters" : get_year_stats_requests_trendsetters,
+            "get_user_request_stats_reach_title" : get_user_request_stats_reach_title,
+            "get_user_request_stats_reach_title_none" : get_user_request_stats_reach_title_none,
+            "get_user_request_stats_followers_title" : get_user_request_stats_followers_title,
+            "get_year_stats_requests_trendsetters_title" : get_year_stats_requests_trendsetters_title,
+            "get_user_request_stats_following" : get_user_request_stats_following,
+            "stats_order_requests_by_titles" : stats_order_requests_by_titles,
+            "stats_order_requests_by_percent" : stats_order_requests_by_percent,
+            "get_user_request_stats_following_title" : get_user_request_stats_following_title,
             "wrapperr_and" : wrapperr_and,
             "wrapperr_play" : wrapperr_play,
             "wrapperr_play_plural" : wrapperr_play_plural,
@@ -1418,7 +1587,18 @@ function set_wrapperr_customization_call() {
             "wrapperr_second" : wrapperr_second,
             "wrapperr_second_plural" : wrapperr_second_plural,
             "wrapperr_sort_plays" : wrapperr_sort_plays,
-            "wrapperr_sort_duration" : wrapperr_sort_duration
+            "wrapperr_sort_duration" : wrapperr_sort_duration,
+            "wrapperr_sort_titles" : wrapperr_sort_titles,
+            "wrapperr_sort_percent" : wrapperr_sort_percent,
+            "wrapperr_sort_viewers" : wrapperr_sort_viewers,
+            "wrapperr_viewer" : wrapperr_viewer,
+            "wrapperr_viewer_plural" : wrapperr_viewer_plural,
+            "wrapperr_request_top_hit" : wrapperr_request_top_hit,
+            "wrapperr_request_top_watched" : wrapperr_request_top_watched,
+            "wrapperr_request_trend_line" : wrapperr_request_trend_line,
+            "wrapperr_request_reach_line" : wrapperr_request_reach_line,
+            "wrapperr_request_following_line" : wrapperr_request_following_line,
+            "wrapperr_request_followers_line" : wrapperr_request_followers_line
         }
     };
 

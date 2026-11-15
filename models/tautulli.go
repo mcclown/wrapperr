@@ -72,6 +72,7 @@ type TautulliEntry struct {
 	MediaType             string `json:"media_type"`
 	ParentRatingKey       int    `json:"parent_rating_key"`
 	ParentTitle           string `json:"parent_title"`
+	ParentMediaIndex      *int   `json:"parent_media_index,omitempty"` // an episode's season number; missing in plays cached before it was kept
 	PausedCounter         int    `json:"paused_counter"`
 	PercentComplete       int    `json:"percent_complete"`
 	RatingKey             int    `json:"rating_key"`
