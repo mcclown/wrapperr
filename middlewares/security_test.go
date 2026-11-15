@@ -210,3 +210,19 @@ func TestSecurityHeaders(t *testing.T) {
 		}
 	}
 }
+
+func TestRevalidateAssets(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.Use(RevalidateAssets())
+	for _, path := range []string{"/js/get_stats.js", "/assets/css/wrapped.css", "/assets/img/gift.svg"} {
+		engine.GET(path, func(ctx *gin.Context) { ctx.String(http.StatusOK, "ok") })
+	}
+	for path, want := range map[string]string{"/js/get_stats.js": "no-cache", "/assets/css/wrapped.css": "no-cache", "/assets/img/gift.svg": ""} {
+		rec := httptest.NewRecorder()
+		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if got := rec.Header().Get("Cache-Control"); got != want {
+			t.Errorf("%s: Cache-Control %q, want %q", path, got, want)
+		}
+	}
+}
