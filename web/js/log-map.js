@@ -426,12 +426,13 @@ var log_map_choices = {
     }
 };
 
-// Dresses the sign-in page as the night sea with a parchment card, when the page is served in the map's look.
-// It only adds to the page and moves the introduction into the card: every control keeps its id and handler.
+// Dresses the sign-in page as the night sea with a parchment card, when the page is served in the map's look (a
+// share link is not: it opens on parchment). It only adds to the page and moves the introduction into the card:
+// every control keeps its id and handler.
 function log_map_landing() {
     var login = document.getElementById('login_content');
     var card = document.getElementById('stats');
-    if(!document.body.classList.contains('log-map') || !login || !card || login.querySelector('.log-map-night-scene')) {
+    if(!document.body.classList.contains('log-map-landing') || !login || !card || login.querySelector('.log-map-night-scene')) {
         return;
     }
     if(!document.getElementById('log-map-symbols')) {
@@ -458,7 +459,10 @@ function log_map_landing() {
         }
         button.classList.add('log-map-choice');
         button.insertAdjacentHTML('afterbegin', choice.picture + '<span class="log-map-kicker">' + choice.kicker + '</span>' +
-            '<span class="log-map-choice-heading">' + choice.heading + '</span><span class="log-map-choice-text">' + choice.text + '</span>');
+            '<span class="log-map-choice-heading">' + choice.heading + '</span><span class="log-map-choice-text" id="' + id + '_about">' + choice.text + '</span>');
+        // Named by its own label (Set sail, Read the log), with the card's text as its description
+        button.setAttribute('aria-labelledby', id + '_text');
+        button.setAttribute('aria-describedby', id + '_about');
     });
 }
 

@@ -524,12 +524,13 @@ body.log-map #plex_login_button .btn_logo {
     filter: invert(1);
 }
 
-/* Signed in: the card steps back and the two choices take its place on the night sea */
+/* Signed in with Plex: the card steps back and the two choices take its place on the night sea. Keyed on the
+   choice cards, so a server without Plex sign-in keeps its username search on the card. */
 .log-map-choose-only {
     display: none;
 }
 
-body.log-map #stats:has(#search_wrapped_form[style*="block"]) {
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) {
     max-width: 1040px;
     background-color: transparent;
     border-color: transparent;
@@ -538,26 +539,26 @@ body.log-map #stats:has(#search_wrapped_form[style*="block"]) {
     padding-right: 0;
 }
 
-body.log-map #stats:has(#search_wrapped_form[style*="block"]) .log-map-choose-only {
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-choose-only {
     display: block;
 }
 
-body.log-map #stats:has(#search_wrapped_form[style*="block"]) .log-map-signin-only,
-body.log-map #stats:has(#search_wrapped_form[style*="block"]) #application_name,
-body.log-map #stats:has(#search_wrapped_form[style*="block"]) #intro_text {
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-signin-only,
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) #application_name,
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) #intro_text {
     display: none;
 }
 
-body.log-map #stats:has(#search_wrapped_form[style*="block"]) .log-map-kicker {
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-kicker {
     color: #cdbd99;
 }
 
-body.log-map #stats:has(#search_wrapped_form[style*="block"]) .log-map-choose-title {
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-choose-title {
     color: #f6ead0;
     margin-bottom: 0.6em;
 }
 
-body.log-map #search_wrapped_form[style*="block"] {
+body.log-map #search_wrapped_form[style*="block"]:has(.log-map-choice) {
     display: flex !important;
     flex-wrap: wrap;
     gap: 28px;
@@ -623,7 +624,7 @@ body.log-map .log-map-choice .log-map-kicker,
     text-align: left;
 }
 
-body.log-map #stats:has(#search_wrapped_form[style*="block"]) .log-map-choice .log-map-kicker {
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) .log-map-choice .log-map-kicker {
     color: #5a4327;
 }
 
@@ -669,7 +670,7 @@ body.log-map #plex_signout_button .btn_logo {
     display: none;
 }
 
-body.log-map #stats:has(#search_wrapped_form[style*="block"]) #share_wrapped_title_div h3 {
+body.log-map #stats:has(#search_wrapped_form[style*="block"] .log-map-choice) #share_wrapped_title_div h3 {
     color: #f6ead0;
     text-shadow: none;
 }
