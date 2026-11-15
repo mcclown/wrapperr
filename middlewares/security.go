@@ -51,9 +51,15 @@ func RevalidateAssets() gin.HandlerFunc {
 }
 
 // BodyLimit caps the size of a request body. A larger body fails to read, which the handlers already answer with
-// a bad request.
-func BodyLimit(maxBytes int64) gin.HandlerFunc {
+// a bad request. The except paths set their own limit.
+func BodyLimit(maxBytes int64, except ...string) gin.HandlerFunc {
 	return func(context *gin.Context) {
+		for _, path := range except {
+			if context.Request.URL.Path == path {
+				context.Next()
+				return
+			}
+		}
 		if context.Request.Body != nil {
 			context.Request.Body = http.MaxBytesReader(context.Writer, context.Request.Body, maxBytes)
 		}

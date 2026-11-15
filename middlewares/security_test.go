@@ -1,8 +1,10 @@
 package middlewares
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -223,6 +225,28 @@ func TestRevalidateAssets(t *testing.T) {
 		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 		if got := rec.Header().Get("Cache-Control"); got != want {
 			t.Errorf("%s: Cache-Control %q, want %q", path, got, want)
+		}
+	}
+}
+
+func TestBodyLimitExcept(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.Use(BodyLimit(4, "/upload"))
+	read := func(ctx *gin.Context) {
+		if _, err := io.ReadAll(ctx.Request.Body); err != nil {
+			ctx.Status(http.StatusRequestEntityTooLarge)
+			return
+		}
+		ctx.Status(http.StatusOK)
+	}
+	engine.POST("/upload", read)
+	engine.POST("/other", read)
+	for path, want := range map[string]int{"/upload": http.StatusOK, "/other": http.StatusRequestEntityTooLarge} {
+		rec := httptest.NewRecorder()
+		engine.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, strings.NewReader("more than four bytes")))
+		if rec.Code != want {
+			t.Errorf("%s: got %d, want %d", path, rec.Code, want)
 		}
 	}
 }
