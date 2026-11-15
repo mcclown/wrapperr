@@ -122,6 +122,22 @@ func TestVoyageMusicSettings(t *testing.T) {
 		t.Errorf("expected the music kept, got %q", config.VoyageMusic)
 	}
 
+	// A save setting the music to a file that isn't there is refused; to one that is, saved
+	stale.VoyageMusic = "missing.mp3"
+	if err := SaveSettings(stale, true); err != ErrVoyageMusicMissing {
+		t.Errorf("expected a missing file refused, got %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(voyageMusicDir, "theme.m4a"), []byte("own"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	stale.VoyageMusic = "theme.m4a"
+	if err := SaveSettings(stale, true); err != nil {
+		t.Fatal(err)
+	}
+	if config, _ := GetConfig(); config.VoyageMusic != "theme.m4a" {
+		t.Errorf("expected the music set, got %q", config.VoyageMusic)
+	}
+
 	if err := ClearVoyageMusic(); err != nil {
 		t.Fatal(err)
 	}
