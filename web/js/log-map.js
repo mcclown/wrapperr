@@ -87,7 +87,8 @@ function log_map_use(symbol, transform) {
 // wide chart, and how far in the chart's strip sits on a screen wider than it (in the chart's own units)
 function log_map_fit() {
     var width = document.documentElement.clientWidth;
-    var layout = width >= 1000 ? log_map_layouts.wide : log_map_layouts.narrow;
+    // The layout switches where the stylesheet does, at a 1000px viewport (which counts the scrollbar)
+    var layout = window.matchMedia('(min-width: 1000px)').matches ? log_map_layouts.wide : log_map_layouts.narrow;
     var scale = Math.min(1, width / layout.width);
     var units = width / scale;
     return { width: width, layout: layout, scale: scale, units: units, inset: (units - layout.width) / 2 };
@@ -251,7 +252,11 @@ function log_map_draw() {
     var fit = log_map_fit();
     log_map_width = fit.width;
 
+    // Redrawn at a new width, each stretch keeps as much of its trail as was drawn: a share of its height, so it
+    // holds at any scale
+    var drawn = [];
     document.querySelectorAll('.log-map-leg').forEach(function(leg) {
+        drawn.push(parseFloat(leg.getAttribute('data-drawn') || '0'));
         leg.remove();
     });
 
@@ -282,6 +287,12 @@ function log_map_draw() {
         chapter++;
     });
 
+    document.querySelectorAll('.log-map-leg').forEach(function(leg, index) {
+        if(drawn[index]) {
+            leg.setAttribute('data-drawn', drawn[index]);
+            leg.querySelector('.log-map-trail').style.clipPath = 'inset(0 0 ' + ((1 - drawn[index]) * 100).toFixed(1) + '% 0)';
+        }
+    });
     log_map_track();
 }
 
