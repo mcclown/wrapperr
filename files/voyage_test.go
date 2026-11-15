@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/aunefyren/wrapperr/models"
 )
 
 func TestVoyageMusicPath(t *testing.T) {
@@ -77,5 +79,56 @@ func TestInstallVoyageMusic(t *testing.T) {
 	entries, _ := os.ReadDir(voyageMusicDir)
 	if len(entries) != 1 || entries[0].Name() != "theme.m4a" {
 		t.Errorf("expected only the admin's own file left, got %v", entries)
+	}
+}
+
+func TestVoyageMusicSettings(t *testing.T) {
+	dir := t.TempDir()
+	origConfig, origDefault, origCache, origMusic := config_path, default_config_path, configCache, voyageMusicDir
+	t.Cleanup(func() {
+		config_path, default_config_path, configCache, voyageMusicDir = origConfig, origDefault, origCache, origMusic
+	})
+	config_path = filepath.Join(dir, "config.json")
+	default_config_path, _ = filepath.Abs("./configDefault.json")
+	configCache = nil
+	voyageMusicDir = filepath.Join(dir, "voyage")
+	if err := SaveConfig(models.WrapperrConfig{Timezone: "Europe/Paris", WrappedStart: 1, WrappedEnd: 2}); err != nil {
+		t.Fatal(err)
+	}
+
+	// A copy of the settings read before the upload
+	stale, err := GetConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, err := SetVoyageMusicUpload(".mp3", strings.NewReader("music"))
+	if err != nil || name != "voyage-music.mp3" {
+		t.Fatalf("got %q, %v", name, err)
+	}
+
+	// Saving the stale copy, by any part of Wrapperr, keeps the music
+	stale.Timezone = "Europe/Oslo"
+	if err := SaveConfig(stale); err != nil {
+		t.Fatal(err)
+	}
+	if config, _ := GetConfig(); config.VoyageMusic != name || config.Timezone != "Europe/Oslo" {
+		t.Errorf("expected the music kept and the time zone saved, got %q, %q", config.VoyageMusic, config.Timezone)
+	}
+	// So does a settings save that doesn't set the music; one that does sets it
+	if err := SaveSettings(stale, false); err != nil {
+		t.Fatal(err)
+	}
+	if config, _ := GetConfig(); config.VoyageMusic != name {
+		t.Errorf("expected the music kept, got %q", config.VoyageMusic)
+	}
+
+	if err := ClearVoyageMusic(); err != nil {
+		t.Fatal(err)
+	}
+	if config, _ := GetConfig(); config.VoyageMusic != "" {
+		t.Errorf("expected no music, got %q", config.VoyageMusic)
+	}
+	if _, err := os.Stat(filepath.Join(voyageMusicDir, name)); !os.IsNotExist(err) {
+		t.Errorf("expected the upload deleted, got %v", err)
 	}
 }
