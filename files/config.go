@@ -338,6 +338,18 @@ func UpdatePrivateKey() (string, error) {
 func SaveConfig(config models.WrapperrConfig) (err error) {
 	configMutex.Lock()
 	defer configMutex.Unlock()
+	// The voyage's music changes only through SaveConfigWithVoyageMusic, so a save from a copy read before an
+	// upload or removal can't undo it
+	if configCache != nil {
+		config.VoyageMusic = configCache.VoyageMusic
+	}
+	return saveConfigLocked(config)
+}
+
+// SaveConfigWithVoyageMusic saves the settings with the voyage's music as given
+func SaveConfigWithVoyageMusic(config models.WrapperrConfig) error {
+	configMutex.Lock()
+	defer configMutex.Unlock()
 	return saveConfigLocked(config)
 }
 
