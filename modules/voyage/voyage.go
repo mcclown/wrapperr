@@ -141,6 +141,12 @@ type Image struct {
 	RatingKey int
 	Path      string // its Plex path
 	Kind      string // "" or files.BackdropKind
+	File      string // where the document points at it, under imageBase
+}
+
+// Ref is the image for the poster cache.
+func (image Image) Ref() files.PosterReference {
+	return files.PosterReference{ServerHash: image.Server, RatingKey: image.RatingKey, ThumbPath: image.Path, Kind: image.Kind}
 }
 
 // Input is what a voyage is built from.
@@ -274,11 +280,11 @@ func Build(in Input) (Document, []Image, error) {
 			}
 			poster := key.Server + "/" + files.PosterFilename(key.RatingKey, "")
 			entry.Poster = &poster
-			images = append(images, Image{key.Server, key.RatingKey, thumb, ""})
+			images = append(images, Image{Server: key.Server, RatingKey: key.RatingKey, Path: thumb, File: poster})
 			if art[t] && found && m.Art != "" {
 				backdrop := key.Server + "/" + files.PosterFilename(key.RatingKey, files.BackdropKind)
 				entry.Art = &backdrop
-				images = append(images, Image{key.Server, key.RatingKey, m.Art, files.BackdropKind})
+				images = append(images, Image{Server: key.Server, RatingKey: key.RatingKey, Path: m.Art, Kind: files.BackdropKind, File: backdrop})
 			}
 		}
 		titles = append(titles, entry)
