@@ -114,6 +114,13 @@
 
                         <form id='search_wrapped_form' class='form' onsubmit='return false;' action="" method="post" style="display: none;">
 
+                            <div class="form-group" id='set_sail_div' style='display: none;'>
+                                <button class='form-control btn' name="set_sail_button" id="set_sail_button" style='opacity: 0.5;' onclick='set_sail()' disabled>
+                                    <img src='./assets/external-link.svg' class='btn_logo'>
+                                    <p2 id='set_sail_button_text'>Set sail</p2>
+                                </button>
+                            </div>
+
                             <div class="form-group" id='search_wrapped_div'>
                                 <button class='form-control btn' name="search_wrapped_button" id="search_wrapped_button" style='opacity: 0.5;' onclick='search_wrapperr()' disabled>
                                     <img src='./assets/done.svg' class='btn_logo'>
@@ -227,6 +234,7 @@
     var cookie = false;
     var client_key = "";
     var wrapperr_configured = false;
+    var open_log = false;
     var api_url = window.location.origin + "/api/";
     var application_name = "Wrapperr";
     var application_name = "Error";
@@ -251,6 +259,8 @@
                 var hash = url.searchParams.get("hash");
                 var close_me = url.searchParams.get("close_me");
                 var viewWrappedAsUser = url.searchParams.get("viewWrappedAsUser");
+                // From the voyage's end screen: open the classic page once the login is checked
+                open_log = url.searchParams.get("view") === "log";
 
                 // Attempt to close the tab if instructed to
                 if(close_me !== null) {

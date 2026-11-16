@@ -166,6 +166,7 @@ function get_config(cookie) {
                 winter_theme = result.data.winter_theme;
                 voyage_enabled = result.data.voyage_enabled;
                 voyage_music = result.data.voyage_music || '';
+                voyage_front_page = result.data.voyage_front_page || 'voyage';
 
                 wrapped_start = new Date(0);
                 wrapped_start.setUTCSeconds(result.data.wrapped_start);

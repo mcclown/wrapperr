@@ -22,6 +22,7 @@ function get_stats() {
                     loading_icon.style.display = "none";
                     document.getElementById("search_wrapped_button").disabled = false;
                     document.getElementById("search_wrapped_button").style.opacity = '1';
+                    set_sail_ready(true);
                     document.getElementById("plex_signout_button").disabled = false;
                     document.getElementById("plex_signout_button").style.opacity = '1';
                     document.getElementById('results_error').innerHTML = 'PHP runtime exceeded and stopped execution. Admin must shorten wrapped period or perform caching.';
@@ -31,6 +32,7 @@ function get_stats() {
                     loading_icon.style.display = "none";
                     document.getElementById("search_wrapped_button").disabled = false;
                     document.getElementById("search_wrapped_button").style.opacity = '1';
+                    set_sail_ready(true);
                     document.getElementById("plex_signout_button").disabled = false;
                     document.getElementById("plex_signout_button").style.opacity = '1';
                     document.getElementById('results_error').innerHTML = "API response can't be parsed.";
@@ -41,6 +43,7 @@ function get_stats() {
                 loading_icon.style.display = "none";
                 document.getElementById("search_wrapped_button").disabled = false;
                 document.getElementById("search_wrapped_button").style.opacity = '1';
+                set_sail_ready(true);
                 document.getElementById("plex_signout_button").disabled = false;
                 document.getElementById("plex_signout_button").style.opacity = '1';
                 document.getElementById('results_error').innerHTML = result.error;
@@ -1384,6 +1387,16 @@ function load_outro() {
 
             }
                 
+                // Signed in, the end of the log leads on to the voyage too
+                if(!link_mode && voyage_on) {
+                    text += "<div class='form-group' id='voyage_div' style=''>";
+                        text += "<button class='form-control btn' name='voyage_button' id='voyage_button' onclick='set_sail()'>";
+                            text += "<img src='assets/external-link.svg' class='btn_logo'>";
+                            text += "<p2 id='voyage_text'>Set sail</p2>";
+                        text += "</button>";
+                    text += "</div>";
+                }
+
                 var url_home = window.location.href.split('?')[0];
 
                 text += "<div class='form-group' id='return_home_div' style=''>";

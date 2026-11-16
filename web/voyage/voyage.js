@@ -13,15 +13,20 @@ const $ = id => document.getElementById(id);
 // Asked for now, alongside the voyage.
 const MUSIC_URL = window.VOYAGE_MUSIC ?? "audio/music";
 const musicThere = MUSIC_URL ? fetch(MUSIC_URL, { method: "HEAD" }).then(r => r.ok, () => false) : Promise.resolve(false);
+const exported = !!window.VOYAGE;
 const D = window.VOYAGE || await loadVoyage();
 window.VOYAGE = D;  // for the mock scenes
+function cookie(name) {
+  const c = document.cookie.split(";").map(s => s.trim()).find(s => s.startsWith(name + "="));
+  return c ? decodeURIComponent(c.slice(name.length + 1)) : "";
+}
+// ?user=<id>: an admin's preview of that user's voyage
+function previewUser() {
+  const user = new URLSearchParams(location.search).get("user");
+  return user !== null && /^\d+$/.test(user) ? user : null;
+}
 async function loadVoyage() {
-  const q = new URLSearchParams(location.search), user = q.get("user");
-  const cookie = name => {
-    const c = document.cookie.split(";").map(s => s.trim()).find(s => s.startsWith(name + "="));
-    return c ? decodeURIComponent(c.slice(name.length + 1)) : "";
-  };
-  const admin = user !== null && /^\d+$/.test(user);
+  const user = previewUser(), admin = user !== null;
   const url = new URL(admin ? `../api/get/users/${user}/voyage` : "../api/get/voyage", location.href);
   let reply, why = "Couldn't reach the server.";
   try {
@@ -2853,6 +2858,31 @@ addEventListener("keydown", ev => {
 });
 $("set_sail").addEventListener("click", () => { start(); if (music) { music.currentTime = 0; playMusic(); } });
 $("again").addEventListener("click", () => { day = 0; finished = false; start(); if (music) { music.currentTime = 0; playMusic(); } });
+// The end screen leads on to the classic page for the same person (not in a static export: no Wrapperr behind it)
+if (!exported) {
+  const toLog = Object.assign(document.createElement("button"), { className: "go", id: "to_log", textContent: "Read the log" });
+  $("again").after(" ", toLog);
+  toLog.addEventListener("click", () => readTheLog(toLog));
+}
+async function readTheLog(button) {
+  const user = previewUser();
+  if (user === null) { location.href = new URL("../?view=log", location.href).href; return; }
+  // An admin's preview: that user's classic page, handed over the way the admin's Users page does it
+  button.disabled = true;
+  try {
+    const reply = await fetch(new URL(`../api/get/users/${user}/statistics`, location.href),
+      { method: "POST", headers: { Authorization: cookie("wrapperr-admin") } });
+    const result = await reply.json();
+    if (!reply.ok || result.error) throw new Error(result.error || `The server answered ${reply.status}.`);
+    const key = `viewWrappedAsUser_${Date.now()}_${user}`;
+    sessionStorage.setItem(key, JSON.stringify(result));
+    location.href = new URL(`../?viewWrappedAsUser=${encodeURIComponent(key)}`, location.href).href;
+  } catch (e) {
+    console.warn("The log", e);
+    button.textContent = "Couldn't open the log";
+    button.disabled = false;
+  }
+}
 
 // Look around by dragging; it eases back when let go
 const look = { yaw: 0, pitch: 0, dragging: false, x: 0, y: 0 };
