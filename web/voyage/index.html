@@ -111,8 +111,6 @@ canvas#sea:active { cursor: grabbing; }
 .log { text-align: left; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; margin: 10px 0 4px; font-size: 1rem; }
 .log dt { color: var(--ink-soft); font-style: italic; }
 .log dd { margin: 0; font-variant-numeric: tabular-nums; }
-.sound { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px); right: max(16px, env(safe-area-inset-right, 0px)); font-size: 0.85rem; }
-@media (max-height: 500px) { .sound { top: auto; bottom: calc(var(--controls-h, 112px) + 10px); } }
 .loading { position: fixed; right: 16px; bottom: calc(var(--controls-h, 112px) + 10px); font-size: 0.8rem; color: #cdbd99; pointer-events: none; }
 .error { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; }
 
@@ -191,7 +189,6 @@ canvas#sea:active { cursor: grabbing; }
 </svg><img id="cap_img" alt=""><div class="emblem" id="cap_emblem" hidden></div><div class="text"><div class="kicker" id="cap_kicker"></div><h2 class="name" id="cap_name"></h2><p class="facts" id="cap_facts"></p></div></div>
 <div class="news" id="event"><div class="kicker" id="event_kicker"></div><div class="head" id="event_head"></div><div class="blurb" id="event_blurb"></div></div>
 <div class="loading" id="loading"></div>
-<button class="btn sound" id="sound" aria-pressed="true" hidden>♪ Sound on</button>
 
 <div class="controls" id="controls">
   <div class="row">
@@ -202,6 +199,7 @@ canvas#sea:active { cursor: grabbing; }
       <button class="btn" data-speed="2" aria-pressed="false">2×</button>
     </span>
     <button class="btn" id="fs" aria-label="Full screen">⛶</button>
+    <button class="btn sound" id="sound" aria-pressed="true" hidden>♪ Sound on</button>
     <span class="legend" id="legend"></span>
   </div>
   <div class="track">
