@@ -1,10 +1,18 @@
 package routes
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"regexp"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/aunefyren/wrapperr/files"
 	"github.com/aunefyren/wrapperr/middlewares"
@@ -140,6 +148,109 @@ func ApiGetVoyage(context *gin.Context) {
 		return
 	}
 	refreshAndSail(context, user, config, adminConfig)
+}
+
+// VoyagePagePolicy is the voyage page's Content Security Policy, in place of the site-wide one: everything from
+// Wrapperr itself (three.js and the fonts are bundled), its one inline script (the import map) allowed by its hash,
+// and blob: for the textures three.js unpacks from its models.
+func VoyagePagePolicy(page string) string {
+	script := "'unsafe-inline'"
+	defer func() {
+		if script == "'unsafe-inline'" {
+			log.Println("Warning: the voyage page's import map wasn't found in " + page + ", so its Content Security Policy allows any inline script.")
+		}
+	}()
+	if raw, err := os.ReadFile(page); err == nil {
+		// The hash is of the script's text as served, which is one line
+		if m := importMap.FindSubmatch(raw); m != nil {
+			sum := sha256.Sum256(m[1])
+			script = "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
+		}
+	}
+	return "default-src 'self'; script-src 'self' " + script + "; style-src 'self' 'unsafe-inline'; font-src 'self'; " +
+		"img-src 'self' data: blob:; connect-src 'self' blob:; media-src 'self'; worker-src 'self' blob:; " +
+		"frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+}
+
+// importMap is the page's one inline script; its hash is taken at startup, so the page is not edited while running
+var importMap = regexp.MustCompile(`<script type="importmap">([^<]+)</script>`)
+
+// ApiVoyageMusic serves the voyage's background music: the file named by the voyage_music setting in
+// config/voyage/ (whether or not the voyage is enabled yet, so an admin's preview plays it). None ships with
+// Wrapperr, so without one this is a 404 and the voyage sails with its sound effects only.
+func ApiVoyageMusic(context *gin.Context) {
+	config, err := files.GetConfig()
+	if err != nil || config.VoyageMusic == "" {
+		context.Status(http.StatusNotFound)
+		return
+	}
+	path, ok := files.VoyageMusicPath(config.VoyageMusic)
+	if !ok {
+		context.Status(http.StatusNotFound)
+		return
+	}
+	if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+		context.Status(http.StatusNotFound)
+		return
+	}
+	context.Header("Content-Type", files.VoyageMusicType(config.VoyageMusic))
+	// Checked each time, so music an admin replaces plays at once
+	context.Header("Cache-Control", "no-cache")
+	context.File(path)
+}
+
+// VoyageMusicLimit is the largest music file an admin can upload
+const VoyageMusicLimit = 50 << 20
+
+// ApiUploadVoyageMusic takes an admin's music file for the voyage (form field "music"), saves it in config/voyage/
+// and makes it the voyage's music. It answers with the name it was saved under.
+func ApiUploadVoyageMusic(context *gin.Context) {
+	// Longer than the server's usual 30 seconds to read a request, for a large file over a slow connection
+	if err := http.NewResponseController(context.Writer).SetReadDeadline(time.Now().Add(15 * time.Minute)); err != nil {
+		log.Println("Failed to extend the time to read a voyage music upload. Error: " + err.Error())
+	}
+	context.Request.Body = http.MaxBytesReader(context.Writer, context.Request.Body, VoyageMusicLimit+1<<20)
+	upload, header, err := context.Request.FormFile("music")
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Choose a music file of at most 50 MB."})
+		return
+	}
+	defer upload.Close()
+	extension, ok := files.VoyageMusicExtension(header.Filename)
+	if !ok || header.Size > VoyageMusicLimit {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "The music must be an audio file (.m4a, .mp3, .ogg, .opus, .wav or .aac) of at most 50 MB."})
+		return
+	}
+	// Not a page or a script under an audio name
+	sniff := make([]byte, 512)
+	read, _ := io.ReadFull(upload, sniff)
+	if kind := http.DetectContentType(sniff[:read]); strings.HasPrefix(kind, "text/") {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "That file is not audio."})
+		return
+	}
+
+	name, err := files.SetVoyageMusicUpload(extension, io.MultiReader(bytes.NewReader(sniff[:read]), upload))
+	if err != nil {
+		log.Println("Failed to save the voyage music. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save the music."})
+		return
+	}
+
+	log.Println("Voyage music uploaded." + utilities.GetOriginIPString(context))
+	context.JSON(http.StatusOK, gin.H{"message": "Music saved.", "error": false, "data": name})
+}
+
+// ApiDeleteVoyageMusic turns the voyage's music off and deletes an uploaded music file (one put in config/voyage/
+// by hand stays).
+func ApiDeleteVoyageMusic(context *gin.Context) {
+	if err := files.ClearVoyageMusic(); err != nil {
+		log.Println("Failed to turn off the voyage music. Error: " + err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove the music."})
+		return
+	}
+
+	log.Println("Voyage music removed." + utilities.GetOriginIPString(context))
+	context.JSON(http.StatusOK, gin.H{"message": "Music removed.", "error": false})
 }
 
 // ApiGetUserVoyage answers an admin with any user's voyage, whether or not the voyage is enabled for users yet.

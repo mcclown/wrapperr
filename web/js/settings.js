@@ -171,6 +171,15 @@ function loadAdminPage() {
     html += '/><br>';
     html += '</div>';
 
+    html += '<div class="form-group">';
+    html += '<label for="voyage_music_file" title="Background music for the voyage: an audio file of your own (.m4a, .mp3, .ogg, .opus, .wav or .aac, up to 50 MB). None ships with Wrapperr; without one the voyage plays its sound effects only.">Voyage music:</label><br>';
+    html += '<div id="voyage_music_current"></div>';
+    html += '<input type="file" class="form-control" id="voyage_music_file" accept=".m4a,.mp3,.ogg,.opus,.wav,.aac,audio/*" />';
+    html += '<button type="button" class="form-control btn" id="voyage_music_upload" onclick="upload_voyage_music();" style="width: auto;">Upload music</button>';
+    html += '<button type="button" class="form-control btn" id="voyage_music_remove" onclick="remove_voyage_music();" style="width: auto;">Remove music</button>';
+    html += '<div id="voyage_music_status"></div>';
+    html += '</div>';
+
     html += '<div class="form-group newline">';
     html += '<hr>';
     html += '</div>';
@@ -209,6 +218,7 @@ function loadAdminPage() {
     html += '</form>';
 
     document.getElementById("setup").innerHTML = html;
+    show_voyage_music();
 
     getTimezones();
 
@@ -219,6 +229,104 @@ function loadAdminPage() {
 
 function splitList(value) {
     return value.split(',').map(function(entry) { return entry.trim(); }).filter(function(entry) { return entry !== ''; });
+}
+
+// Shows the voyage's music: its name and a player to listen to it, or that there is none
+function show_voyage_music() {
+    var current = document.getElementById('voyage_music_current');
+    if(!current) {
+        return;
+    }
+    document.getElementById('voyage_music_remove').style.display = voyage_music ? '' : 'none';
+    if(!voyage_music) {
+        current.innerHTML = '<p2>No music: the voyage plays its sound effects only.</p2>';
+        return;
+    }
+    // The music's own address, checked fresh each time so a replaced file plays at once
+    var music_url = api_url.replace(/api\/$/, 'voyage/audio/music') + '?v=' + Date.now();
+    current.innerHTML = '<p2>Current music: ' + escapeAttribute(voyage_music) + '</p2><br>' +
+        '<audio controls preload="none" src="' + escapeAttribute(music_url) + '" style="width: 100%; max-width: 22em; margin: 0.5em 0;"></audio>';
+}
+
+function voyage_music_status(message, failed) {
+    var status = document.getElementById('voyage_music_status');
+    status.style.color = failed ? 'var(--red)' : '';
+    status.textContent = message;
+}
+
+// Uploads the chosen file as the voyage's music; it takes effect at once, without saving the other settings
+function upload_voyage_music() {
+    var input = document.getElementById('voyage_music_file');
+    if(!input.files || input.files.length === 0) {
+        voyage_music_status('Choose a music file first.', true);
+        return;
+    }
+    var file = input.files[0];
+    if(file.size > 50 * 1024 * 1024) {
+        voyage_music_status('That file is over 50 MB.', true);
+        return;
+    }
+    var form = new FormData();
+    form.append('music', file);
+
+    var button = document.getElementById('voyage_music_upload');
+    button.disabled = true;
+    voyage_music_status('Uploading...', false);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if(this.readyState !== 4) {
+            return;
+        }
+        button.disabled = false;
+        var result;
+        try {
+            result = JSON.parse(this.responseText);
+        } catch(error) {
+            voyage_music_status(this.status === 413 ? 'That file is too large.' : "The upload failed.", true);
+            return;
+        }
+        if(this.status !== 200 || result.error) {
+            voyage_music_status(typeof result.error === 'string' ? result.error : 'The upload failed.', true);
+            return;
+        }
+        voyage_music = result.data;
+        input.value = '';
+        voyage_music_status('Music saved.', false);
+        show_voyage_music();
+    };
+    xhttp.withCredentials = true;
+    xhttp.open('post', api_url + 'upload/voyage-music');
+    xhttp.setRequestHeader('Authorization', cookie);
+    xhttp.send(form);
+}
+
+// Turns the voyage's music off (an uploaded file is deleted)
+function remove_voyage_music() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if(this.readyState !== 4) {
+            return;
+        }
+        var result;
+        try {
+            result = JSON.parse(this.responseText);
+        } catch(error) {
+            voyage_music_status('Removing the music failed.', true);
+            return;
+        }
+        if(this.status !== 200 || result.error) {
+            voyage_music_status(typeof result.error === 'string' ? result.error : 'Removing the music failed.', true);
+            return;
+        }
+        voyage_music = '';
+        voyage_music_status('Music removed.', false);
+        show_voyage_music();
+    };
+    xhttp.withCredentials = true;
+    xhttp.open('post', api_url + 'delete/voyage-music');
+    xhttp.setRequestHeader('Authorization', cookie);
+    xhttp.send();
 }
 
 function escapeAttribute(value) {

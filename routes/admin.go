@@ -3,9 +3,11 @@ package routes
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"image/png"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -85,7 +87,7 @@ func ApiSetConfig(context *gin.Context) {
 	if config_payload.DataType == "tautulli_config" {
 		config.TautulliConfig = config_payload.TautulliConfig
 
-		err = files.SaveConfig(config)
+		err = files.SaveSettings(config, false)
 		if err != nil {
 			log.Println("Failed to save new Wrapperr configuration. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new Wrapperr configuration."})
@@ -95,7 +97,7 @@ func ApiSetConfig(context *gin.Context) {
 	} else if config_payload.DataType == "wrapperr_customize" {
 		config.WrapperrCustomize = config_payload.WrapperrCustomize
 
-		err = files.SaveConfig(config)
+		err = files.SaveSettings(config, false)
 		if err != nil {
 			log.Println("Failed to save new Wrapperr configuration. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new Wrapperr configuration."})
@@ -167,8 +169,30 @@ func ApiSetConfig(context *gin.Context) {
 		if config_payload.WrapperrData.VoyageEnabled != nil {
 			config.VoyageEnabled = *config_payload.WrapperrData.VoyageEnabled
 		}
+		if music := config_payload.WrapperrData.VoyageMusic; music != nil {
+			if *music != "" {
+				path, ok := files.VoyageMusicPath(*music)
+				if !ok {
+					context.JSON(http.StatusBadRequest, gin.H{"error": "The voyage music must be the name of an audio file (.m4a, .mp3, .ogg, .opus, .wav or .aac) in config/voyage/."})
+					context.Abort()
+					return
+				}
+				// Checked when the name changes, so a file gone missing later doesn't block saving other settings
+				if info, err := os.Stat(path); *music != config.VoyageMusic && (err != nil || !info.Mode().IsRegular()) {
+					context.JSON(http.StatusBadRequest, gin.H{"error": "There is no file called " + *music + " in config/voyage/ (names are case-sensitive)."})
+					context.Abort()
+					return
+				}
+			}
+			config.VoyageMusic = *music
+		}
 
-		err = files.SaveConfig(config)
+		err = files.SaveSettings(config, config_payload.WrapperrData.VoyageMusic != nil)
+		if errors.Is(err, files.ErrVoyageMusicMissing) {
+			context.JSON(http.StatusBadRequest, gin.H{"error": "There is no file called " + config.VoyageMusic + " in config/voyage/ (names are case-sensitive)."})
+			context.Abort()
+			return
+		}
 		if err != nil {
 			log.Println("Failed to save new Wrapperr configuration. Error: " + err.Error())
 			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new Wrapperr configuration."})
