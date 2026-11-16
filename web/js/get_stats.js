@@ -1387,6 +1387,16 @@ function load_outro() {
 
             }
                 
+                // A shared link that carries the voyage leads on to it
+                if(link_mode && link_voyage) {
+                    text += "<div class='form-group' id='link_voyage_div' style=''>";
+                        text += "<button class='form-control btn' name='link_voyage_button' id='link_voyage_button' onclick='set_sail_link(false)'>";
+                            text += "<img src='assets/external-link.svg' class='btn_logo'>";
+                            text += "<p2 id='link_voyage_text'>Set sail</p2>";
+                        text += "</button>";
+                    text += "</div>";
+                }
+
                 // Signed in, the end of the log leads on to the voyage too
                 if(!link_mode && voyage_on) {
                     text += "<div class='form-group' id='voyage_div' style=''>";
